@@ -7,6 +7,7 @@ import android.security.keystore.KeyProtection;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.biometric.BiometricPrompt;
 
 import com.onemoresecret.R;
@@ -34,6 +35,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -97,7 +99,7 @@ public class CryptographyManager {
         return null;
     }
 
-    private Cipher getCipher(String transformation) throws NoSuchPaddingException, NoSuchAlgorithmException {
+    private static Cipher getCipher(String transformation) throws NoSuchPaddingException, NoSuchAlgorithmException {
         return Cipher.getInstance(transformation);
     }
 
@@ -159,11 +161,22 @@ public class CryptographyManager {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1);
     }
 
+    public static X509Certificate createCertificate(byte[] certificateData) throws CertificateException {
+        CertificateFactory cf = CertificateFactory.getInstance("X509");
+        return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificateData));
+    }
+
+    public static RSAPrivateCrtKey createPrivateKey(byte[] keyMaterial) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        KeyFactory keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyMaterial);
+        return (RSAPrivateCrtKey) keyFactory.generatePrivate(keySpec);
+    }
+
     /**
      * Import RSA key pair using encoded key data from {@link PrivateKey#getEncoded()} and {@link PublicKey#getEncoded()}.
      *
-     * @param keyMaterial
-     * @param certificateData if {@code null}, the private key will be signed by the generated self-signed certificate.
+     * @param privateKey
+     * @param certificate if {@code null}, the private key will be signed by the generated self-signed certificate.
      * @param keyName
      * @throws CertificateException
      * @throws NoSuchAlgorithmException
@@ -171,7 +184,7 @@ public class CryptographyManager {
      * @throws KeyStoreException
      * @throws IOException
      */
-    public void importKey(String keyName, byte[] keyMaterial, byte[] certificateData) throws
+    public void importKey(String keyName, @NonNull PrivateKey privateKey, X509Certificate certificate) throws
             CertificateException,
             NoSuchAlgorithmException,
             InvalidKeySpecException,
@@ -179,22 +192,14 @@ public class CryptographyManager {
             IOException,
             OperatorCreationException {
 
-        KeyFactory keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyMaterial);
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-
-        X509Certificate cert;
-        if (certificateData == null || certificateData.length == 0) {
+        if (certificate == null) {
             //create self-signed certificate
             PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
             KeyPair keyPair = new KeyPair(publicKey, privateKey);
-            cert = SelfSignedCertGenerator.generate(keyPair, "SHA256withRSA", "OneMoreSecret", 730);
-        } else {
-            CertificateFactory cf = CertificateFactory.getInstance("X509");
-            cert = (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificateData));
+            certificate = SelfSignedCertGenerator.generate(keyPair, "SHA256withRSA", "OneMoreSecret", 730);
         }
 
-        KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{cert});
+        KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{certificate});
 
         KeyProtection keyProtection = new KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setUserAuthenticationRequired(true)
@@ -205,10 +210,10 @@ public class CryptographyManager {
 
         keyStore.setEntry(keyName, privateKeyEntry, keyProtection);
 
-        Log.d(TAG, "Private key '" + keyName + "' successfully imported. Certificate: " + cert.getSerialNumber());
+        Log.d(TAG, "Private key '" + keyName + "' successfully imported. Certificate: " + certificate.getSerialNumber());
     }
 
-    public PublicKey createPublicFromPrivateKey(RSAPrivateCrtKey privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static PublicKey createPublicFromPrivateKey(RSAPrivateCrtKey privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         //https://gist.github.com/manzke/1068441
         return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
     }
@@ -262,62 +267,6 @@ public class CryptographyManager {
         return sha256.digest(publicKey.getPublicExponent().toByteArray());
     }
 
-    public void showBiometricPromptForDecryption(byte[] data,
-                                                 Context ctx,
-                                                 Function<BiometricPrompt.AuthenticationCallback, BiometricPrompt> biometricPromptFx,
-                                                 String alias,
-                                                 String transformation,
-                                                 Consumer<byte[]> andThen) {
-        BiometricPrompt.AuthenticationCallback callback = new BiometricPrompt.AuthenticationCallback() {
 
-            @Override
-            public void onAuthenticationError(int errCode, CharSequence errString) {
-                super.onAuthenticationError(errCode, errString);
-                Log.d(TAG,
-                        "Authentification failed: " + errString + " (" + errCode + ")");
-                Toast.makeText(ctx, errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onAuthenticationFailed() {
-                super.onAuthenticationFailed();
-                Log.d(TAG,
-                        "User biometric rejected");
-                Toast.makeText(ctx, "Authentication failed", Toast.LENGTH_SHORT).show();
-            }
-
-            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                super.onAuthenticationSucceeded(result);
-                Log.d(TAG,
-                        "Authentication was successful");
-
-                Cipher cipher = result.getCryptoObject().getCipher();
-                try {
-                    byte[] bArr = cipher.doFinal(data);
-                    andThen.accept(bArr);
-                } catch (Exception e) {
-                    //todo: dummy!
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle(ctx.getString(R.string.prompt_info_title))
-                .setSubtitle(ctx.getString(R.string.prompt_info_subtitle))
-                .setDescription(ctx.getString(R.string.prompt_info_description))
-                .setNegativeButtonText(ctx.getString(R.string.prompt_info_negative_text))
-                .setConfirmationRequired(false)
-                .build();
-
-        Cipher cipher = this.getInitializedCipherForDecryption(
-                alias, transformation);
-
-        BiometricPrompt biometricPrompt = biometricPromptFx.apply(callback);
-
-        biometricPrompt.authenticate(
-                promptInfo,
-                new BiometricPrompt.CryptoObject(cipher));
-    }
 }
 

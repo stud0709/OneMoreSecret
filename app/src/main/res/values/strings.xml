@@ -2,8 +2,8 @@
     <string name="app_name">OneMoreSecret</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
+    <string name="qr_fragment_label">QR Fragment</string>
+    <string name="message_fragment_label">Message Fragment</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
@@ -16,4 +16,6 @@
     <string name="prompt_info_subtitle">Authorization required to access the keystore</string>
     <string name="prompt_info_description">We need to check your identity to access the key data</string>
     <string name="prompt_info_negative_text">Cancel</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -3,26 +3,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/FirstFragment">
+    app:startDestination="@id/QRFragment">
 
     <fragment
-        android:id="@+id/FirstFragment"
-        android:name="com.onemoresecret.FirstFragment"
-        android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_first">
+        android:id="@+id/QRFragment"
+        android:name="com.onemoresecret.QRFragment"
+        android:label="@string/qr_fragment_label"
+        tools:layout="@layout/fragment_qr">
 
         <action
-            android:id="@+id/action_FirstFragment_to_SecondFragment"
-            app:destination="@id/SecondFragment" />
+            android:id="@+id/action_QRFragment_to_MessageFragment"
+            app:destination="@id/MessageFragment"
+            app:popUpToInclusive="false" />
+        <action
+            android:id="@+id/action_QRFragment_to_keyImportFragment"
+            app:destination="@id/KeyImportFragment" />
     </fragment>
     <fragment
-        android:id="@+id/SecondFragment"
-        android:name="com.onemoresecret.SecondFragment"
-        android:label="@string/second_fragment_label"
-        tools:layout="@layout/fragment_second">
-
-        <action
-            android:id="@+id/action_SecondFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
-    </fragment>
+        android:id="@+id/MessageFragment"
+        android:name="com.onemoresecret.MessageFragment"
+        android:label="@string/message_fragment_label"
+        tools:layout="@layout/fragment_message"/>
+    <fragment
+        android:id="@+id/KeyImportFragment"
+        android:name="com.onemoresecret.KeyImportFragment"
+        android:label="fragment_key_import"
+        tools:layout="@layout/fragment_key_import" />
 </navigation>

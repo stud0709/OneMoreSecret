@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MessageFragment">
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/swRevealMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="32dp"
+        android:text="Reveal Message"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/textViewMessage"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:lines="10"
+        android:text="(hidden text, slide to reveal)"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipNumLock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:chipIcon="@drawable/ic_baseline_lock_open_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget"
+        tools:text="Num" />
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipCapsLock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        app:chipIcon="@drawable/ic_baseline_lock_open_24"
+        app:layout_constraintEnd_toStartOf="@+id/chipNumLock"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget"
+        tools:text="Caps" />
+
+    <Spinner
+        android:id="@+id/spinnerBluetoothTarget"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/lblBluetoothTarget" />
+
+    <TextView
+        android:id="@+id/lblBluetoothTarget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Bluetooth Target:"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewMessage" />
+
+    <TextView
+        android:id="@+id/lblKeyboardLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Keyboard Layout:"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chipCapsLock" />
+
+    <Spinner
+        android:id="@+id/spinnerKeyboardLayout"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/lblKeyboardLayout" />
+
+    <Button
+        android:id="@+id/btnType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Type"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerKeyboardLayout" />
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipBT"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:text="Connection"
+        app:chipIcon="@drawable/ic_baseline_bluetooth_24"
+        app:layout_constraintEnd_toStartOf="@+id/chipCapsLock"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+
+    <ImageButton
+        android:id="@+id/imageButton2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:src="@drawable/ic_baseline_bluetooth_searching_24"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

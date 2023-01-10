@@ -31,21 +31,20 @@ import com.google.zxing.Result;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.bt.KeyboardReport;
 import com.onemoresecret.bt.layout.GermanLayout;
-import com.onemoresecret.databinding.FragmentFirstBinding;
+import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
-import com.onemoresecret.qr.MessageProcessor;
+import com.onemoresecret.qr.MessageProcessorApplication;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class FirstFragment extends Fragment {
-    private static final String TAG = FirstFragment.class.getSimpleName();
+public class QRFragment extends Fragment {
+    private static final String TAG = QRFragment.class.getSimpleName();
 
-    private FragmentFirstBinding binding;
+    private FragmentQrBinding binding;
 
     private final String REQUIRED_PERMISSIONS[] = {
             Manifest.permission.CAMERA,
@@ -55,7 +54,7 @@ public class FirstFragment extends Fragment {
     };
 
     private BluetoothController bluetoothController;
-    private final MessageProcessor messageProcessor = new MessageProcessor((callback) -> new BiometricPrompt(this, callback));
+//    private final MessageProcessor messageProcessor = new MessageProcessor((callback) -> new BiometricPrompt(this, callback));
 
     @Override
     public View onCreateView(
@@ -63,7 +62,7 @@ public class FirstFragment extends Fragment {
             Bundle savedInstanceState
     ) {
 
-        binding = FragmentFirstBinding.inflate(inflater, container, false);
+        binding = FragmentQrBinding.inflate(inflater, container, false);
 
         int canAuthenticate = ((BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE))
                 .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.BIOMETRIC_STRONG);
@@ -154,7 +153,29 @@ public class FirstFragment extends Fragment {
                                 cameraProvider.unbindAll();
                             });
 
-                            messageProcessor.onMessage(message, getContext());
+                            getContext().getMainExecutor().execute(() -> {
+                                String[] sArr = message.split("\t", 2);
+
+                                //(1) application ID
+                                int applicationId = Integer.parseInt(sArr[0]);
+                                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
+
+                                Bundle bundle = new Bundle();
+                                bundle.putString("MESSAGE", message);
+
+                                switch (applicationId) {
+                                    case MessageProcessorApplication.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER:
+                                        NavHostFragment.findNavController(QRFragment.this)
+                                                .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
+                                        break;
+                                    case MessageProcessorApplication.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                                        NavHostFragment.findNavController(QRFragment.this)
+                                                .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                                    default:
+                                        Log.d(TAG, "No processor defined for application ID " + Integer.toHexString(applicationId));
+                                        break;
+                                }
+                            });
                         } catch (Exception ex) {
                             ex.printStackTrace();
                         }
@@ -200,13 +221,8 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                NavHostFragment.findNavController(FirstFragment.this)
-                        .navigate(R.id.action_FirstFragment_to_SecondFragment);
-            }
-        });
+        binding.buttonFirst.setOnClickListener(view1 -> NavHostFragment.findNavController(QRFragment.this)
+                .navigate(R.id.action_QRFragment_to_MessageFragment));
     }
 
     @Override
