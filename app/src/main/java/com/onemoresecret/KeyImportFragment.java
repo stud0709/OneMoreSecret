@@ -20,8 +20,11 @@ import com.onemoresecret.qr.MessageProcessorApplication;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -84,8 +87,8 @@ public class KeyImportFragment extends Fragment {
         // --- Encrypted part ---
 
         //(9) cipher text
-        byte[] cipherText = Base64.getDecoder().decode(sArr[7]);
-        Log.d(TAG, Integer.toString(cipherText.length) + " bytes cipher text read");
+        byte[] cipherText = Base64.getDecoder().decode(sArr[8]);
+        Log.d(TAG, cipherText.length + " bytes cipher text read");
 
         binding.editTextKeyAlias.setText(alias);
 
@@ -108,7 +111,7 @@ public class KeyImportFragment extends Fragment {
         try {
             //try decrypt
             SecretKey secretKey = AESUtil.getKeyFromPassword(
-                    binding.editTextPassphrase.getText().toString(),
+                    binding.editTextPassphrase.getText().toString().toCharArray(),
                     salt,
                     keyAlg,
                     keyLength,
@@ -151,17 +154,26 @@ public class KeyImportFragment extends Fragment {
                             try {
                                 String keyAlias = binding.editTextKeyAlias.getText().toString().trim();
                                 new CryptographyManager().importKey(keyAlias, privateKey, certificate);
-                                Toast.makeText(this.getContext(), "Private key '" + keyAlias + "' successfully imported", Toast.LENGTH_LONG).show();
+                                getContext().getMainExecutor().execute(
+                                        () -> Toast.makeText(this.getContext(),
+                                                "Private key '" + keyAlias + "' successfully imported",
+                                                Toast.LENGTH_LONG).show());
                             } catch (Exception ex) {
                                 ex.printStackTrace();
-                                Toast.makeText(this.getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+                                getContext().getMainExecutor().execute(
+                                        () -> Toast.makeText(this.getContext(),
+                                                ex.getMessage(),
+                                                Toast.LENGTH_LONG).show());
                             }
                         }).start()
                 );
             });
         } catch (Exception ex) {
             ex.printStackTrace();
-            Toast.makeText(this.getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            getContext().getMainExecutor().execute(
+                    () -> Toast.makeText(this.getContext(),
+                            "Could not decrypt. Wrong passphrase?",
+                            Toast.LENGTH_LONG).show());
         }
     }
 

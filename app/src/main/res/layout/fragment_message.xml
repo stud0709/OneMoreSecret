@@ -20,7 +20,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:lines="10"
-        android:text="(hidden text, slide to reveal)"
+        android:text="@string/hidden_text_slide_to_reveal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />

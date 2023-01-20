@@ -16,6 +16,7 @@ import com.google.zxing.FormatException;
 import com.google.zxing.NotFoundException;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
+import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
@@ -25,8 +26,6 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
     @Override
     public void analyze(@NonNull ImageProxy image) {
         try {
-            int rotation = image.getImageInfo().getRotationDegrees();
-
             if (image.getFormat() != YUV_420_888 && image.getFormat() != YUV_422_888 && image.getFormat() != YUV_444_888)
                 return;
 
@@ -49,14 +48,13 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
                 onQRCodeFound(result);
                 return;
             } catch (FormatException | ChecksumException | NotFoundException e) {
-                qrCodeNotFound();
+
             }
         } finally {
             image.close();
         }
     }
 
-    public abstract void qrCodeNotFound();
-
     public abstract void onQRCodeFound(Result result);
+
 }

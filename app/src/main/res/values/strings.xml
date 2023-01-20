@@ -2,8 +2,9 @@
     <string name="app_name">OneMoreSecret</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="qr_fragment_label">QR Fragment</string>
-    <string name="message_fragment_label">Message Fragment</string>
+    <string name="qr_fragment_label">Scan QR Code Sequence</string>
+    <string name="message_fragment_label">Decrypted Message</string>
+    <string name="key_import_fragment_label">Private Key Import</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
@@ -18,4 +19,5 @@
     <string name="prompt_info_negative_text">Cancel</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="hidden_text_slide_to_reveal">(hidden text, slide to reveal)</string>
 </resources>

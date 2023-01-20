@@ -3,7 +3,11 @@ package com.onemoresecret;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.hardware.biometrics.BiometricManager;
+import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
@@ -28,6 +32,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
+import com.google.zxing.common.BitMatrix;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.bt.KeyboardReport;
 import com.onemoresecret.bt.layout.GermanLayout;
@@ -36,15 +41,20 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.MessageProcessorApplication;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
 
     private FragmentQrBinding binding;
+    private ImageAnalysis imageAnalysis;
 
     private final String REQUIRED_PERMISSIONS[] = {
             Manifest.permission.CAMERA,
@@ -84,8 +94,6 @@ public class QRFragment extends Fragment {
             }).launch(REQUIRED_PERMISSIONS);
         }
 
-        binding.switch90.setOnCheckedChangeListener((compoundButton, b) -> startCamera());
-
         binding.buttonHid.setOnClickListener(view -> {
             Log.d(TAG, "HID has been clicked");
             if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -104,7 +112,6 @@ public class QRFragment extends Fragment {
                                 r.report));
             });
         });
-
 
         return binding.getRoot();
 
@@ -147,7 +154,6 @@ public class QRFragment extends Fragment {
                 MessageParser parser = new MessageParser() {
                     @Override
                     public void onMessage(String message) {
-                        Log.d("QR", "message: " + message);
                         try {
                             getContext().getMainExecutor().execute(() -> {
                                 cameraProvider.unbindAll();
@@ -183,46 +189,43 @@ public class QRFragment extends Fragment {
 
                     @Override
                     public void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
-                        Log.d("MessageParser", cntReceived + " of " + totalChunks + " received");
+                        QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
                     }
                 };
 
-                ImageAnalysis imageAnalysis =
+                imageAnalysis =
                         new ImageAnalysis.Builder()
                                 .setTargetResolution(new Size(binding.cameraPreview.getWidth(), binding.cameraPreview.getHeight()))
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .setTargetRotation(binding.switch90.isChecked() ? Surface.ROTATION_90 : Surface.ROTATION_0)
                                 .build();
 
                 imageAnalysis.setAnalyzer(getContext().getMainExecutor(), new QRCodeAnalyzer() {
                     @Override
-                    public void qrCodeNotFound() {
-                        return;
-                    }
-
-                    @Override
                     public void onQRCodeFound(Result result) {
-                        //Log.d("QR", result.getText());
                         try {
                             parser.consume(result.getText());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
+
                 });
 
-                cameraProvider.bindToLifecycle((LifecycleOwner) this, cameraSelector, preview, imageAnalysis);
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
             } catch (ExecutionException | InterruptedException e) {
                 Toast.makeText(getContext(), "Error starting camera " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }, getContext().getMainExecutor());
     }
 
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    private BitSet lastReceivedChunks = null;
 
-        binding.buttonFirst.setOnClickListener(view1 -> NavHostFragment.findNavController(QRFragment.this)
-                .navigate(R.id.action_QRFragment_to_MessageFragment));
+    private void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
+        if (receivedChunks.equals(lastReceivedChunks)) return;
+        String s = IntStream.range(0, totalChunks)
+                .filter(i -> !receivedChunks.get(i))
+                .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(","));
+        getContext().getMainExecutor().execute(() -> binding.txtRemainingCodes.setText(s));
     }
 
     @Override

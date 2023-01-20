@@ -8,15 +8,6 @@
     tools:context=".KeyImportFragment">
 
     <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:id="@+id/textKeyImport"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Private Key Import"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
         android:id="@+id/editTextKeyAlias"
@@ -38,7 +29,6 @@
         android:gravity="start|top"
         android:hint="Passphrase"
         android:inputType="textMultiLine"
-        android:lines="5"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -58,9 +48,9 @@
         android:id="@+id/btnDecrypt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:text="Decrypt"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editTextPassphrase" />
 
@@ -79,15 +69,15 @@
         android:id="@+id/textKeyAlias"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Key Alias:"
+        android:text="Key Alias"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textKeyImport" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/textPassphrase"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Transport Passphrase:"
+        android:text="Transport Passphrase (required)"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editTextKeyAlias" />
 
@@ -119,5 +109,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textCerfiticateLabel" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

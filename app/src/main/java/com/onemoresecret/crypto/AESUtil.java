@@ -18,14 +18,13 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class AESUtil {
-    public static final String KEY_ALG_AES = "AES";
 
-    public static SecretKey getKeyFromPassword(String password, byte[] salt, String keyAlgorithm, int keyLength, int keySpecIterations)
+    public static SecretKey getKeyFromPassword(char[] password, byte[] salt, String keyAlgorithm, int keyLength, int keySpecIterations)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(keyAlgorithm);
-        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, keySpecIterations, keyLength);
-        SecretKey secret = new SecretKeySpec(factory.generateSecret(spec).getEncoded(), KEY_ALG_AES);
+        KeySpec spec = new PBEKeySpec(password, salt, keySpecIterations, keyLength);
+        SecretKey secret = new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
         return secret;
     }
 
@@ -38,7 +37,7 @@ public class AESUtil {
     public static SecretKey generateRandomSecretKey(int keyLength) {
         byte[] bArr = new byte[keyLength / 8];
         new SecureRandom().nextBytes(bArr);
-        return new SecretKeySpec(bArr, KEY_ALG_AES);
+        return new SecretKeySpec(bArr, "AES");
     }
 
     public static byte[] encrypt(byte[] input, SecretKey key, IvParameterSpec iv, String aesTransformation)

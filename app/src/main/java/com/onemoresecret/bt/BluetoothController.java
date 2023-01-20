@@ -59,9 +59,7 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
         return btHid;
     }
 
-//////////////////////////////////////
-// BluetoothProfile.ServiceListener //
-//////////////////////////////////////
+// BluetoothProfile.ServiceListener
 
     @Override
     public void onServiceConnected(int profile, BluetoothProfile proxy) {
@@ -86,10 +84,7 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
             btHid = null;
     }
 
-/////////////////////////////////
-// BluetoothHidDevice.Callback //
-/////////////////////////////////
-
+// BluetoothHidDevice.Callback
 
     @Override
     public void onConnectionStateChanged(BluetoothDevice device, int state) {
@@ -106,20 +101,12 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
     public void onGetReport(BluetoothDevice device, byte type, byte id, int bufferSize) {
         super.onGetReport(device, type, id, bufferSize);
         Log.i(TAG, "onGetReport - device: " + device + ", type: " + type + " id: " + id + ", bufferSize: " + bufferSize);
-/*
-        if (type == BluetoothHidDevice.REPORT_TYPE_FEATURE) {
-            featureReport.wheelResolutionMultiplier = true
-            featureReport.acPanResolutionMultiplier = true
-            Log.i("getbthid","$btHid")
-
-            var wasrs=btHid?.replyReport(device, type, FeatureReport.ID, featureReport.bytes)
-            Log.i("replysuccess flag ",wasrs.toString())
-        }
-*/
     }
 
     @Override
     public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
+        if (device == null) return;
+
         super.onAppStatusChanged(device, registered);
         Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
 
@@ -150,9 +137,10 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
     }
 
     public static String byteArrayToHex(byte[] a) {
-        StringBuilder sb = new StringBuilder(a.length * 2);
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
         for (byte b : a)
-            sb.append(String.format("%02x", b)).append(" ");
+            sb.append(String.format("%02x", b)).append(i++ % 2 == 1 ? " " : "");
         return sb.toString();
     }
 
