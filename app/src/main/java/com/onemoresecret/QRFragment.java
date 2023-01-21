@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.biometric.BiometricPrompt;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -157,9 +158,7 @@ public class QRFragment extends Fragment {
                         try {
                             getContext().getMainExecutor().execute(() -> {
                                 cameraProvider.unbindAll();
-                            });
 
-                            getContext().getMainExecutor().execute(() -> {
                                 String[] sArr = message.split("\t", 2);
 
                                 //(1) application ID
@@ -175,6 +174,7 @@ public class QRFragment extends Fragment {
                                                 .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                                         break;
                                     case MessageProcessorApplication.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                                         NavHostFragment.findNavController(QRFragment.this)
                                                 .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                                     default:

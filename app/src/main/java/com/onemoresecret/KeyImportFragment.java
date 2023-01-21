@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
@@ -155,9 +156,13 @@ public class KeyImportFragment extends Fragment {
                                 String keyAlias = binding.editTextKeyAlias.getText().toString().trim();
                                 new CryptographyManager().importKey(keyAlias, privateKey, certificate);
                                 getContext().getMainExecutor().execute(
-                                        () -> Toast.makeText(this.getContext(),
-                                                "Private key '" + keyAlias + "' successfully imported",
-                                                Toast.LENGTH_LONG).show());
+                                        () -> {
+                                            Toast.makeText(this.getContext(),
+                                                    "Private key '" + keyAlias + "' successfully imported",
+                                                    Toast.LENGTH_LONG).show();
+                                            NavHostFragment.findNavController(KeyImportFragment.this).popBackStack();
+                                        });
+
                             } catch (Exception ex) {
                                 ex.printStackTrace();
                                 getContext().getMainExecutor().execute(

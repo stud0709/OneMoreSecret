@@ -16,24 +16,31 @@ import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 import com.onemoresecret.qr.MessageProcessorApplication;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class MessageFragment extends Fragment {
     private static final String TAG = MessageFragment.class.getSimpleName();
-    private byte[] cipherText;
+    private byte[] cipherText, encryptedAesSecretKey, iv;
+    private String rsaTransformation, aesTransformation;
 
     private FragmentMessageBinding binding;
 
@@ -63,19 +70,19 @@ public class MessageFragment extends Fragment {
                 throw new IllegalArgumentException("wrong applicationId: " + applicationId);
 
             //(2) RSA transformation
-            String rsaTransformation = sArr[1];
+            rsaTransformation = sArr[1];
 
             //(3) fingerprint
             byte[] fingerprint = Base64.getDecoder().decode(sArr[2]);
 
             // (4) AES transformation
-            String aesTransformation = sArr[3];
+            aesTransformation = sArr[3];
 
             //(5) IV
-            byte[] iv = Base64.getDecoder().decode(sArr[4]);
+            iv = Base64.getDecoder().decode(sArr[4]);
 
             //(6) RSA-encrypted AES secret key
-            byte[] encryptedAesSecretKey = Base64.getDecoder().decode(sArr[5]);
+            encryptedAesSecretKey = Base64.getDecoder().decode(sArr[5]);
 
             //(7) AES-encrypted message
             cipherText = Base64.getDecoder().decode(sArr[6]);
@@ -87,14 +94,14 @@ public class MessageFragment extends Fragment {
 
             if (aliases.isEmpty()) throw new NoSuchElementException("No key found");
 
-            showBiometricPromptForDecryption(aliases.get(0), rsaTransformation);
+            showBiometricPromptForDecryption(aliases.get(0));
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(this.getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    private void showBiometricPromptForDecryption(String alias, String transformation) throws
+    private void showBiometricPromptForDecryption(String alias) throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             KeyStoreException,
@@ -132,7 +139,7 @@ public class MessageFragment extends Fragment {
                 .build();
 
         Cipher cipher = new CryptographyManager().getInitializedCipherForDecryption(
-                alias, transformation);
+                alias, rsaTransformation);
 
         biometricPrompt.authenticate(
                 promptInfo,
@@ -142,13 +149,19 @@ public class MessageFragment extends Fragment {
     public void onAuthenticationError(int errCode, CharSequence errString) {
         Log.d(TAG,
                 "Authentication failed: " + errString + " (" + errCode + ")");
-        Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
+        getContext().getMainExecutor().execute(() -> {
+            Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
+            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+        });
     }
 
     public void onAuthenticationFailed() {
         Log.d(TAG,
                 "User biometric rejected");
-        Toast.makeText(getContext(), "Authentication failed", Toast.LENGTH_SHORT).show();
+        getContext().getMainExecutor().execute(() -> {
+            Toast.makeText(getContext(), "Authentication failed", Toast.LENGTH_SHORT).show();
+            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+        });
     }
 
     public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
@@ -157,18 +170,38 @@ public class MessageFragment extends Fragment {
 
         Cipher cipher = result.getCryptoObject().getCipher();
         try {
-            byte[] bArr = cipher.doFinal(cipherText);
+            byte[] aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
+            SecretKey aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+            byte[] bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
+
             onDecryptedData(bArr);
         } catch (Exception e) {
-            //todo: dummy!
             e.printStackTrace();
+            getContext().getMainExecutor().execute(() -> {
+                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+            });
         }
     }
 
-    private void onDecryptedData(byte[] bArr) {
-        String message = new String(bArr);
+    private void onDecryptedData(byte[] bArr) throws NoSuchAlgorithmException {
+        String[] sArr = new String(bArr).split("\t");
+        // (1) message
+        byte[] messageBytes = Base64.getDecoder().decode(sArr[0]);
+        String message = new String(messageBytes);
+
+        // (2) hash
+        byte[] hash = Base64.getDecoder().decode(sArr[1]);
+
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        byte[] _hash = sha256.digest(messageBytes);
+
+        if (!Arrays.equals(hash, _hash)) {
+            throw new IllegalArgumentException("Could not confirm message integrity");
+        }
+
         binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> {
-            binding.textViewMessage.setText( b ? message : getString(R.string.hidden_text_slide_to_reveal));
+            binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal));
         });
     }
 
