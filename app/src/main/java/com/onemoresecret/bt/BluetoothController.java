@@ -12,15 +12,18 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
-import androidx.activity.result.ActivityResultCaller;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
 
 import java.util.List;
 
 //https://developer.android.com/guide/topics/connectivity/bluetooth/setup
 
-public class BluetoothController extends BluetoothHidDevice.Callback implements BluetoothProfile.ServiceListener {
+public class BluetoothController implements BluetoothProfile.ServiceListener {
     private static final String TAG = BluetoothController.class.getSimpleName();
 
     private final BluetoothHidDeviceAppSdpSettings sdpRecord = new BluetoothHidDeviceAppSdpSettings(
@@ -31,32 +34,36 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
             REPORT_MAP_KEYBOARD
     );
 
-    private final Context ctx;
-    private BluetoothHidDevice btHid;
-    private BluetoothManager bluetoothManager;
+    private final Fragment fragment;
+    private final BluetoothManager bluetoothManager;
+    private final ActivityResultLauncher<Intent> activityResultLauncher;
+    private final BluetoothHidDevice.Callback callback;
+    private BluetoothHidDevice bluetoothHidDevice = null;
 
-    public BluetoothController(Context ctx) {
-        this.ctx = ctx;
-        this.bluetoothManager = (BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
-        boolean b = bluetoothManager.getAdapter().getProfileProxy(ctx, this, BluetoothProfile.HID_DEVICE);
+    public BluetoothController(Fragment fragment, ActivityResultCallback<ActivityResult> onActivityResult, BluetoothHidDevice.Callback callback) {
+        this.fragment = fragment;
+        this.callback = callback;
+        this.bluetoothManager = (BluetoothManager) fragment.getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+        boolean b = bluetoothManager.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
         Log.i(TAG, "getProfileProxy: " + b);
+
+        //prepare intent "request discoverable"
+        activityResultLauncher = fragment.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), onActivityResult);
     }
 
-    public void requestDiscoverable(ActivityResultCaller activityResultCaller, int duration_s) {
+    public BluetoothHidDevice getBluetoothHidDevice() {
+        return bluetoothHidDevice;
+    }
+
+    public void requestDiscoverable(int discoverable_duration_s) {
         Intent discoverableIntent =
                 new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration_s);
-        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
-        activityResultCaller.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            // don't care if discovery was started or not
-        }).launch(discoverableIntent);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, discoverable_duration_s);
+        activityResultLauncher.launch(discoverableIntent);
     }
 
-    public BluetoothHidDevice getBtHid() {
-        return btHid;
+    public BluetoothAdapter getAdapter() {
+        return bluetoothManager.getAdapter();
     }
 
 // BluetoothProfile.ServiceListener
@@ -69,71 +76,18 @@ public class BluetoothController extends BluetoothHidDevice.Callback implements 
             return;
         }
 
-        this.btHid = (BluetoothHidDevice) proxy;
-
-        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(fragment.getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        btHid.registerApp(sdpRecord, null, null, ctx.getMainExecutor(), this);
+
+        bluetoothHidDevice = (BluetoothHidDevice) proxy;
+        bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.getContext().getMainExecutor(), callback);
     }
 
     @Override
     public void onServiceDisconnected(int profile) {
         Log.i(TAG, "Service disconnected: " + profile);
-        if (profile == BluetoothProfile.HID_DEVICE)
-            btHid = null;
-    }
-
-// BluetoothHidDevice.Callback
-
-    @Override
-    public void onConnectionStateChanged(BluetoothDevice device, int state) {
-        super.onConnectionStateChanged(device, state);
-    }
-
-    @Override
-    public void onSetReport(BluetoothDevice device, byte type, byte id, byte[] data) {
-        super.onSetReport(device, type, id, data);
-        Log.i(TAG, "onSetReport - device: " + device.toString() + ", type: " + type + ", id: " + id + ", data: " + byteArrayToHex(data));
-    }
-
-    @Override
-    public void onGetReport(BluetoothDevice device, byte type, byte id, int bufferSize) {
-        super.onGetReport(device, type, id, bufferSize);
-        Log.i(TAG, "onGetReport - device: " + device + ", type: " + type + " id: " + id + ", bufferSize: " + bufferSize);
-    }
-
-    @Override
-    public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
-        if (device == null) return;
-
-        super.onAppStatusChanged(device, registered);
-        Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
-
-        if (registered) {
-            if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-
-            List<BluetoothDevice> pairedDevices = btHid.getDevicesMatchingConnectionStates(
-                    new int[]{BluetoothProfile.STATE_CONNECTING,
-                            BluetoothProfile.STATE_CONNECTED,
-                            BluetoothProfile.STATE_DISCONNECTED,
-                            BluetoothProfile.STATE_DISCONNECTING});
-            Log.d(TAG, "paired devices: " + pairedDevices);
-
-            //TODO: test
-            if (btHid.getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED)
-                btHid.connect(device);
-        }
-    }
-
-    @Override
-    public void onInterruptData(BluetoothDevice device, byte reportId, byte[] data) {
-        super.onInterruptData(device, reportId, data);
-
-        Log.d(TAG, "data: " + byteArrayToHex(data));
-        //TODO: LED status has changed
+        bluetoothHidDevice = null;
     }
 
     public static String byteArrayToHex(byte[] a) {

@@ -3,50 +3,34 @@ package com.onemoresecret;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.hardware.biometrics.BiometricManager;
-import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
-import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.biometric.BiometricPrompt;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
-import com.google.zxing.common.BitMatrix;
 import com.onemoresecret.bt.BluetoothController;
-import com.onemoresecret.bt.KeyboardReport;
-import com.onemoresecret.bt.layout.GermanLayout;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.MessageProcessorApplication;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -65,7 +49,7 @@ public class QRFragment extends Fragment {
     };
 
     private BluetoothController bluetoothController;
-//    private final MessageProcessor messageProcessor = new MessageProcessor((callback) -> new BiometricPrompt(this, callback));
+
 
     @Override
     public View onCreateView(
@@ -95,34 +79,11 @@ public class QRFragment extends Fragment {
             }).launch(REQUIRED_PERMISSIONS);
         }
 
-        binding.buttonHid.setOnClickListener(view -> {
-            Log.d(TAG, "HID has been clicked");
-            if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-
-            List<KeyboardReport[]> list = new GermanLayout().forString("Hello, World!");
-
-            Log.d(TAG, "got " + list.size() + " report arrays");
-
-            getContext().getMainExecutor().execute(() -> {
-                list.stream().flatMap(a -> Arrays.stream(a)).forEach(r ->
-                        bluetoothController.getBtHid().sendReport(
-                                bluetoothController.getBtHid().getConnectedDevices().get(0),
-                                0,
-                                r.report));
-            });
-        });
-
         return binding.getRoot();
 
     }
 
     private void onAllPermissionsGranted() {
-        //TODO: remove after bluetooth test >>>
-        bluetoothController = new BluetoothController(getContext());
-        bluetoothController.requestDiscoverable(this, 60);
-        //TODO: <<<
         startCamera();
     }
 
@@ -224,7 +185,7 @@ public class QRFragment extends Fragment {
         if (receivedChunks.equals(lastReceivedChunks)) return;
         String s = IntStream.range(0, totalChunks)
                 .filter(i -> !receivedChunks.get(i))
-                .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(","));
+                .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(", "));
         getContext().getMainExecutor().execute(() -> binding.txtRemainingCodes.setText(s));
     }
 

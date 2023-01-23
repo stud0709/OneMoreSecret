@@ -21,28 +21,10 @@
         android:layout_height="wrap_content"
         android:lines="10"
         android:text="@string/hidden_text_slide_to_reveal"
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />
-
-    <com.google.android.material.chip.Chip
-        android:id="@+id/chipNumLock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:chipIcon="@drawable/ic_baseline_lock_open_24"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget"
-        tools:text="Num" />
-
-    <com.google.android.material.chip.Chip
-        android:id="@+id/chipCapsLock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        app:chipIcon="@drawable/ic_baseline_lock_open_24"
-        app:layout_constraintEnd_toStartOf="@+id/chipNumLock"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget"
-        tools:text="Caps" />
 
     <Spinner
         android:id="@+id/spinnerBluetoothTarget"
@@ -69,7 +51,7 @@
         android:layout_marginTop="8dp"
         android:text="Keyboard Layout:"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chipCapsLock" />
+        app:layout_constraintTop_toBottomOf="@+id/imgButtonDiscoverable" />
 
     <Spinner
         android:id="@+id/spinnerKeyboardLayout"
@@ -85,27 +67,32 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
+        android:enabled="false"
         android:text="Type"
+        app:icon="@drawable/ic_baseline_keyboard_24"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/spinnerKeyboardLayout" />
 
     <com.google.android.material.chip.Chip
-        android:id="@+id/chipBT"
+        android:id="@+id/chipBtStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:text="Connection"
+        android:clickable="false"
+        android:text="unsupported"
         app:chipIcon="@drawable/ic_baseline_bluetooth_24"
-        app:layout_constraintEnd_toStartOf="@+id/chipCapsLock"
+        app:chipIconTint="@color/mtrl_chip_close_icon_tint"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
 
-    <ImageButton
-        android:id="@+id/imageButton2"
+    <Button
+        android:id="@+id/imgButtonDiscoverable"
+        style="@style/Widget.App.Button.IconOnly"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:src="@drawable/ic_baseline_bluetooth_searching_24"
+        android:enabled="false"
+        app:icon="@drawable/ic_baseline_bluetooth_discovering_24"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
 

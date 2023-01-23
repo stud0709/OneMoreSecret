@@ -35,4 +35,12 @@ public abstract class KeyboardLayout {
 
         return list;
     }
+
+    public static final List<KeyboardReport[]> forKey(int keyboardUsage) {
+        List<KeyboardReport[]> list = new ArrayList<>();
+        list.add(new KeyboardReport[]{new KeyboardReport((byte) 0, keyboardUsage)});
+        list.add(new KeyboardReport[]{new KeyboardReport((byte) 0, KBD_NONE)}); //key up
+
+        return list;
+    }
 }

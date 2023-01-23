@@ -21,11 +21,8 @@ import com.onemoresecret.qr.MessageProcessorApplication;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;

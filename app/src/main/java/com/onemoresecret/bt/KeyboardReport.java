@@ -13,6 +13,14 @@ public class KeyboardReport {
             RIGHT_ALT = 1 << 6,
             RIGHT_GUI = 1 << 7;
 
+    public static final int
+            NUM_LOCK = 1,
+            CAPS_LOCK = 1 << 1,
+            SCROLL_LOCK = 1 << 2,
+            COMPOSE = 1 << 3,
+            KANA = 1 << 4;
+
+
     /**
      * Report data.
      *
