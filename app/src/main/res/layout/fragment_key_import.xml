@@ -12,7 +12,7 @@
         android:id="@+id/textKeyAlias"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Key Alias"
+        android:text="@string/key_alias"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -20,19 +20,20 @@
         android:id="@+id/editTextKeyAlias"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Key Alias"
+        android:hint="@string/key_alias"
         android:importantForAutofill="no"
         android:inputType="textNoSuggestions"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textKeyAlias" />
+        app:layout_constraintTop_toBottomOf="@+id/textKeyAlias"
+        tools:ignore="DuplicateSpeakableTextCheck" />
 
     <TextView
         android:id="@+id/textPassphrase"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Transport Passphrase (required)"
+        android:text="@string/transport_passphrase_required"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/editTextKeyAlias" />
 
@@ -59,7 +60,7 @@
             android:id="@+id/btnDecrypt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Decrypt"
+            android:text="@string/decrypt"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editTextPassphrase" />
@@ -70,7 +71,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Fingerprint:"
+        android:text="@string/fingerprint"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/btnDecrypt" />
 
@@ -79,7 +80,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:lines="4"
-        android:text="(unknown, decrypt first)"
+        android:text="@string/unknown_decrypt_first"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -90,7 +91,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Certificate:"
+        android:text="@string/certificate"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textFingerprintData" />
 
@@ -99,7 +100,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="(unknown, decrypt first)"
+        android:text="@string/unknown_decrypt_first"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintBottom_toTopOf="@+id/btnSave"
         app:layout_constraintEnd_toEndOf="parent"

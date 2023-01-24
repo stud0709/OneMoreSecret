@@ -13,4 +13,18 @@
     <string name="remaining_codes">Remaining Codes</string>
     <string name="save">Save</string>
     <string name="passphrase">Passphrase</string>
+    <string name="reveal_message">Reveal Message</string>
+    <string name="bluetooth_target">Bluetooth Target:</string>
+    <string name="bluetooth_targets">Bluetooth Targets</string>
+    <string name="unsupported">unsupported</string>
+    <string name="keyboard_layout">Keyboard Layout:</string>
+    <string name="type">Type</string>
+    <string name="make_this_device_discoverable">Make this device discoverable</string>
+    <string name="keyboard_layouts">Keyboard Layouts</string>
+    <string name="unknown_decrypt_first">(unknown, decrypt first)</string>
+    <string name="certificate">Certificate:</string>
+    <string name="key_alias">Key Alias</string>
+    <string name="transport_passphrase_required">Transport Passphrase (required)</string>
+    <string name="decrypt">Decrypt</string>
+    <string name="fingerprint">Fingerprint:</string>
 </resources>

@@ -12,7 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:minHeight="32dp"
-        android:text="Reveal Message"
+        android:text="@string/reveal_message"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -32,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Bluetooth Target:"
+        android:text="@string/bluetooth_target"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewMessage" />
 
@@ -40,6 +40,7 @@
         android:id="@+id/spinnerBluetoothTarget"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:contentDescription="@string/bluetooth_targets"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -55,6 +56,7 @@
             style="@style/Widget.App.Button.IconOnly"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:contentDescription="@string/make_this_device_discoverable"
             android:enabled="false"
             app:icon="@drawable/ic_baseline_bluetooth_discovering_24"
             app:layout_constraintStart_toStartOf="parent"
@@ -66,7 +68,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:clickable="false"
-            android:text="unsupported"
+            android:text="@string/unsupported"
             app:chipIcon="@drawable/ic_baseline_bluetooth_24"
             app:chipIconTint="@color/mtrl_chip_close_icon_tint"
             app:layout_constraintEnd_toEndOf="parent"
@@ -79,7 +81,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Keyboard Layout:"
+        android:text="@string/keyboard_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imgButtonDiscoverable" />
 
@@ -87,6 +89,7 @@
         android:id="@+id/spinnerKeyboardLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:contentDescription="@string/keyboard_layouts"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -103,7 +106,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:enabled="false"
-            android:text="Type"
+            android:text="@string/type"
             app:icon="@drawable/ic_baseline_keyboard_24"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
