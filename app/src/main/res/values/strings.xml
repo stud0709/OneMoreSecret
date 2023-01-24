@@ -5,20 +5,12 @@
     <string name="qr_fragment_label">Scan QR Code Sequence</string>
     <string name="message_fragment_label">Decrypted Message</string>
     <string name="key_import_fragment_label">Private Key Import</string>
-    <string name="next">Next</string>
-    <string name="previous">Previous</string>
-
-    <string name="hello_first_fragment">Hello first fragment</string>
-    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
-
-    <string name="dummy_password">secret</string>
-
     <string name="prompt_info_title">KeyStore access</string>
     <string name="prompt_info_subtitle">Authorization required to access the keystore</string>
     <string name="prompt_info_description">We need to check your identity to access the key data</string>
     <string name="prompt_info_negative_text">Cancel</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="hidden_text_slide_to_reveal">(hidden text, slide to reveal)</string>
     <string name="remaining_codes">Remaining Codes</string>
+    <string name="save">Save</string>
+    <string name="passphrase">Passphrase</string>
 </resources>

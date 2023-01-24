@@ -81,6 +81,7 @@ public class MessageFragment extends Fragment {
     private static final int DISCOVERABLE_DURATION_S = 60;
     private SharedPreferences preferences;
     private AtomicBoolean refreshingBtControls = new AtomicBoolean();
+    private boolean paused = false;
 
     protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
@@ -116,6 +117,19 @@ public class MessageFragment extends Fragment {
         initSpinnerKeyboardLayout();
 
         return binding.getRoot();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        paused = true;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (paused)
+            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
     }
 
     private void initSpinnerTargetDevice() {

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".MessageFragment">
 
     <com.google.android.material.switchmaterial.SwitchMaterial
@@ -17,7 +18,7 @@
 
     <TextView
         android:id="@+id/textViewMessage"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:lines="10"
         android:text="@string/hidden_text_slide_to_reveal"
@@ -25,15 +26,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />
-
-    <Spinner
-        android:id="@+id/spinnerBluetoothTarget"
-        android:layout_width="409dp"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/lblBluetoothTarget" />
 
     <TextView
         android:id="@+id/lblBluetoothTarget"
@@ -43,6 +35,44 @@
         android:text="Bluetooth Target:"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewMessage" />
+
+    <Spinner
+        android:id="@+id/spinnerBluetoothTarget"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/lblBluetoothTarget" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/imgButtonDiscoverable"
+            style="@style/Widget.App.Button.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            app:icon="@drawable/ic_baseline_bluetooth_discovering_24"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipBtStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:clickable="false"
+            android:text="unsupported"
+            app:chipIcon="@drawable/ic_baseline_bluetooth_24"
+            app:chipIconTint="@color/mtrl_chip_close_icon_tint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/lblKeyboardLayout"
@@ -55,45 +85,29 @@
 
     <Spinner
         android:id="@+id/spinnerKeyboardLayout"
-        android:layout_width="409dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="48dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/lblKeyboardLayout" />
 
-    <Button
-        android:id="@+id/btnType"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:enabled="false"
-        android:text="Type"
-        app:icon="@drawable/ic_baseline_keyboard_24"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerKeyboardLayout" />
+        android:gravity="center"
+        android:orientation="horizontal">
 
-    <com.google.android.material.chip.Chip
-        android:id="@+id/chipBtStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:clickable="false"
-        android:text="unsupported"
-        app:chipIcon="@drawable/ic_baseline_bluetooth_24"
-        app:chipIconTint="@color/mtrl_chip_close_icon_tint"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+        <Button
+            android:id="@+id/btnType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="Type"
+            app:icon="@drawable/ic_baseline_keyboard_24"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/spinnerKeyboardLayout" />
+    </LinearLayout>
 
-    <Button
-        android:id="@+id/imgButtonDiscoverable"
-        style="@style/Widget.App.Button.IconOnly"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="false"
-        app:icon="@drawable/ic_baseline_bluetooth_discovering_24"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
