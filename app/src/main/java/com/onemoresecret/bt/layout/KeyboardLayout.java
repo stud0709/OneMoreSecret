@@ -2,6 +2,8 @@ package com.onemoresecret.bt.layout;
 
 import static com.onemoresecret.bt.layout.KeyboardUsage.KBD_NONE;
 
+import android.util.Log;
+
 import com.onemoresecret.bt.KeyboardReport;
 
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import java.util.Map;
 
 public abstract class KeyboardLayout {
     protected final Map<Character, KeyboardReport[]> layout = new HashMap<>();
+    public static final Class<?> knownSubclasses[] = {USLayout.class, GermanLayout.class};
 
     protected abstract KeyboardReport[] forKey(char c);
 

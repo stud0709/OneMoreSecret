@@ -80,4 +80,8 @@ public class GermanLayout extends USLayout {
         layout.put('ù', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_EQUAL), new KeyboardReport(0, KeyboardUsage.KBD_U)});
     }
 
+    @Override
+    public String toString() {
+        return "German (Germany)";
+    }
 }

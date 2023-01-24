@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -48,10 +49,12 @@ import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import javax.crypto.Cipher;
@@ -76,6 +79,10 @@ public class MessageFragment extends Fragment {
     private BluetoothBroadcastReceiver bluetoothBroadcastReceiver;
 
     private static final int DISCOVERABLE_DURATION_S = 60;
+    private SharedPreferences preferences;
+    private AtomicBoolean refreshingBtControls = new AtomicBoolean();
+
+    protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
     @Override
     public View onCreateView(
@@ -83,6 +90,7 @@ public class MessageFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentMessageBinding.inflate(inflater, container, false);
+        preferences = getActivity().getPreferences(Context.MODE_PRIVATE);
 
         bluetoothController = new BluetoothController(this,
                 result -> {
@@ -103,23 +111,80 @@ public class MessageFragment extends Fragment {
             }).launch(REQUIRED_PERMISSIONS);
         }
 
+        initSpinnerTargetDevice();
+
+        initSpinnerKeyboardLayout();
+
+        return binding.getRoot();
+    }
+
+    private void initSpinnerTargetDevice() {
         arrayAdapterDevice = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item);
         arrayAdapterDevice.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spinnerBluetoothTarget.setAdapter(arrayAdapterDevice);
         binding.spinnerBluetoothTarget.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (refreshingBtControls.get()) return;
+
+                SpinnerItemDevice selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                preferences.edit().putString(LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
+
                 refreshBluetoothControls();
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                if (refreshingBtControls.get()) return;
                 refreshBluetoothControls();
             }
         });
+    }
 
+    private void initSpinnerKeyboardLayout() {
+        ArrayAdapter<KeyboardLayout> keyboardLayoutAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item);
+        keyboardLayoutAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        Arrays.stream(KeyboardLayout.knownSubclasses)
+                .map(clazz -> {
+                    try {
+                        return (KeyboardLayout) clazz.newInstance();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                })
+                .filter(l -> l != null) /* just in case */
+                .sorted(Comparator.comparing(Object::toString))
+                .forEach(l -> keyboardLayoutAdapter.add(l));
 
-        return binding.getRoot();
+        binding.spinnerKeyboardLayout.setAdapter(keyboardLayoutAdapter);
+
+        //select last used keyboard layout
+        String lastSelectedKeyboardLayout = preferences.getString(LAST_SELECTED_KEYBOARD_LAYOUT, null);
+        for (int i = 0; i < keyboardLayoutAdapter.getCount(); i++) {
+            if (keyboardLayoutAdapter.getItem(i).getClass().getName().equals(lastSelectedKeyboardLayout)) {
+                binding.spinnerKeyboardLayout.setSelection(i);
+                break;
+            }
+        }
+
+        binding.spinnerKeyboardLayout.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (refreshingBtControls.get()) return;
+
+                KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+                preferences.edit().putString(LAST_SELECTED_KEYBOARD_LAYOUT, selectedLayout.getClass().getName()).apply();
+
+                refreshBluetoothControls();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                if (refreshingBtControls.get()) return;
+                refreshBluetoothControls();
+            }
+        });
     }
 
     private void onAllPermissionsGranted() {
@@ -312,7 +377,8 @@ public class MessageFragment extends Fragment {
         });
 
         binding.btnType.setOnClickListener(view -> {
-            List<KeyboardReport[]> reports = new GermanLayout().forString(message); //todo: layout
+            KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+            List<KeyboardReport[]> reports = selectedLayout.forString(message);
 
             type(reports);
         });
@@ -373,6 +439,7 @@ public class MessageFragment extends Fragment {
 
     protected void refreshBluetoothControls() {
         if (getContext() == null) return; //post mortem call
+        if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {
             BluetoothAdapter bluetoothAdapter = bluetoothController.getAdapter();
@@ -402,52 +469,69 @@ public class MessageFragment extends Fragment {
                     .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
 
             getContext().getMainExecutor().execute(() -> {
-                binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
+                Log.d(TAG, "Refreshing controls");
+                refreshingBtControls.set(true);
 
-                String status = "off";
-                Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                try {
+                    binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
 
-                if (bluetoothAdapterEnabled) {
-                    status = "disconnected";
-                    drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
-                }
+                    String status = "off";
+                    Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
-                if (discoverable) {
-                    status = "discoverable";
-                    drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
-                }
+                    if (bluetoothAdapterEnabled) {
+                        status = "disconnected";
+                        drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
+                    }
 
-                binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
+                    if (discoverable) {
+                        status = "discoverable";
+                        drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
+                    }
 
-                SpinnerItemDevice selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                    binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
 
-                arrayAdapterDevice.clear();
-                arrayAdapterDevice.addAll(bondedDevices);
+                    //remember selection
+                    {
+                        SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                        String selectedBtAddress = selectedBluetoothTarget == null ?
+                                preferences.getString(LAST_SELECTED_BT_TARGET, null) :
+                                selectedBluetoothTarget.getBluetoothDevice().getAddress();
 
-                //restore selection
-                if (selectedItem != null) {
-                    for (int i = 0; i < arrayAdapterDevice.getCount(); i++) {
-                        if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedItem.getBluetoothDevice().getAddress())) {
-                            binding.spinnerBluetoothTarget.setSelection(i);
-                            break;
+                        //refreshing the list
+                        arrayAdapterDevice.clear();
+                        arrayAdapterDevice.addAll(bondedDevices);
+
+                        //restore selection
+                        if (selectedBtAddress != null) {
+                            for (int i = 0; i < arrayAdapterDevice.getCount(); i++) {
+                                if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
+                                    binding.spinnerBluetoothTarget.setSelection(i);
+                                    break;
+                                }
+                            }
                         }
                     }
-                }
 
-                selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                    //set BT connection state
+                    SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
-                binding.btnType.setEnabled(bluetoothAdapterEnabled && selectedItem != null);
-
-                if (selectedItem != null) {
-                    String selectedBtAddress = selectedItem.getBluetoothDevice().getAddress();
-                    if (connectedDevices.stream().filter(d -> d.getAddress().equals(selectedBtAddress)).findAny().isPresent()) {
-                        status = "connected";
-                        drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
+                    if (selectedBluetoothTarget != null) {
+                        String selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
+                        if (connectedDevices.stream().filter(d -> d.getAddress().equals(selectedBtAddress)).findAny().isPresent()) {
+                            status = "connected";
+                            drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
+                        }
                     }
-                }
 
-                binding.chipBtStatus.setChipIcon(drawable);
-                binding.chipBtStatus.setText(status);
+                    binding.chipBtStatus.setChipIcon(drawable);
+                    binding.chipBtStatus.setText(status);
+
+                    //set TYPE button state
+                    KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+                    binding.btnType.setEnabled(bluetoothAdapterEnabled && selectedBluetoothTarget != null && selectedLayout != null);
+                } finally {
+                    refreshingBtControls.set(false);
+                }
             });
         }).start();
     }
@@ -482,9 +566,6 @@ public class MessageFragment extends Fragment {
             return bluetoothDevice.getAlias() + " (" + bluetoothDevice.getAddress() + ")";
         }
     }
-
-
-// BluetoothHidDevice.Callback
 
     public class BluetoothHidDeviceCallback extends BluetoothHidDevice.Callback {
 

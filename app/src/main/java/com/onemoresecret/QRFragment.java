@@ -42,14 +42,8 @@ public class QRFragment extends Fragment {
     private ImageAnalysis imageAnalysis;
 
     private final String REQUIRED_PERMISSIONS[] = {
-            Manifest.permission.CAMERA,
-            //TODO: remove after bluetooth test
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_ADVERTISE
+            Manifest.permission.CAMERA
     };
-
-    private BluetoothController bluetoothController;
-
 
     @Override
     public View onCreateView(

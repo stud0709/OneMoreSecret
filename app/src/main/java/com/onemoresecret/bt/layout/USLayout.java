@@ -107,4 +107,9 @@ public class USLayout extends KeyboardLayout {
 
         return r;
     }
+
+    @Override
+    public String toString() {
+        return "English (US)";
+    }
 }
