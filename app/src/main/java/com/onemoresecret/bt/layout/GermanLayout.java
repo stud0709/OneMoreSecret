@@ -33,9 +33,9 @@ public class GermanLayout extends USLayout {
         layout.put('@', new KeyboardReport[]{new KeyboardReport(RIGHT_ALT, KeyboardUsage.KBD_Q)});
         layout.put('€', new KeyboardReport[]{new KeyboardReport(RIGHT_ALT, KeyboardUsage.KBD_E)});
 
-        layout.put('<', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_BACKSLASH)});
-        layout.put('>', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_BACKSLASH)});
-        layout.put('|', new KeyboardReport[]{new KeyboardReport(RIGHT_ALT, KeyboardUsage.KBD_BACKSLASH)});
+        layout.put('<', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_NON_US_BACKSLASH)});
+        layout.put('>', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_NON_US_BACKSLASH)});
+        layout.put('|', new KeyboardReport[]{new KeyboardReport(RIGHT_ALT, KeyboardUsage.KBD_NON_US_BACKSLASH)});
 
         layout.put(';', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_COMMA)});
 
@@ -47,8 +47,8 @@ public class GermanLayout extends USLayout {
         layout.put('´', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_EQUAL), new KeyboardReport(0, KeyboardUsage.KBD_SPACE)});
         layout.put('`', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_EQUAL), new KeyboardReport(0, KeyboardUsage.KBD_SPACE)});
 
-        layout.put('#', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_BACKSLASH)});
-        layout.put('\'', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_BACKSLASH)});
+        layout.put('#', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_HASHTILDE)});
+        layout.put('\'', new KeyboardReport[]{new KeyboardReport(LEFT_SHIFT, KeyboardUsage.KBD_HASHTILDE)});
 
         layout.put('ü', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_LEFTBRACE)});
         layout.put('ö', new KeyboardReport[]{new KeyboardReport(0, KeyboardUsage.KBD_SEMICOLON)});
