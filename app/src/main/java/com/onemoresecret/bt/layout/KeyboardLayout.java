@@ -1,5 +1,7 @@
 package com.onemoresecret.bt.layout;
 
+import static com.onemoresecret.bt.KeyboardReport.LEFT_SHIFT;
+import static com.onemoresecret.bt.KeyboardReport.RIGHT_ALT;
 import static com.onemoresecret.bt.layout.KeyboardUsage.KBD_NONE;
 
 import android.util.Log;
@@ -13,14 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class KeyboardLayout {
-    protected final Map<Character, KeyboardReport[]> layout = new HashMap<>();
+    protected final Map<Character, Stroke> layout = new HashMap<>();
     public static final Class<?> knownSubclasses[] = {USLayout.class, GermanLayout.class};
 
-    protected abstract KeyboardReport[] forKey(char c);
-
-    public Map<Character, KeyboardReport[]> getLayout() {
-        return Collections.unmodifiableMap(layout);
-    }
+    protected abstract Stroke forKey(char c);
 
     /**
      * Convert a {@link String} to key strokes
@@ -28,21 +26,16 @@ public abstract class KeyboardLayout {
      * @param s
      * @return
      */
-    public List<KeyboardReport[]> forString(String s) {
+    public List<Stroke> forString(String s) {
         char cArr[] = s.toCharArray();
-        List<KeyboardReport[]> list = new ArrayList<>();
+        List<Stroke> list = new ArrayList<>();
+        list.add(new Stroke()
+                .press(RIGHT_ALT) //work around Hyper-V
+                ); //all keys up
+
         for (char c : cArr) {
             list.add(forKey(c));
-            list.add(new KeyboardReport[]{new KeyboardReport((byte) 0, KBD_NONE)}); //key up
         }
-
-        return list;
-    }
-
-    public static final List<KeyboardReport[]> forKey(int keyboardUsage) {
-        List<KeyboardReport[]> list = new ArrayList<>();
-        list.add(new KeyboardReport[]{new KeyboardReport((byte) 0, keyboardUsage)});
-        list.add(new KeyboardReport[]{new KeyboardReport((byte) 0, KBD_NONE)}); //key up
 
         return list;
     }

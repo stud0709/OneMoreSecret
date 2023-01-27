@@ -36,6 +36,7 @@ import com.onemoresecret.bt.KeyboardReport;
 import com.onemoresecret.bt.layout.GermanLayout;
 import com.onemoresecret.bt.layout.KeyboardLayout;
 import com.onemoresecret.bt.layout.KeyboardUsage;
+import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentMessageBinding;
@@ -73,7 +74,7 @@ public class MessageFragment extends Fragment {
             Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.BLUETOOTH_SCAN
     };
-    private Map<String, List<KeyboardReport[]>> keyboardQueue = new ConcurrentHashMap<>();
+    private Map<String, List<Stroke>> keyboardQueue = new ConcurrentHashMap<>();
 
     private FragmentMessageBinding binding;
     private BluetoothBroadcastReceiver bluetoothBroadcastReceiver;
@@ -82,6 +83,7 @@ public class MessageFragment extends Fragment {
     private SharedPreferences preferences;
     private AtomicBoolean refreshingBtControls = new AtomicBoolean();
     private boolean paused = false;
+    private static final long KEY_STROKE_DELAY = 50;
 
     protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
@@ -392,13 +394,19 @@ public class MessageFragment extends Fragment {
 
         binding.btnType.setOnClickListener(view -> {
             KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-            List<KeyboardReport[]> reports = selectedLayout.forString(message);
+            List<Stroke> strokes = selectedLayout.forString(message);
 
-            type(reports);
+            if (strokes.contains(null)) {
+                //not all characters could be converted into key strokes
+                getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), "Wrong keyboard layout?", Toast.LENGTH_LONG).show());
+                return;
+            }
+
+            type(strokes);
         });
     }
 
-    protected void type(List<KeyboardReport[]> list) {
+    protected void type(List<Stroke> list) {
         SpinnerItemDevice selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
         if (selectedSpinnerItem == null) {
@@ -411,7 +419,8 @@ public class MessageFragment extends Fragment {
         }
 
         if (!bluetoothController.getBluetoothHidDevice().getConnectedDevices()
-                .stream().filter(d -> d.getAddress().equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))
+                .stream().filter(d -> d.getAddress()
+                        .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))
                 .findAny().isPresent()) {
             bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
             Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
@@ -426,11 +435,25 @@ public class MessageFragment extends Fragment {
         }
 
         new Thread(() -> {
-            list.stream().flatMap(a -> Arrays.stream(a)).forEach(r -> {
-                bluetoothController.getBluetoothHidDevice().sendReport(
-                        ((SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem()).getBluetoothDevice(),
-                        0,
-                        r.report);
+            BluetoothDevice bluetoothDevice = ((SpinnerItemDevice) binding
+                    .spinnerBluetoothTarget
+                    .getSelectedItem())
+                    .getBluetoothDevice();
+
+            list.stream().flatMap(s -> s.get().stream()).forEach(r -> {
+                bluetoothController
+                        .getBluetoothHidDevice()
+                        .sendReport(
+                                bluetoothDevice,
+                                0,
+                                r.report);
+                if (KEY_STROKE_DELAY != 0) {
+                    try {
+                        Thread.sleep(KEY_STROKE_DELAY);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             });
         }).start();
     }
@@ -590,7 +613,7 @@ public class MessageFragment extends Fragment {
 
             refreshBluetoothControls();
 
-            List<KeyboardReport[]> queuedList = keyboardQueue.remove(device.getAddress());
+            List<Stroke> queuedList = keyboardQueue.remove(device.getAddress());
             if (queuedList != null) {
                 Log.d(TAG, "found queued message, size " + queuedList.size());
                 type(queuedList);

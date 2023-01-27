@@ -31,11 +31,23 @@ public class KeyboardReport {
         report = new byte[]{(byte) modifiers, (byte) key};
     }
 
+    public KeyboardReport(int key) {
+        report = new byte[]{(byte) 0, (byte) key};
+    }
+
     public KeyboardReport addModifier(int modifier) {
         return new KeyboardReport(report[0] | modifier, report[1]);
     }
 
     public KeyboardReport removeModifier(int modifier) {
         return new KeyboardReport(report[0] & ~modifier, report[1]);
+    }
+
+    public int getModifiers() {
+        return report[0];
+    }
+
+    public int getKey() {
+        return report[1];
     }
 }
