@@ -2,7 +2,9 @@ package com.onemoresecret.bt.layout;
 
 public class KeyboardUsage {
     public static final int
-    /**  No key pressed */
+    /**
+     * No key pressed
+     * */
             KBD_NONE = 0x00,
     /**
      * Keyboard Error Roll Over - used for all slots if too many keys are pressed ("Phantom key")

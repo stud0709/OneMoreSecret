@@ -11,7 +11,7 @@ public class Stroke {
 
     /**
      * Get resulting sequence of KeyboardReports
-     * @return
+     * @return key stroke sequence
      */
     public List<KeyboardReport> get() {
         List<KeyboardReport> list = new ArrayList<>(reports);
@@ -21,7 +21,6 @@ public class Stroke {
 
     /**
      * Clear all modifiers
-     * @return
      */
     public Stroke clear() {
         reports.add(new KeyboardReport(KeyboardUsage.KBD_NONE));
@@ -30,8 +29,6 @@ public class Stroke {
 
     /**
      * Add modifiers one by one emulating user input
-     * @param modifiers
-     * @return
      */
     public Stroke press(int... modifiers) {
         int m = 0;
@@ -50,8 +47,6 @@ public class Stroke {
 
     /**
      * Remove modifiers one by one emulating user input
-     * @param modifiers
-     * @return
      */
     public Stroke release(int... modifiers) {
         int m = 0;
@@ -70,11 +65,10 @@ public class Stroke {
 
     /**
      * Type (press + release) retaining modifiers.
-     * @param usages
-     * @param ucase upper case flag
-     * @return
+     * @param usages one or more keys to type
+     * @param upperCase upper case flag ("press SHIFT here")
      */
-    public Stroke type(boolean ucase, int... usages) {
+    public Stroke type(boolean upperCase, int... usages) {
         int m = 0;
 
         if (!reports.isEmpty()) {
@@ -83,7 +77,7 @@ public class Stroke {
 
         for(int i : usages) {
             reports.add(new KeyboardReport(m, i)); //press
-            ucaseFlags.add(ucase);
+            ucaseFlags.add(upperCase);
             reports.add(new KeyboardReport(m, 0)); //release
             ucaseFlags.add(false);
         }
@@ -92,9 +86,9 @@ public class Stroke {
     }
 
     /**
-     * Type without setting the upper case flag. This will result in upper case = true, if there is only one type element, otherwise upper case = false.
-     * @param usages
-     * @return
+     * Type without setting the upper case flag. This will result in default upper case logic .
+     * @param usages one or more keys to type
+     * @see Stroke#toUpper()
      */
 
     public Stroke type(int... usages) {
@@ -102,24 +96,23 @@ public class Stroke {
     }
 
     /**
-     * Convert this {@link Stroke} to upper case. If there is only one type, it will be set to upper case regardless of the ucase flag of this element.
-     * @return
+     * Convert this {@link Stroke} to upper case. If there is only one type, it will be set to upper case regardless of the upperCase flag of this element.
      */
     public Stroke toUpper() {
         long cnt = reports.stream().filter(r -> r.getKey() != 0).count();
 
-        Stroke ucaseStroke = new Stroke();
+        Stroke upperCaseStroke = new Stroke();
         for(int i = 0; i < reports.size(); i++) {
-            boolean ucase = ucaseFlags.get(i) || (i==0 && cnt == 1);
+            boolean upperCase = ucaseFlags.get(i) || (i==0 && cnt == 1);
 
-            if(ucase) {
-                ucaseStroke.reports.add(reports.get(i).addModifier(KeyboardReport.LEFT_SHIFT));
+            if(upperCase) {
+                upperCaseStroke.reports.add(reports.get(i).addModifier(KeyboardReport.LEFT_SHIFT));
             } else {
                 //copy without changes
-                ucaseStroke.reports.add(reports.get(i));
+                upperCaseStroke.reports.add(reports.get(i));
             }
         }
 
-        return ucaseStroke;
+        return upperCaseStroke;
     }
 }

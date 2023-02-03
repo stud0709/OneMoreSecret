@@ -24,8 +24,7 @@ public class AESUtil {
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(keyAlgorithm);
         KeySpec spec = new PBEKeySpec(password, salt, keySpecIterations, keyLength);
-        SecretKey secret = new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
-        return secret;
+        return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
     }
 
     public static IvParameterSpec generateIv() {

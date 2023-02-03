@@ -32,10 +32,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.bt.BluetoothController;
-import com.onemoresecret.bt.KeyboardReport;
-import com.onemoresecret.bt.layout.GermanLayout;
 import com.onemoresecret.bt.layout.KeyboardLayout;
-import com.onemoresecret.bt.layout.KeyboardUsage;
 import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -54,6 +51,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -69,19 +67,19 @@ public class MessageFragment extends Fragment {
     private String rsaTransformation, aesTransformation;
     private BluetoothController bluetoothController;
     private ArrayAdapter<SpinnerItemDevice> arrayAdapterDevice;
-    private final String REQUIRED_PERMISSIONS[] = {
+    private final String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.BLUETOOTH_CONNECT,
             Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.BLUETOOTH_SCAN
     };
-    private Map<String, List<Stroke>> keyboardQueue = new ConcurrentHashMap<>();
+    private final Map<String, List<Stroke>> keyboardQueue = new ConcurrentHashMap<>();
 
     private FragmentMessageBinding binding;
     private BluetoothBroadcastReceiver bluetoothBroadcastReceiver;
 
     private static final int DISCOVERABLE_DURATION_S = 60;
     private SharedPreferences preferences;
-    private AtomicBoolean refreshingBtControls = new AtomicBoolean();
+    private final AtomicBoolean refreshingBtControls = new AtomicBoolean();
     private boolean paused = false;
     private static final long KEY_STROKE_DELAY = 50;
 
@@ -89,7 +87,7 @@ public class MessageFragment extends Fragment {
 
     @Override
     public View onCreateView(
-            LayoutInflater inflater, ViewGroup container,
+            @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
         binding = FragmentMessageBinding.inflate(inflater, container, false);
@@ -108,7 +106,7 @@ public class MessageFragment extends Fragment {
                 if (isAllPermissionsGranted()) {
                     onAllPermissionsGranted();
                 } else {
-                    Toast.makeText(getContext(), "Insufficient permissions", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), getString(R.string.insufficient_permissions), Toast.LENGTH_SHORT).show();
                     //todo
                 }
             }).launch(REQUIRED_PERMISSIONS);
@@ -169,9 +167,9 @@ public class MessageFragment extends Fragment {
                         return null;
                     }
                 })
-                .filter(l -> l != null) /* just in case */
+                .filter(Objects::nonNull) /* just in case */
                 .sorted(Comparator.comparing(Object::toString))
-                .forEach(l -> keyboardLayoutAdapter.add(l));
+                .forEach(keyboardLayoutAdapter::add);
 
         binding.spinnerKeyboardLayout.setAdapter(keyboardLayoutAdapter);
 
@@ -250,12 +248,12 @@ public class MessageFragment extends Fragment {
         String message = getArguments().getString("MESSAGE");
 
         try {
-            String sArr[] = message.split("\t");
+            String[] sArr = message.split("\t");
 
             //(1) Application ID
             int applicationId = Integer.parseInt(sArr[0]);
             if (applicationId != MessageProcessorApplication.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
-                throw new IllegalArgumentException("wrong applicationId: " + applicationId);
+                throw new IllegalArgumentException(getString(R.string.wrong_application) + applicationId);
 
             //(2) RSA transformation
             rsaTransformation = sArr[1];
@@ -280,7 +278,8 @@ public class MessageFragment extends Fragment {
             CryptographyManager cryptographyManager = new CryptographyManager();
             List<String> aliases = cryptographyManager.getByFingerprint(fingerprint);
 
-            if (aliases.isEmpty()) throw new NoSuchElementException("No key found");
+            if (aliases.isEmpty())
+                throw new NoSuchElementException(getString(R.string.no_key_found));
 
             showBiometricPromptForDecryption(aliases.get(0));
         } catch (Exception ex) {
@@ -298,7 +297,7 @@ public class MessageFragment extends Fragment {
         BiometricPrompt.AuthenticationCallback authenticationCallback = new BiometricPrompt.AuthenticationCallback() {
 
             @Override
-            public void onAuthenticationError(int errCode, CharSequence errString) {
+            public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
                 super.onAuthenticationError(errCode, errString);
                 MessageFragment.this.onAuthenticationError(errCode, errString);
             }
@@ -310,7 +309,7 @@ public class MessageFragment extends Fragment {
             }
 
             @Override
-            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
                 MessageFragment.this.onAuthenticationSucceeded(result);
             }
@@ -347,12 +346,12 @@ public class MessageFragment extends Fragment {
         Log.d(TAG,
                 "User biometric rejected");
         getContext().getMainExecutor().execute(() -> {
-            Toast.makeText(getContext(), "Authentication failed", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
             NavHostFragment.findNavController(MessageFragment.this).popBackStack();
         });
     }
 
-    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
         Log.d(TAG,
                 "Authentication was successful");
 
@@ -385,7 +384,7 @@ public class MessageFragment extends Fragment {
         byte[] _hash = sha256.digest(messageBytes);
 
         if (!Arrays.equals(hash, _hash)) {
-            throw new IllegalArgumentException("Could not confirm message integrity");
+            throw new IllegalArgumentException(getString(R.string.msg_integrity_check_failed));
         }
 
         binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> {
@@ -398,7 +397,7 @@ public class MessageFragment extends Fragment {
 
             if (strokes.contains(null)) {
                 //not all characters could be converted into key strokes
-                getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), "Wrong keyboard layout?", Toast.LENGTH_LONG).show());
+                getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.wrong_keyboard_layout), Toast.LENGTH_LONG).show());
                 return;
             }
 
@@ -410,7 +409,7 @@ public class MessageFragment extends Fragment {
         SpinnerItemDevice selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
         if (selectedSpinnerItem == null) {
-            getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), "Select BT target", Toast.LENGTH_LONG));
+            getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.select_bt_target), Toast.LENGTH_LONG));
             return;
         }
 
@@ -419,9 +418,8 @@ public class MessageFragment extends Fragment {
         }
 
         if (!bluetoothController.getBluetoothHidDevice().getConnectedDevices()
-                .stream().filter(d -> d.getAddress()
-                        .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))
-                .findAny().isPresent()) {
+                .stream().anyMatch(d -> d.getAddress()
+                        .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))) {
             bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
             Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
             keyboardQueue.put(selectedSpinnerItem.getBluetoothDevice().getAddress(), list);
@@ -447,7 +445,7 @@ public class MessageFragment extends Fragment {
                                 bluetoothDevice,
                                 0,
                                 r.report);
-                if (KEY_STROKE_DELAY != 0) {
+                if (KEY_STROKE_DELAY != 0 && binding.swDelayedStrokes.isChecked()) {
                     try {
                         Thread.sleep(KEY_STROKE_DELAY);
                     } catch (InterruptedException e) {
@@ -479,6 +477,22 @@ public class MessageFragment extends Fragment {
         if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {
+            if (!bluetoothController.isBluetoothAvailable() || !isAllPermissionsGranted()) {
+                //disable all bluetooth functionality
+                String status = getString(R.string.bt_not_available);
+                Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+
+                binding.chipBtStatus.setChipIcon(drawable);
+                binding.chipBtStatus.setText(status);
+
+                binding.spinnerKeyboardLayout.setEnabled(false);
+                binding.spinnerBluetoothTarget.setEnabled(false);
+                binding.btnType.setEnabled(false);
+                binding.imgButtonDiscoverable.setEnabled(false);
+
+                return;
+            }
+
             BluetoothAdapter bluetoothAdapter = bluetoothController.getAdapter();
 
             boolean bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
@@ -512,16 +526,16 @@ public class MessageFragment extends Fragment {
                 try {
                     binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
 
-                    String status = "off";
+                    String status = getString(R.string.bt_off);
                     Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
                     if (bluetoothAdapterEnabled) {
-                        status = "disconnected";
+                        status = getString(R.string.bt_disconnected);
                         drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
                     }
 
                     if (discoverable) {
-                        status = "discoverable";
+                        status = getString(R.string.bt_discoverable);
                         drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
                     }
 
@@ -554,8 +568,8 @@ public class MessageFragment extends Fragment {
 
                     if (selectedBluetoothTarget != null) {
                         String selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
-                        if (connectedDevices.stream().filter(d -> d.getAddress().equals(selectedBtAddress)).findAny().isPresent()) {
-                            status = "connected";
+                        if (connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress))) {
+                            status = getString(R.string.bt_connected);
                             drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
                         }
                     }

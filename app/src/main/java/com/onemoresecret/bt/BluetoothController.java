@@ -2,7 +2,6 @@ package com.onemoresecret.bt;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHidDevice;
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings;
 import android.bluetooth.BluetoothManager;
@@ -18,8 +17,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-
-import java.util.List;
 
 //https://developer.android.com/guide/topics/connectivity/bluetooth/setup
 
@@ -44,11 +41,20 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         this.fragment = fragment;
         this.callback = callback;
         this.bluetoothManager = (BluetoothManager) fragment.getContext().getSystemService(Context.BLUETOOTH_SERVICE);
-        boolean b = bluetoothManager.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
+        if (this.bluetoothManager == null) {
+            Log.i(TAG, "No bluetooth Manager found");
+            activityResultLauncher = null;
+            return;
+        }
+        boolean b = this.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
         Log.i(TAG, "getProfileProxy: " + b);
 
         //prepare intent "request discoverable"
         activityResultLauncher = fragment.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), onActivityResult);
+    }
+
+    public boolean isBluetoothAvailable() {
+        return bluetoothManager != null;
     }
 
     public BluetoothHidDevice getBluetoothHidDevice() {

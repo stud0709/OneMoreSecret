@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
@@ -41,13 +42,13 @@ public class QRFragment extends Fragment {
     private FragmentQrBinding binding;
     private ImageAnalysis imageAnalysis;
 
-    private final String REQUIRED_PERMISSIONS[] = {
+    private final String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.CAMERA
     };
 
     @Override
     public View onCreateView(
-            LayoutInflater inflater, ViewGroup container,
+            @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
 
@@ -177,6 +178,8 @@ public class QRFragment extends Fragment {
 
     private void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
         if (receivedChunks.equals(lastReceivedChunks)) return;
+        lastReceivedChunks = receivedChunks;
+
         String s = IntStream.range(0, totalChunks)
                 .filter(i -> !receivedChunks.get(i))
                 .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(", "));

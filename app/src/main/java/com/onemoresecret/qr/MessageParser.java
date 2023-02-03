@@ -47,7 +47,7 @@ public abstract class MessageParser {
 
         if (totalChunks != chunks.size()) {
             transactionId = null;
-            throw new IllegalArgumentException("Illegal change of totalChunks : " + totalChunks + " <> " + chunks.size());
+            throw new IllegalArgumentException("Unexpected change of totalChunks : " + totalChunks + " <> " + chunks.size());
         }
 
         String data = text.substring(0, chunkSize); //remove padding

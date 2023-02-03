@@ -13,7 +13,7 @@
     <string name="remaining_codes">Remaining Codes</string>
     <string name="save">Save</string>
     <string name="passphrase">Passphrase</string>
-    <string name="reveal_message">Reveal Message</string>
+    <string name="reveal_message">reveal message</string>
     <string name="bluetooth_target">Bluetooth Target:</string>
     <string name="bluetooth_targets">Bluetooth Targets</string>
     <string name="unsupported">unsupported</string>
@@ -27,4 +27,17 @@
     <string name="transport_passphrase_required">Transport Passphrase (required)</string>
     <string name="decrypt">Decrypt</string>
     <string name="fingerprint">Fingerprint:</string>
+    <string name="bt_not_available">not available</string>
+    <string name="bt_off">off</string>
+    <string name="bt_disconnected">disconnected</string>
+    <string name="bt_discoverable">discoverable</string>
+    <string name="bt_connected">connected</string>
+    <string name="select_bt_target">Select BT target</string>
+    <string name="wrong_keyboard_layout">Wrong keyboard layout?</string>
+    <string name="msg_integrity_check_failed">Could not confirm message integrity</string>
+    <string name="auth_failed">Authentication failed</string>
+    <string name="no_key_found">No key found</string>
+    <string name="wrong_application">\"wrong applicationId: \"</string>
+    <string name="insufficient_permissions">Insufficient permissions</string>
+    <string name="delayed_strokes">delayed strokes</string>
 </resources>

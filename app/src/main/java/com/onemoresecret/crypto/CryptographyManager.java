@@ -1,16 +1,11 @@
 package com.onemoresecret.crypto;
 
-import android.content.Context;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.security.keystore.KeyProtection;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.biometric.BiometricPrompt;
-
-import com.onemoresecret.R;
 
 import org.bouncycastle.operator.OperatorCreationException;
 
@@ -35,7 +30,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -44,8 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -105,14 +97,6 @@ public class CryptographyManager {
 
     /**
      * If SecretKey was previously created for that keyName, then grab and return it.
-     *
-     * @param keyName
-     * @return
-     * @throws KeyStoreException
-     * @throws CertificateException
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws UnrecoverableKeyException
      */
     public PrivateKey getPrivateKey(String keyName) throws
             KeyStoreException,
@@ -122,8 +106,7 @@ public class CryptographyManager {
         Key key = keyStore.getKey(keyName, null);
 
         if (key != null) {
-            PrivateKey privateKey = (PrivateKey) key;
-            return privateKey;
+            return (PrivateKey) key;
         }
 
         return null;
@@ -148,8 +131,7 @@ public class CryptographyManager {
                 KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE);
 
         keyPairGenerator.initialize(spec);
-        KeyPair kp = keyPairGenerator.generateKeyPair();
-        return kp;
+        return keyPairGenerator.generateKeyPair();
     }
 
     public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName) {
@@ -175,14 +157,7 @@ public class CryptographyManager {
     /**
      * Import RSA key pair using encoded key data from {@link PrivateKey#getEncoded()} and {@link PublicKey#getEncoded()}.
      *
-     * @param privateKey
      * @param certificate if {@code null}, the private key will be signed by the generated self-signed certificate.
-     * @param keyName
-     * @throws CertificateException
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidKeySpecException
-     * @throws KeyStoreException
-     * @throws IOException
      */
     public void importKey(String keyName, @NonNull PrivateKey privateKey, X509Certificate certificate) throws
             CertificateException,
@@ -228,7 +203,6 @@ public class CryptographyManager {
      *
      * @param fingerprint SHA-256 hash of modulus and public exponent, {@link CryptographyManager#getFingerprint(RSAPublicKey)}
      * @return all key alias matching that SHA-256
-     * @throws KeyStoreException
      */
     public List<String> getByFingerprint(byte[] fingerprint) throws
             KeyStoreException {
@@ -248,7 +222,6 @@ public class CryptographyManager {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                continue;
             }
         }
 

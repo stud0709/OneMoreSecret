@@ -29,13 +29,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
-/**
- * Utility class for generating self-signed certificates. <a href=
- * "https://github.com/misterpki/selfsignedcert/blob/master/src/test/java/com/misterpki/SelfSignedCertGeneratorTest.java">GitHub
- * </a>
- *
- * @author Mister PKI
- */
+//see https://github.com/misterpki/selfsignedcert/blob/master/src/test/java/com/misterpki/SelfSignedCertGeneratorTest.java
 public class SelfSignedCertGenerator {
     private SelfSignedCertGenerator() {
     }
@@ -80,7 +74,6 @@ public class SelfSignedCertGenerator {
      *
      * @param publicKey of the certificate
      * @return SubjectKeyIdentifier hash
-     * @throws OperatorCreationException
      */
     private static SubjectKeyIdentifier createSubjectKeyId(final PublicKey publicKey) throws OperatorCreationException {
         final SubjectPublicKeyInfo publicKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
@@ -95,7 +88,6 @@ public class SelfSignedCertGenerator {
      *
      * @param publicKey of the authority certificate
      * @return AuthorityKeyIdentifier hash
-     * @throws OperatorCreationException
      */
     private static AuthorityKeyIdentifier createAuthorityKeyId(final PublicKey publicKey)
             throws OperatorCreationException {

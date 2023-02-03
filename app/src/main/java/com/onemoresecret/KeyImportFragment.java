@@ -117,7 +117,7 @@ public class KeyImportFragment extends Fragment {
 
             byte[] data = AESUtil.decrypt(cipherText, secretKey, new IvParameterSpec(iv), aesTransformation);
             String s = new String(data);
-            String sArr[] = s.split("\t");
+            String[] sArr = s.split("\t");
 
             //(1) RSA Key
             byte[] rsaKey = Base64.getDecoder().decode(sArr[0]);
@@ -180,7 +180,7 @@ public class KeyImportFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentKeyImportBinding.inflate(inflater, container, false);
         return binding.getRoot();

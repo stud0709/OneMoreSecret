@@ -2,6 +2,8 @@ package com.onemoresecret.bt.layout;
 
 import static com.onemoresecret.bt.KeyboardReport.LEFT_SHIFT;
 
+import androidx.annotation.NonNull;
+
 import com.onemoresecret.bt.KeyboardReport;
 
 public class USLayout extends KeyboardLayout {
@@ -107,6 +109,7 @@ public class USLayout extends KeyboardLayout {
         return s;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "English (US)";

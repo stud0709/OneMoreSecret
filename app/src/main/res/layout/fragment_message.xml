@@ -74,6 +74,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/swDelayedStrokes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:checked="false"
+            android:text="@string/delayed_strokes" />
     </LinearLayout>
 
     <TextView

@@ -3,7 +3,7 @@ package com.onemoresecret.bt.layout;
 import static com.onemoresecret.bt.KeyboardReport.LEFT_SHIFT;
 import static com.onemoresecret.bt.KeyboardReport.RIGHT_ALT;
 
-import com.onemoresecret.bt.KeyboardReport;
+import androidx.annotation.NonNull;
 
 /**
  * German keyboard layout. Typing into Hyper-V causes issues for keys with RIGHT_ALT.
@@ -66,6 +66,7 @@ public class GermanLayout extends USLayout {
         layout.put('°', new Stroke().press(LEFT_SHIFT).type(KeyboardUsage.KBD_GRAVE));
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "German (Germany)";
