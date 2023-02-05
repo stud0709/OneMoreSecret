@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -47,8 +48,39 @@ public class CryptographyManager {
     public static final String ANDROID_KEYSTORE = "AndroidKeyStore";
     private static final String TAG = CryptographyManager.class.getSimpleName();
     public final KeyStore keyStore;
+    public static final String ALGORITHM[] = {
+            "AES",
+            "AES_128",
+            "AES_256",
+            "ARC4",
+            "BLOWFISH",
+            "ChaCha20",
+            "DES",
+            "DESede",
+            "RSA"};
+    public static final String MODE[] = {
+            "CBC",
+            "CFB",
+            "CTR",
+            "CTS",
+            "ECB",
+            "OFB",
+            "GCM",
+            "NONE",
+            "Poly1305"};
+    public static final String PADDING[] = {
+            "ISO10126Padding",
+            "NoPadding",
+            "PKCS5Padding",
+            "OAEPPadding",
+            "PKCS1Padding",
+            "OAEPwithSHA-1andMGF1Padding",
+            "OAEPwithSHA-256andMGF1Padding",
+            "OAEPwithSHA-224andMGF1Padding",
+            "OAEPwithSHA-384andMGF1Padding",
+            "OAEPwithSHA-512andMGF1Padding"};
 
-    public CryptographyManager() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
+    public CryptographyManager() {
         KeyStore _keyStore;
 
         try {
@@ -66,6 +98,30 @@ public class CryptographyManager {
         }
 
         keyStore = _keyStore;
+    }
+
+    public static String normalizeTransformation(String s) {
+        String[] sArr = s.split("/");
+        for(String alg : ALGORITHM) {
+            if(alg.toLowerCase(Locale.ROOT).equals(sArr [0].toLowerCase(Locale.ROOT))) {
+                sArr[0] = alg;
+                break;
+            }
+        }
+        for(String mode : MODE) {
+            if(mode.toLowerCase(Locale.ROOT).equals(sArr [1].toLowerCase(Locale.ROOT))) {
+                sArr[1] = mode;
+                break;
+            }
+        }
+        for(String padding : PADDING) {
+            if(padding.toLowerCase(Locale.ROOT).equals(sArr [2].toLowerCase(Locale.ROOT))) {
+                sArr[2] = padding;
+                break;
+            }
+        }
+
+        return sArr[0] + "/" + sArr[1] + "/" + sArr[2];
     }
 
     public Cipher getInitializedCipherForEncryption(String keyName, String rsaTransformation) throws

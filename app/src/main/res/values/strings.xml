@@ -37,7 +37,8 @@
     <string name="msg_integrity_check_failed">Could not confirm message integrity</string>
     <string name="auth_failed">Authentication failed</string>
     <string name="no_key_found">No key found</string>
-    <string name="wrong_application">\"wrong applicationId: \"</string>
+    <string name="wrong_application">wrong applicationId:</string>
     <string name="insufficient_permissions">Insufficient permissions</string>
     <string name="delayed_strokes">delayed strokes</string>
+    <string name="multiple_keys_found">Multiple keys found</string>
 </resources>

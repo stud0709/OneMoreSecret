@@ -16,7 +16,6 @@ import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
-import com.onemoresecret.qr.MessageProcessorApplication;
 
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
@@ -48,7 +47,7 @@ public class KeyImportFragment extends Fragment {
 
         //(1) Application ID
         int applicationId = Integer.parseInt(sArr[0]);
-        if (applicationId != MessageProcessorApplication.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER)
+        if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER)
             throw new IllegalArgumentException("wrong applicationId: " + applicationId);
 
         //(2) alias

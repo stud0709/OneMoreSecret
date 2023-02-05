@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHidDevice;
 import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -14,6 +16,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,7 +40,6 @@ import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentMessageBinding;
-import com.onemoresecret.qr.MessageProcessorApplication;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStoreException;
@@ -85,6 +87,8 @@ public class MessageFragment extends Fragment {
 
     protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
+    private ClipboardManager clipboardManager;
+
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater, ViewGroup container,
@@ -98,6 +102,8 @@ public class MessageFragment extends Fragment {
                 },
                 new BluetoothHidDeviceCallback()
         );
+
+        clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         if (isAllPermissionsGranted()) {
             onAllPermissionsGranted();
@@ -252,20 +258,24 @@ public class MessageFragment extends Fragment {
 
             //(1) Application ID
             int applicationId = Integer.parseInt(sArr[0]);
-            if (applicationId != MessageProcessorApplication.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
-                throw new IllegalArgumentException(getString(R.string.wrong_application) + applicationId);
+            if (applicationId != MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
+                throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
 
             //(2) RSA transformation
-            rsaTransformation = sArr[1];
+            rsaTransformation = CryptographyManager.normalizeTransformation(sArr[1]);
+            Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
             byte[] fingerprint = Base64.getDecoder().decode(sArr[2]);
+            Log.d(TAG, "RSA fingerprint: " + BluetoothController.byteArrayToHex(fingerprint));
 
             // (4) AES transformation
-            aesTransformation = sArr[3];
+            aesTransformation = CryptographyManager.normalizeTransformation(sArr[3]);
+            Log.d(TAG, "AES transformation: " + aesTransformation);
 
             //(5) IV
             iv = Base64.getDecoder().decode(sArr[4]);
+            Log.d(TAG, "IV: " + BluetoothController.byteArrayToHex(iv));
 
             //(6) RSA-encrypted AES secret key
             encryptedAesSecretKey = Base64.getDecoder().decode(sArr[5]);
@@ -280,6 +290,9 @@ public class MessageFragment extends Fragment {
 
             if (aliases.isEmpty())
                 throw new NoSuchElementException(getString(R.string.no_key_found));
+
+            if (aliases.size() > 1)
+                throw new NoSuchElementException(getString(R.string.multiple_keys_found));
 
             showBiometricPromptForDecryption(aliases.get(0));
         } catch (Exception ex) {
@@ -402,6 +415,15 @@ public class MessageFragment extends Fragment {
             }
 
             type(strokes);
+        });
+
+        binding.btnCopy.setOnClickListener(e -> {
+            String extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
+            ClipData clipData = ClipData.newPlainText("oneMoreSecret", message);
+            PersistableBundle persistableBundle = new PersistableBundle();
+            persistableBundle.putBoolean(extra_is_sensitive, true);
+            clipData.getDescription().setExtras(persistableBundle);
+            clipboardManager.setPrimaryClip(clipData);
         });
     }
 

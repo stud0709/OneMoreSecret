@@ -1,6 +1,9 @@
 package com.onemoresecret;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
@@ -14,6 +17,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
@@ -24,10 +28,8 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
-import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
-import com.onemoresecret.qr.MessageProcessorApplication;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.util.Arrays;
@@ -41,6 +43,7 @@ public class QRFragment extends Fragment {
 
     private FragmentQrBinding binding;
     private ImageAnalysis imageAnalysis;
+    private ProcessCameraProvider cameraProvider;
 
     private final String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.CAMERA
@@ -74,8 +77,39 @@ public class QRFragment extends Fragment {
             }).launch(REQUIRED_PERMISSIONS);
         }
 
+        binding.btnPaste.setOnClickListener(e -> checkClipboard());
+
+
         return binding.getRoot();
 
+    }
+
+    private boolean checkClipboard() {
+        ClipboardManager clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+
+        Log.d(TAG, "primaryClip: " + clipboardManager.hasPrimaryClip());
+
+        if (!clipboardManager.hasPrimaryClip()
+                || !clipboardManager.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+            return false;
+        }
+
+        ClipData clipData = clipboardManager.getPrimaryClip();
+        for (int i = 0; i < clipData.getItemCount(); i++) {
+            String txt = String.valueOf(clipData.getItemAt(i).getText());
+            if (txt != null) {
+                String message = MessageComposer.decode(txt);
+                if (message != null) {
+                    //found text encoded message on the clipboard
+                    Log.d(TAG, message);
+                    clipboardManager.clearPrimaryClip();
+                    onMessage(message);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private void onAllPermissionsGranted() {
@@ -100,47 +134,18 @@ public class QRFragment extends Fragment {
 
         cameraProviderFuture.addListener(() -> {
             try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                cameraProvider = cameraProviderFuture.get();
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(binding.cameraPreview.getSurfaceProvider());
 
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
-                cameraProvider.unbindAll();
+//                cameraProvider.unbindAll();
 
                 MessageParser parser = new MessageParser() {
                     @Override
                     public void onMessage(String message) {
-                        try {
-                            getContext().getMainExecutor().execute(() -> {
-                                cameraProvider.unbindAll();
-
-                                String[] sArr = message.split("\t", 2);
-
-                                //(1) application ID
-                                int applicationId = Integer.parseInt(sArr[0]);
-                                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
-
-                                Bundle bundle = new Bundle();
-                                bundle.putString("MESSAGE", message);
-
-                                switch (applicationId) {
-                                    case MessageProcessorApplication.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER:
-                                        NavHostFragment.findNavController(QRFragment.this)
-                                                .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
-                                        break;
-                                    case MessageProcessorApplication.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
-                                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                                        NavHostFragment.findNavController(QRFragment.this)
-                                                .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                                    default:
-                                        Log.d(TAG, "No processor defined for application ID " + Integer.toHexString(applicationId));
-                                        break;
-                                }
-                            });
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
+                        QRFragment.this.onMessage(message);
                     }
 
                     @Override
@@ -174,6 +179,37 @@ public class QRFragment extends Fragment {
         }, getContext().getMainExecutor());
     }
 
+    private void onMessage(String message) {
+        try {
+            getContext().getMainExecutor().execute(() -> {
+                String[] sArr = message.split("\t", 2);
+
+                //(1) application ID
+                int applicationId = Integer.parseInt(sArr[0]);
+                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
+
+                Bundle bundle = new Bundle();
+                bundle.putString("MESSAGE", message);
+
+                switch (applicationId) {
+                    case MessageComposer.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER:
+                        NavHostFragment.findNavController(QRFragment.this)
+                                .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
+                        break;
+                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                        NavHostFragment.findNavController(QRFragment.this)
+                                .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                    default:
+                        Log.d(TAG, "No processor defined for application ID " + Integer.toHexString(applicationId));
+                        break;
+                }
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
     private BitSet lastReceivedChunks = null;
 
     private void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
@@ -189,6 +225,7 @@ public class QRFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (cameraProvider != null) cameraProvider.unbindAll();
         binding = null;
     }
 

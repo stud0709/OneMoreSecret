@@ -12,18 +12,18 @@ Don't get me wrong, [KeePass](https://keepass.info/download.html) and others hav
 
 1. A security software with millions of installations is very attractive to hackers.
 2. The bad guys know what to look for (e.g. password databases have a specific file type).
-3. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you can also store your [One Time Tokens](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
+3. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you will also store your [One Time Tokens](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
 4. Even if there are some additional security measures to protect the password database (e.g. entering your password using Windows secure screen or protecting the database with the password and a key provider), they are often not active in the default configuration of your tool. 
-5. If you have access to a cloud password storage, you can collect milliond of password **databases**!
+5. If you have access to a cloud password storage, you can collect literally millions of password **databases**!
 
 My personal nightmare is a hidden code change in a password manager making it send the data to a third party. And yes, the code changes to a cloud software apply for all customers in the same minute they are deployed... 💣
 
 ## The OneMoreSecret Concept
 ### No Master Password
-👉 The encryption used in OneMoreSecret is based on keys, not data. Yes, it's the old good [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) wrapped into a handy tool. 
+👉 The encryption used in OneMoreSecret is based on keys, not a password phrase. Yes, it's the old good [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) wrapped into a handy tool. 
 
 ### No Context
-👉 Every password is stored separately. And every password is sent to the phone for decryption separately. So even if you steal a password, you will have to figure out, what it is good for. 
+👉 Every password is stored separately. And every password is sent to the phone for decryption separately. So even if someone steals a password, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
 👉 It's your ~~problem~~ choice how to store your credentials. You could use a text file with the service name, user name and the encrypted password. You could use Excel or Google Keep. You could also conitnue using your KeePass (it has a very convenient user interface after all ❤️) and put your encrypted password into the password field: 
@@ -51,12 +51,12 @@ The app will then reques the key from Android Keystore system. Android will ask 
 ![Decrypted message](readme_images/decrypted.png)
 
 ## Setting things up
-You will need omsCompanion - the companion app for your desktop. omsCompanion will generate a private key for you and transfer it to your phone. You will also use it to encrypt your secrets with the public key and to send the encrypted data to your phone. 
+You will need [omsCompanion](https://github.com/stud0709/oms_companion) - the companion app for your desktop. *omsCompanion* will generate a private key for you and transfer it to your phone. You will also use it to encrypt your secrets with the public key and to send the encrypted data to your phone. 
 
 On your Android smartphone, you will need to set up the fingerprint authentification from your system settings. 
 
 ### Importing the private key
-omsCompanion will generate a private key for you. To import the key into your phone, you can use either the QR pop-up window from the *Cryptography -> New Private Key* wizard, or you can scan the codes from the backup document one by one. 
+*omsCompanion* will generate a private key for you. To import the key into your phone, you can use either the QR pop-up window from the *Cryptography -> New Private Key* wizard, or you can scan the codes from the backup document one by one. 
 
 ![private key import](readme_images/key_import.png)
 
@@ -66,7 +66,7 @@ Enter your transport password, click *DECRYPT* and then *SAVE*.
 
 
 ### Setting up Bluetooth
-Once in the "Decrypted Message" screen, you can make your phone visible to other bluetooth devices (3) and connect from there (e.g. linking to your phone from your Windows PC. It will be registered as a keyboard). Select the target (2), make sure you have the correct keyboard layout (4) and press (5). In some cases (like working with Remote Desktop) the strokes are generated too fast, which can result in wrong entry. Please activate "delayed strokes" (6) in this case.
+Once in the *Decrypted Message* screen, you can make your phone visible to other bluetooth devices (3) and connect from there (e.g. linking to your phone from your Windows PC. It will be registered as a keyboard). Select the target (2), make sure you have the correct keyboard layout (4) and press (5). If the the strokes are generated too fast for the target system (this is mostly the case if you are typing into Remote Desktop session), it can result in wrong entry. Please activate *delayed strokes* (6) in this case.
 
 ### On Keyboard Layouts
 Long story short: select the keyboard layout (4) that matches that of your target PC. 
@@ -80,3 +80,6 @@ A keyboard is not aware of the layout. If you press ";" on the US keyboard, ther
 
 ## Roadmap
 This software is being developed by one person, the amount of effort I can put into it is therefore limited. Please open a github issue if you have a feature request. 
+
+## Credits
+[android png from pngtree.com](https://pngtree.com/so/android)
