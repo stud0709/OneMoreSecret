@@ -64,6 +64,8 @@ public class QRFragment extends Fragment {
             //TODO: biometric auth not supported - check this on startup
         }
 
+        binding.btnPaste.setText(MessageComposer.OMS_PREFIX + "...");
+
         //enable camera
         if (isAllPermissionsGranted()) {
             onAllPermissionsGranted();
@@ -95,11 +97,14 @@ public class QRFragment extends Fragment {
         }
 
         ClipData clipData = clipboardManager.getPrimaryClip();
+
         for (int i = 0; i < clipData.getItemCount(); i++) {
             String txt = String.valueOf(clipData.getItemAt(i).getText());
-            if (txt != null) {
+            if (txt == null) {
                 String message = MessageComposer.decode(txt);
-                if (message != null) {
+                if (message == null) {
+                    getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
+                } else {
                     //found text encoded message on the clipboard
                     Log.d(TAG, message);
                     clipboardManager.clearPrimaryClip();
