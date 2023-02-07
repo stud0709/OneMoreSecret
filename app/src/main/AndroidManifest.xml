@@ -19,15 +19,21 @@
         android:theme="@style/Theme.OneMoreSecret"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name="com.onemoresecret.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.OneMoreSecret.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:label="@string/app_name">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Accepts URIs that begin with "oms:” -->
+                <data android:scheme="oms"/>
             </intent-filter>
 
             <meta-data

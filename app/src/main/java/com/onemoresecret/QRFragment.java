@@ -5,8 +5,10 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
@@ -54,7 +56,6 @@ public class QRFragment extends Fragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
-
         binding = FragmentQrBinding.inflate(inflater, container, false);
 
         int canAuthenticate = ((BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE))
@@ -66,6 +67,20 @@ public class QRFragment extends Fragment {
 
         binding.btnPaste.setText(MessageComposer.OMS_PREFIX + "...");
 
+        Intent intent = getActivity().getIntent();
+        if(intent != null) {
+            Uri data = intent.getData();
+            if(data != null && data.getScheme().equals(MessageComposer.URI_SCHEME)) {
+                String message = MessageComposer.decode(data.getSchemeSpecificPart());
+                if(message == null) {
+                    Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
+                } else {
+                    onMessage(message);
+                    return binding.getRoot();
+                }
+            }
+        }
+
         //enable camera
         if (isAllPermissionsGranted()) {
             onAllPermissionsGranted();
@@ -74,7 +89,7 @@ public class QRFragment extends Fragment {
                 if (isAllPermissionsGranted()) {
                     onAllPermissionsGranted();
                 } else {
-                    Toast.makeText(getContext(), "Insufficient permissions", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Insufficient permissions", Toast.LENGTH_LONG).show();
                 }
             }).launch(REQUIRED_PERMISSIONS);
         }

@@ -6,6 +6,10 @@ import java.util.regex.Pattern;
 
 public class MessageComposer {
     public static final int APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER = 0, APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1;
+    /**
+     * Intent filder URI scheme. A HTML anchor element with href="oms:0ms00_......." will call this app. See also the app's manifest for intent filter.
+     */
+    public static final String URI_SCHEME = "oms";
 
     private MessageComposer() {
     }
