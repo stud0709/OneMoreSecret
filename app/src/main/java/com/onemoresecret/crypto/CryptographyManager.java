@@ -1,5 +1,7 @@
 package com.onemoresecret.crypto;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.security.keystore.KeyProtection;
@@ -36,9 +38,12 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -48,37 +53,13 @@ public class CryptographyManager {
     public static final String ANDROID_KEYSTORE = "AndroidKeyStore";
     private static final String TAG = CryptographyManager.class.getSimpleName();
     public final KeyStore keyStore;
-    public static final String ALGORITHM[] = {
-            "AES",
-            "AES_128",
-            "AES_256",
-            "ARC4",
-            "BLOWFISH",
-            "ChaCha20",
-            "DES",
-            "DESede",
-            "RSA"};
-    public static final String MODE[] = {
-            "CBC",
-            "CFB",
-            "CTR",
-            "CTS",
-            "ECB",
-            "OFB",
-            "GCM",
-            "NONE",
-            "Poly1305"};
-    public static final String PADDING[] = {
-            "ISO10126Padding",
-            "NoPadding",
-            "PKCS5Padding",
-            "OAEPPadding",
-            "PKCS1Padding",
-            "OAEPwithSHA-1andMGF1Padding",
-            "OAEPwithSHA-256andMGF1Padding",
-            "OAEPwithSHA-224andMGF1Padding",
-            "OAEPwithSHA-384andMGF1Padding",
-            "OAEPwithSHA-512andMGF1Padding"};
+
+    public static final String[] ENCRYPTION_PADDINGS = {
+            KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1,
+            KeyProperties.ENCRYPTION_PADDING_RSA_OAEP
+    };
+
+    public static final int DEFAULT_DAYS_VALID = 9999, DEFAULT_KEY_LENGTH = 2048;
 
     public CryptographyManager() {
         KeyStore _keyStore;
@@ -98,30 +79,6 @@ public class CryptographyManager {
         }
 
         keyStore = _keyStore;
-    }
-
-    public static String normalizeTransformation(String s) {
-        String[] sArr = s.split("/");
-        for(String alg : ALGORITHM) {
-            if(alg.toLowerCase(Locale.ROOT).equals(sArr [0].toLowerCase(Locale.ROOT))) {
-                sArr[0] = alg;
-                break;
-            }
-        }
-        for(String mode : MODE) {
-            if(mode.toLowerCase(Locale.ROOT).equals(sArr [1].toLowerCase(Locale.ROOT))) {
-                sArr[1] = mode;
-                break;
-            }
-        }
-        for(String padding : PADDING) {
-            if(padding.toLowerCase(Locale.ROOT).equals(sArr [2].toLowerCase(Locale.ROOT))) {
-                sArr[2] = padding;
-                break;
-            }
-        }
-
-        return sArr[0] + "/" + sArr[1] + "/" + sArr[2];
     }
 
     public Cipher getInitializedCipherForEncryption(String keyName, String rsaTransformation) throws
@@ -183,8 +140,11 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             NoSuchProviderException {
 
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEYSTORE);
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.
+                getInstance(
+                        KeyProperties.KEY_ALGORITHM_RSA,
+                        ANDROID_KEYSTORE
+                );
 
         keyPairGenerator.initialize(spec);
         return keyPairGenerator.generateKeyPair();
@@ -194,17 +154,19 @@ public class CryptographyManager {
         return new KeyGenParameterSpec.Builder(
                 keyName,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                .setKeySize(2048)
-                .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1);
+                .setKeySize(DEFAULT_KEY_LENGTH)
+                .setEncryptionPaddings(ENCRYPTION_PADDINGS);
     }
 
-    public static X509Certificate createCertificate(byte[] certificateData) throws CertificateException {
+    public static X509Certificate createCertificate(byte[] certificateData) throws
+            CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X509");
         return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificateData));
     }
 
-    public static RSAPrivateCrtKey createPrivateKey(byte[] keyMaterial) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static RSAPrivateCrtKey createPrivateKey(byte[] keyMaterial) throws
+            NoSuchAlgorithmException,
+            InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyMaterial);
         return (RSAPrivateCrtKey) keyFactory.generatePrivate(keySpec);
@@ -215,7 +177,10 @@ public class CryptographyManager {
      *
      * @param certificate if {@code null}, the private key will be signed by the generated self-signed certificate.
      */
-    public void importKey(String keyName, @NonNull PrivateKey privateKey, X509Certificate certificate) throws
+    public void importKey(String keyName,
+                          @NonNull PrivateKey privateKey,
+                          X509Certificate certificate,
+                          Date validityEnd, Context ctx) throws
             CertificateException,
             NoSuchAlgorithmException,
             InvalidKeySpecException,
@@ -224,19 +189,29 @@ public class CryptographyManager {
             OperatorCreationException {
 
         if (certificate == null) {
-            //create self-signed certificate
+            int daysValid = validityEnd == null ? 9999 :
+                    (int) TimeUnit.DAYS.convert(
+                            validityEnd.getTime() - System.currentTimeMillis(),
+                            TimeUnit.MILLISECONDS);
+
+            //create self-signed certificate with the specified end validity
             PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
             KeyPair keyPair = new KeyPair(publicKey, privateKey);
-            certificate = SelfSignedCertGenerator.generate(keyPair, "SHA256withRSA", "OneMoreSecret", 730);
+            certificate = SelfSignedCertGenerator.generate(keyPair,
+                    "SHA256withRSA",
+                    "OneMoreSecret",
+                    daysValid);
+        } else {
+            validityEnd = certificate.getNotAfter();
         }
 
         KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{certificate});
 
         KeyProtection keyProtection = new KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setUserAuthenticationRequired(true)
-                .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                //.setIsStrongBoxBacked(true)
+                .setEncryptionPaddings(ENCRYPTION_PADDINGS)
+                .setIsStrongBoxBacked(ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE))
+                .setKeyValidityEnd(validityEnd)
                 .build();
 
         keyStore.setEntry(keyName, privateKeyEntry, keyProtection);
@@ -245,8 +220,9 @@ public class CryptographyManager {
     }
 
     public static PublicKey createPublicFromPrivateKey(RSAPrivateCrtKey privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        //https://gist.github.com/manzke/1068441
-        return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
+        return KeyFactory.
+                getInstance("RSA").
+                generatePublic(new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
     }
 
     public void deleteKey(String keyName) throws

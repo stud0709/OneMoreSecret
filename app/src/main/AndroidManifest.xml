@@ -16,12 +16,10 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.OneMoreSecret"
-        tools:targetApi="31">
+        android:theme="@style/Theme.OneMoreSecret">
         <activity
             android:name="com.onemoresecret.MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.OneMoreSecret.NoActionBar">
             <intent-filter>

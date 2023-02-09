@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.TimeUtils;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -20,22 +21,23 @@ import com.onemoresecret.databinding.FragmentKeyImportBinding;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.text.DateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 /**
- * A simple {@link Fragment} subclass.
+ * Key import Fragment.
  */
 public class KeyImportFragment extends Fragment {
     private FragmentKeyImportBinding binding;
     private static final String TAG = KeyImportFragment.class.getSimpleName();
-
-    public KeyImportFragment() {
-        // Required empty public constructor
-    }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -81,17 +83,28 @@ public class KeyImportFragment extends Fragment {
         int iterations = Integer.parseInt(sArr[7]);
         Log.d(TAG, "iterations: " + iterations);
 
+        //(9) validity end
+        long validityEnd = Long.parseLong(sArr[8]);
+        Log.d(TAG, "validity end: " + validityEnd);
+
         // --- Encrypted part ---
 
-        //(9) cipher text
-        byte[] cipherText = Base64.getDecoder().decode(sArr[8]);
+        //(10) cipher text
+        byte[] cipherText = Base64.getDecoder().decode(sArr[9]);
         Log.d(TAG, cipherText.length + " bytes cipher text read");
 
         binding.editTextKeyAlias.setText(alias);
 
         binding.btnDecrypt.setOnClickListener(e ->
                 new Thread(() ->
-                        onPasswordEntry(salt, iv, cipherText, aesTransformation, aesKeyAlg, aesKeyLength, iterations)).start()
+                        onPasswordEntry(salt,
+                                iv,
+                                cipherText,
+                                aesTransformation,
+                                aesKeyAlg,
+                                aesKeyLength,
+                                iterations,
+                                validityEnd)).start()
         );
 
     }
@@ -103,7 +116,8 @@ public class KeyImportFragment extends Fragment {
             String aesTransformation,
             String keyAlg,
             int keyLength,
-            int iterations) {
+            int iterations,
+            long validityEnd) {
 
         try {
             //try decrypt
@@ -114,7 +128,11 @@ public class KeyImportFragment extends Fragment {
                     keyLength,
                     iterations);
 
-            byte[] data = AESUtil.decrypt(cipherText, secretKey, new IvParameterSpec(iv), aesTransformation);
+            byte[] data = AESUtil.decrypt(
+                    cipherText,
+                    secretKey,
+                    new IvParameterSpec(iv),
+                    aesTransformation);
             String s = new String(data);
             String[] sArr = s.split("\t");
 
@@ -129,19 +147,35 @@ public class KeyImportFragment extends Fragment {
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             sha256.update(rsaKey);
-            byte[] hash = sha256.digest(rsaCert);
+            sha256.update(rsaCert);
+
+            byte longBytes[] = new byte[Long.BYTES];
+            for (int i = 0; i < longBytes.length; i++) {
+                int shift = 8 * i;
+                longBytes[i] = (byte) (validityEnd >> shift);
+            }
+
+            byte[] hash = sha256.digest(longBytes);
 
             //compare hash values
             if (!Arrays.equals(hash, _hash)) {
                 throw new IllegalArgumentException("Could not confirm data integrity");
             }
 
-            X509Certificate certificate = rsaCert.length == 0 ? null : (X509Certificate) CryptographyManager.createCertificate(rsaCert);
+            X509Certificate certificate = rsaCert.length == 0 ? null :
+                    (X509Certificate) CryptographyManager.createCertificate(rsaCert);
+
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 
             String fingerprint = BluetoothController.byteArrayToHex(CryptographyManager.getFingerprint(privateKey));
 
             getContext().getMainExecutor().execute(() -> {
+                //default validity end date
+                Date validityEndDate = Date.from(validityEnd == 0 ? Instant.ofEpochMilli(
+                        System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)) : Instant.ofEpochMilli(validityEnd));
+
+                //set default validity end
+                binding.textValidTo.setText(validityEnd == 0 ? getText(R.string.undefined) : DateFormat.getDateTimeInstance().format(validityEndDate));
                 binding.textCertificateData.setText(certificate == null ? "(not provided)" : certificate.toString());
                 binding.textFingerprintData.setText(fingerprint);
                 binding.btnSave.setEnabled(true);
@@ -149,8 +183,17 @@ public class KeyImportFragment extends Fragment {
                 binding.btnSave.setOnClickListener(e ->
                         new Thread(() -> {
                             try {
-                                String keyAlias = binding.editTextKeyAlias.getText().toString().trim();
-                                new CryptographyManager().importKey(keyAlias, privateKey, certificate);
+                                String keyAlias = binding.
+                                        editTextKeyAlias.
+                                        getText().
+                                        toString().
+                                        trim();
+                                new CryptographyManager().importKey(
+                                        keyAlias,
+                                        privateKey,
+                                        certificate,
+                                        validityEndDate,
+                                        getContext());
                                 getContext().getMainExecutor().execute(
                                         () -> {
                                             Toast.makeText(this.getContext(),

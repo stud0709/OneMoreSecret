@@ -8,11 +8,11 @@
     android:orientation="vertical"
     tools:context=".MessageFragment">
 
-    <com.google.android.material.switchmaterial.SwitchMaterial
+    <Switch
         android:id="@+id/swRevealMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="32dp"
+        android:minHeight="48dp"
         android:text="@string/reveal_message"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -21,7 +21,7 @@
         android:id="@+id/textViewMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:lines="10"
+        android:lines="5"
         android:text="@string/hidden_text_slide_to_reveal"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintEnd_toEndOf="parent"

@@ -29,7 +29,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
-//see https://github.com/misterpki/selfsignedcert/blob/master/src/test/java/com/misterpki/SelfSignedCertGeneratorTest.java
 public class SelfSignedCertGenerator {
     private SelfSignedCertGenerator() {
     }

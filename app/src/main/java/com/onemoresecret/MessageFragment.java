@@ -109,7 +109,7 @@ public class MessageFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
 
             //(2) RSA transformation
-            rsaTransformation = CryptographyManager.normalizeTransformation(sArr[1]);
+            rsaTransformation = sArr[1];
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
@@ -117,7 +117,7 @@ public class MessageFragment extends Fragment {
             Log.d(TAG, "RSA fingerprint: " + BluetoothController.byteArrayToHex(fingerprint));
 
             // (4) AES transformation
-            aesTransformation = CryptographyManager.normalizeTransformation(sArr[3]);
+            aesTransformation = sArr[3];
             Log.d(TAG, "AES transformation: " + aesTransformation);
 
             //(5) IV

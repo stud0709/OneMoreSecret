@@ -58,21 +58,22 @@ public class QRFragment extends Fragment {
     ) {
         binding = FragmentQrBinding.inflate(inflater, container, false);
 
-        int canAuthenticate = ((BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE))
-                .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.BIOMETRIC_STRONG);
+        BiometricManager biometricManager = (BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE);
+
+        int canAuthenticate = biometricManager.
+                canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK |
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG);
 
         if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
             //TODO: biometric auth not supported - check this on startup
         }
 
-        binding.btnPaste.setText(MessageComposer.OMS_PREFIX + "...");
-
         Intent intent = getActivity().getIntent();
-        if(intent != null) {
+        if (intent != null) {
             Uri data = intent.getData();
-            if(data != null && data.getScheme().equals(MessageComposer.URI_SCHEME)) {
+            if (data != null && data.getScheme().equals(MessageComposer.URI_SCHEME)) {
                 String message = MessageComposer.decode(data.getSchemeSpecificPart());
-                if(message == null) {
+                if (message == null) {
                     Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
                 } else {
                     onMessage(message);
@@ -221,7 +222,10 @@ public class QRFragment extends Fragment {
                         NavHostFragment.findNavController(QRFragment.this)
                                 .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                     default:
-                        Log.d(TAG, "No processor defined for application ID " + Integer.toHexString(applicationId));
+                        Log.d(TAG,
+                                "No processor defined for application ID " +
+                                        Integer.toHexString(applicationId)
+                        );
                         break;
                 }
             });
@@ -239,7 +243,11 @@ public class QRFragment extends Fragment {
         String s = IntStream.range(0, totalChunks)
                 .filter(i -> !receivedChunks.get(i))
                 .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(", "));
-        getContext().getMainExecutor().execute(() -> binding.txtRemainingCodes.setText(s));
+        getContext().getMainExecutor().execute(() -> {
+            if (binding != null && binding.txtRemainingCodes != null) { //prevent post mortem calls
+                binding.txtRemainingCodes.setText(s);
+            }
+        });
     }
 
     @Override
