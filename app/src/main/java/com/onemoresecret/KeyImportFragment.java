@@ -1,6 +1,8 @@
 package com.onemoresecret;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,14 +15,17 @@ import androidx.core.util.TimeUtils;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.material.internal.TextWatcherAdapter;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.interfaces.RSAPublicKey;
 import java.text.DateFormat;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +43,7 @@ import javax.crypto.spec.IvParameterSpec;
 public class KeyImportFragment extends Fragment {
     private FragmentKeyImportBinding binding;
     private static final String TAG = KeyImportFragment.class.getSimpleName();
+    private final CryptographyManager cryptographyManager = new CryptographyManager();
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -56,7 +62,6 @@ public class KeyImportFragment extends Fragment {
         String alias = sArr[1];
         Log.d(TAG, "alias: " + alias);
         binding.editTextKeyAlias.setText(alias);
-
         // --- AES parameter ---
 
         //(3) salt
@@ -86,7 +91,10 @@ public class KeyImportFragment extends Fragment {
         //(9) validity end
         long validityEnd = Long.parseLong(sArr[8]);
         Log.d(TAG, "validity end: " + validityEnd);
-
+        if (validityEnd == 0) {
+            binding.textValidTo.setVisibility(View.GONE);
+            binding.textValidityLabel.setVisibility(View.GONE);
+        }
         // --- Encrypted part ---
 
         //(10) cipher text
@@ -167,7 +175,8 @@ public class KeyImportFragment extends Fragment {
 
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 
-            String fingerprint = BluetoothController.byteArrayToHex(CryptographyManager.getFingerprint(privateKey));
+            byte[] fingerprintBytes = CryptographyManager.getFingerprint(privateKey);
+            String fingerprint = BluetoothController.byteArrayToHex(fingerprintBytes);
 
             getContext().getMainExecutor().execute(() -> {
                 //default validity end date
@@ -176,8 +185,15 @@ public class KeyImportFragment extends Fragment {
 
                 //set default validity end
                 binding.textValidTo.setText(validityEnd == 0 ? getText(R.string.undefined) : DateFormat.getDateTimeInstance().format(validityEndDate));
-                binding.textCertificateData.setText(certificate == null ? "(not provided)" : certificate.toString());
+
+                binding.textCertificateData.setText(certificate == null ? getString(R.string.not_provided) : certificate.toString());
                 binding.textFingerprintData.setText(fingerprint);
+
+                //check alias
+                binding.editTextKeyAlias.addTextChangedListener(getTextWatcher(fingerprintBytes));
+
+                validateAlias(fingerprintBytes);
+
                 binding.btnSave.setEnabled(true);
 
                 binding.btnSave.setOnClickListener(e ->
@@ -188,7 +204,7 @@ public class KeyImportFragment extends Fragment {
                                         getText().
                                         toString().
                                         trim();
-                                new CryptographyManager().importKey(
+                                cryptographyManager.importKey(
                                         keyAlias,
                                         privateKey,
                                         certificate,
@@ -233,4 +249,49 @@ public class KeyImportFragment extends Fragment {
         super.onDestroyView();
         binding = null;
     }
+
+    private void validateAlias(byte[] fingerprintNew) {
+        try {
+            String alias = binding.editTextKeyAlias.getText().toString();
+            Log.d(TAG, "alias: " + alias);
+            boolean displayWarning = false;
+            if (cryptographyManager.keyStore.containsAlias(alias)) {
+                Log.d(TAG, "alias in keystore");
+                byte[] fingerprint = CryptographyManager.getFingerprint((RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey());
+                displayWarning = !Arrays.equals(fingerprint, fingerprintNew);
+                Log.d(TAG, "fingerprint match");
+            }
+
+            final boolean _displayWarning = displayWarning;
+
+            getContext().getMainExecutor().execute(() -> {
+                binding.txtWarnings.setText(_displayWarning ? String.format("Warning: this alias is already assigned to a key with fingerprint %1$s. " +
+                        "\nYou will overwrite it if you click '%2$s'", BluetoothController.byteArrayToHex(fingerprintNew), getText(R.string.save)) : "");
+                binding.txtWarnings.setVisibility(_displayWarning ? View.VISIBLE : View.GONE);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private TextWatcher getTextWatcher(byte[] fingerprintBytes) {
+       return new TextWatcher() {
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                return;
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                return;
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                validateAlias(fingerprintBytes);
+            }
+        };
+    }
+
 }

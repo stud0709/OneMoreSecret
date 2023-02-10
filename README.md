@@ -6,33 +6,40 @@ OneMoreSecret is an additional security layer for your data (e.g. passwords). It
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
 
 ## What's wrong with password managers?
-In the early days, the computers were not password protected. The first password [dates back](https://www.smh.com.au/national/scientist-who-introduced-the-computer-password-20190717-p527zf.html) to 1961. As things got worse, [password policies](https://en.wikipedia.org/wiki/Password_policy) were born, together with the recommendation to have separate passwords for every application. This is how the [password manager](https://en.wikipedia.org/wiki/Password_manager) was born - as a workaround for the password policy. 
+In the early days, the computers were not password protected. The first password [dates back](https://www.smh.com.au/national/scientist-who-introduced-the-computer-password-20190717-p527zf.html) to 1961. As things got worse, [password policies](https://en.wikipedia.org/wiki/Password_policy) were born, together with the recommendation to have separate passwords for every application. This is how the [password manager](https://en.wikipedia.org/wiki/Password_manager) was born - as a workaround for the password policy. You *kind of* have different passwords for every service, and still there is only one password.
 
 Don't get me wrong, [KeePass](https://keepass.info/download.html) and others have been doing a great job. But here are some concerns:
 
 1. A security software with millions of installations is very attractive to hackers.
-2. The bad guys know what to look for (e.g. password databases have a specific file type).
-3. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you will also store your [One Time Tokens](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
-4. Even if there are some additional security measures to protect the password database (e.g. entering your password using Windows secure screen or protecting the database with the password and a key provider), they are often not active in the default configuration of your tool. 
-5. If you have access to a cloud password storage, you can collect literally millions of password **databases**!
+2. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you will also store your [One Time Tokens](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
+3. Even if there are some additional security measures to protect the password database (e.g. entering your password using Windows secure screen or protecting the database with the password and a key provider), they are often not active in the default configuration of your tool. 
+4. If you have access to a cloud password storage, you can collect literally millions of password **databases**!
 
 My personal nightmare is a hidden code change in a password manager making it send the data to a third party. And yes, the code changes to a cloud software apply for all customers in the same minute they are deployed... 💣
 
-## The OneMoreSecret Concept
+## Why OneMoreSecret?
+...well, I am probably not the only one wondering if we are really better off with password managers or just storing all our credentials in one place for someone to come and collect them all at once. Maybe not today, but tomorrow...
+
+If there is a vulnerability, there will be also an exploit for it. And it will work for a typical configuration. It is a good idea to be among those 1% with a setup, where the exploit will not work. 
+
+...and I am fed up of typing my master password 40 times a day! 🤬
+
+So here is the wish list I tried to implement with OneMoreSecret:
+
 ### No Master Password
 👉 The encryption used in OneMoreSecret is based on keys, not a password phrase. Yes, it's the old good [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) wrapped into a handy tool. 
 
 ### No Context
-👉 Every password is stored separately. And every password is sent to the phone for decryption separately. So even if someone steals a password, he will still have to figure out, what it is good for. 
+👉 Every password is stored separately in its own encrypted envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals one password, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
-👉 It's your ~~problem~~ choice how to store your credentials. You could use a text file with the service name, user name and the encrypted password. You could use Excel or Google Keep. You could also conitnue using your KeePass (it has a very convenient user interface after all ❤️) and put your encrypted password into the password field: 
+👉 It's your ~~problem~~ choice how to store your credentials. You could use a text file with the service name, user name and the encrypted password. You could use Excel, or Google Keep, or GitHub Gists. You could also conitnue using your KeePass (it has a very convenient user interface after all ❤️) and put your encrypted password into the password field: 
 
 ![oms ontop KeePass](readme_images/oms_ontop_keepass.png)
 
-If your database is stolen, you still have to decrypt every password separately. Just remember to backup your password storage regularly. 
+If your database is stolen, the guys will still end up with decrypted password. Just remember to backup your password storage regularly. 
 
-Personally, I prefer the combination of KeePass and a cloud storage. It is encrypted, synced between your devices and protected from data loss.
+Personally, I prefer to store my KeePass database in the cloud storage. The file is encrypted, synced between your devices and protected from data loss.
 
 ### No Private Key Exposure 
 👉 The Android Keystore system does not "hand over" the key to the app. Once the key has been imported into the storage, you cannot extract it from the phone any more. 

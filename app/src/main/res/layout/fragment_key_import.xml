@@ -117,7 +117,7 @@
     <TextView
         android:id="@+id/textCertificateData"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:text="@string/unknown_decrypt_first"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
@@ -133,6 +133,13 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txtWarnings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/holo_red_light"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSave"
