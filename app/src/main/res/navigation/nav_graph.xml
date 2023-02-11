@@ -18,6 +18,9 @@
         <action
             android:id="@+id/action_QRFragment_to_keyImportFragment"
             app:destination="@id/KeyImportFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_keyStoreFragment"
+            app:destination="@id/keyStoreFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -29,4 +32,9 @@
         android:name="com.onemoresecret.KeyImportFragment"
         android:label="Private Key Import"
         tools:layout="@layout/fragment_key_import" />
+    <fragment
+        android:id="@+id/keyStoreFragment"
+        android:name="com.onemoresecret.KeyStoreListFragment"
+        android:label="Private Keys"
+        tools:layout="@layout/fragment_key_store_list" />
 </navigation>
