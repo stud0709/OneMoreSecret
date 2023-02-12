@@ -32,6 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
@@ -167,7 +168,7 @@ public class KeyImportFragment extends Fragment {
 
             //compare hash values
             if (!Arrays.equals(hash, _hash)) {
-                throw new IllegalArgumentException("Could not confirm data integrity");
+                throw new IllegalArgumentException(getString(R.string.hash_mismatch));
             }
 
             X509Certificate certificate = rsaCert.length == 0 ? null :
@@ -199,6 +200,16 @@ public class KeyImportFragment extends Fragment {
                 binding.btnSave.setOnClickListener(e ->
                         new Thread(() -> {
                             try {
+                                //delete other keys with the same fingerprint
+                                List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
+                                sameFingerprint.stream().forEach(a -> {
+                                    try {
+                                        cryptographyManager.deleteKey(a);
+                                    } catch (KeyStoreException ex) {
+                                        ex.printStackTrace();
+                                    }
+                                });
+
                                 String keyAlias = binding.
                                         editTextKeyAlias.
                                         getText().
@@ -254,28 +265,34 @@ public class KeyImportFragment extends Fragment {
         try {
             String alias = binding.editTextKeyAlias.getText().toString();
             Log.d(TAG, "alias: " + alias);
-            boolean displayWarning = false;
+            String warning = null;
+
             if (cryptographyManager.keyStore.containsAlias(alias)) {
-                Log.d(TAG, "alias in keystore");
                 byte[] fingerprint = CryptographyManager.getFingerprint((RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey());
-                displayWarning = !Arrays.equals(fingerprint, fingerprintNew);
-                Log.d(TAG, "fingerprint match");
+                if (!Arrays.equals(fingerprint, fingerprintNew)) {
+                    warning = String.format(getString(R.string.warning_alias_exists), BluetoothController.byteArrayToHex(fingerprintNew));
+                }
             }
 
-            final boolean _displayWarning = displayWarning;
+            List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew);
+            if (!sameFingerprint.isEmpty()) {
+                warning = String.format(getString(R.string.warning_same_fingerprint), sameFingerprint.get(0));
+            }
+
+            String _warning = warning;
 
             getContext().getMainExecutor().execute(() -> {
-                binding.txtWarnings.setText(_displayWarning ? String.format("Warning: this alias is already assigned to a key with fingerprint %1$s. " +
-                        "\nYou will overwrite it if you click '%2$s'", BluetoothController.byteArrayToHex(fingerprintNew), getText(R.string.save)) : "");
-                binding.txtWarnings.setVisibility(_displayWarning ? View.VISIBLE : View.GONE);
+                binding.txtWarnings.setText(_warning == null ? "" : _warning);
+                binding.txtWarnings.setVisibility(_warning == null ? View.GONE : View.VISIBLE);
             });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private TextWatcher getTextWatcher(byte[] fingerprintBytes) {
-       return new TextWatcher() {
+        return new TextWatcher() {
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {

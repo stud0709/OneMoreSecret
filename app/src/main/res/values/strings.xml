@@ -46,4 +46,7 @@
     <string name="not_provided">(not provided)</string>
     <string name="typing_please_wait">typing, please wait...</string>
     <string name="share_public_key_title">%s - Public Key</string>
+    <string name="warning_alias_exists">Warning: this alias is already assigned to a key with fingerprint %s. It will be overwritten.</string>
+    <string name="warning_same_fingerprint">Warning: key \'%s\' has the same fingerprint. It will be deleted.</string>
+    <string name="hash_mismatch">Could not confirm data integrity</string>
 </resources>
