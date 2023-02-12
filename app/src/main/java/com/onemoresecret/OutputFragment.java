@@ -425,10 +425,12 @@ public class OutputFragment extends Fragment {
 
                     //set BT connection state
                     SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                    boolean selectedDeviceConnected = false;
 
                     if (selectedBluetoothTarget != null) {
                         String selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
-                        if (connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress))) {
+                        selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
+                        if (selectedDeviceConnected) {
                             status = getString(R.string.bt_connected);
                             drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
                         }
@@ -441,6 +443,7 @@ public class OutputFragment extends Fragment {
                     KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
                     binding.btnType.setEnabled(bluetoothAdapterEnabled &&
                             selectedBluetoothTarget != null &&
+                            selectedDeviceConnected &&
                             selectedLayout != null &&
                             message != null &&
                             !typing.get());
