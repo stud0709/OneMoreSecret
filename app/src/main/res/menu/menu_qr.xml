@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.onemoresecret.MainActivity">
+    <item
+        android:id="@+id/menuItemQrPaste"
+        android:icon="@drawable/ic_baseline_content_paste_24"
+        android:title="@android:string/paste"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menuItemQrPrivateKeys"
+        android:orderInCategory="100"
+        android:title="@string/action_private_keys"
+        app:showAsAction="never" />
+</menu>

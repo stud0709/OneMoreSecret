@@ -91,13 +91,6 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btnCopy"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@android:string/copy"
-            app:icon="@drawable/ic_baseline_content_copy_24" />
-
-        <Button
             android:id="@+id/btnType"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

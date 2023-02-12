@@ -19,16 +19,17 @@ import android.os.Bundle;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.biometric.BiometricPrompt;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -38,32 +39,17 @@ import android.widget.Toast;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.bt.layout.KeyboardLayout;
 import com.onemoresecret.bt.layout.Stroke;
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.databinding.FragmentMessageBinding;
 import com.onemoresecret.databinding.FragmentOutputBinding;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStoreException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class OutputFragment extends Fragment {
     private static final String TAG = OutputFragment.class.getSimpleName();
@@ -88,6 +74,10 @@ public class OutputFragment extends Fragment {
 
     private ClipboardManager clipboardManager;
 
+    private final OutputMenuProvider menuProvider = new OutputMenuProvider();
+
+    private Runnable copyValue = null;
+
     public static OutputFragment newInstance(String message) {
         OutputFragment fragment = new OutputFragment();
         Bundle args = new Bundle();
@@ -102,6 +92,9 @@ public class OutputFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentOutputBinding.inflate(inflater, container, false);
+
+        requireActivity().addMenuProvider(menuProvider);
+
         preferences = getActivity().getPreferences(Context.MODE_PRIVATE);
         String message = getArguments().getString(ARG_MESSAGE);
 
@@ -143,14 +136,14 @@ public class OutputFragment extends Fragment {
             type(strokes);
         });
 
-        binding.btnCopy.setOnClickListener(e -> {
+        copyValue = () -> {
             String extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
             ClipData clipData = ClipData.newPlainText("oneMoreSecret", message);
             PersistableBundle persistableBundle = new PersistableBundle();
             persistableBundle.putBoolean(extra_is_sensitive, true);
             clipData.getDescription().setExtras(persistableBundle);
             clipboardManager.setPrimaryClip(clipData);
-        });
+        };
 
         return binding.getRoot();
     }
@@ -327,8 +320,8 @@ public class OutputFragment extends Fragment {
         bluetoothController.getBluetoothHidDevice().unregisterApp();
 
         binding.btnType.setOnClickListener(null);
-        binding.btnCopy.setOnClickListener(null);
-
+        requireActivity().removeMenuProvider(menuProvider);
+        copyValue = null;
         binding = null;
     }
 
@@ -537,6 +530,27 @@ public class OutputFragment extends Fragment {
 
 //            boolean numLockActive = (data[0] & KeyboardReport.NUM_LOCK) == KeyboardReport.NUM_LOCK;
 //            boolean capsLockActive = (data[0] & KeyboardReport.CAPS_LOCK) == KeyboardReport.CAPS_LOCK;
+        }
+    }
+
+    public class OutputMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_output, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            switch (menuItem.getItemId()) {
+                case R.id.menuItemOutputCopy:
+                    copyValue.run();
+                    break;
+                default:
+                    return false;
+            }
+
+            return true;
         }
     }
 }

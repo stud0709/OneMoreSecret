@@ -1,10 +1,15 @@
 package com.onemoresecret;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.ItemDetailsLookup;
 import androidx.recyclerview.selection.ItemKeyProvider;
 import androidx.recyclerview.selection.SelectionPredicates;
@@ -14,7 +19,11 @@ import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.PersistableBundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +35,7 @@ import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Enumeration;
 
 /**
@@ -39,6 +49,10 @@ public class KeyStoreListFragment extends Fragment {
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
     private String[] aliases;
+
+    private final KeyEntryMenuProvider menuProvider = new KeyEntryMenuProvider();
+
+    private ClipboardManager clipboardManager;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -54,6 +68,8 @@ public class KeyStoreListFragment extends Fragment {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+
+        clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
         binding.list.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -71,11 +87,20 @@ public class KeyStoreListFragment extends Fragment {
             @Override
             public void onSelectionChanged() {
                 super.onSelectionChanged();
-
+                getActivity().invalidateOptionsMenu();
             }
         });
 
+        requireActivity().addMenuProvider(menuProvider);
+
         return binding.getRoot();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
+        binding = null;
     }
 
     class ItemAdapter extends RecyclerView.Adapter<PrivateKeyViewHolder> {
@@ -180,4 +205,51 @@ public class KeyStoreListFragment extends Fragment {
         }
     }
 
+    private class KeyEntryMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_key_list, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            try {
+                String alias = selectionTracker.getSelection().iterator().next();
+                byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
+                String message = Base64.getEncoder().encodeToString(bArr);
+
+                switch (menuItem.getItemId()) {
+                    case R.id.menuItemCopyPublicKey:
+                        ClipData clipData = ClipData.newPlainText("oneMoreSecret", message);
+                        clipboardManager.setPrimaryClip(clipData);
+                        break;
+                    case R.id.menuItemSharePublicKey:
+                        //todo
+                        break;
+                    case R.id.menuItemTypePublicKey:
+                        //todo
+                        break;
+                    case R.id.menuItemDeleteKeyEntry:
+                        //todo
+                        break;
+                    case R.id.menuItemGenerateQrPublicKey:
+                        //todo
+                        break;
+                    default:
+                        return false;
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            return true;
+        }
+
+        @Override
+        public void onPrepareMenu(@NonNull Menu menu) {
+            menu.setGroupVisible(R.id.group_key_all, selectionTracker.hasSelection());
+            MenuProvider.super.onPrepareMenu(menu);
+        }
+    }
 }

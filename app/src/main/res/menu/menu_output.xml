@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.onemoresecret.MainActivity">
     <item
-        android:id="@+id/action_private_keys"
-        android:orderInCategory="100"
-        android:title="@string/action_private_keys"
-        app:showAsAction="never" />
+        android:id="@+id/menuItemOutputCopy"
+        android:icon="@drawable/ic_baseline_content_copy_24"
+        android:title="@android:string/copy"
+        app:showAsAction="ifRoom" />
 </menu>

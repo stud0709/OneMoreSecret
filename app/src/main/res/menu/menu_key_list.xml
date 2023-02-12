@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:id="@+id/group_key_all">
+        <item
+            android:id="@+id/menuItemSharePublicKey"
+            android:icon="@drawable/baseline_share_24"
+            android:title="Share Public Key"
+            app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemTypePublicKey"
+            android:icon="@drawable/ic_baseline_keyboard_24"
+            android:title="Type Public Key"
+            app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemCopyPublicKey"
+            android:icon="@drawable/ic_baseline_content_copy_24"
+            android:title="Copy Public Key"
+            app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemGenerateQrPublicKey"
+            android:icon="@drawable/baseline_qr_code_2_24"
+            android:title="Generate QR"
+            app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemDeleteKeyEntry"
+            android:title="Delete Key"
+            app:showAsAction="never" />
+    </group>
+</menu>

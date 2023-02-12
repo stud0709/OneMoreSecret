@@ -13,18 +13,21 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -51,12 +54,16 @@ public class QRFragment extends Fragment {
             Manifest.permission.CAMERA
     };
 
+    private final QrMenuProvider menuProvider= new QrMenuProvider();
+
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState
     ) {
         binding = FragmentQrBinding.inflate(inflater, container, false);
+
+        requireActivity().addMenuProvider(menuProvider);
 
         BiometricManager biometricManager = (BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE);
 
@@ -94,9 +101,6 @@ public class QRFragment extends Fragment {
                 }
             }).launch(REQUIRED_PERMISSIONS);
         }
-
-        binding.btnPaste.setOnClickListener(e -> checkClipboard());
-
 
         return binding.getRoot();
 
@@ -253,8 +257,33 @@ public class QRFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
         if (cameraProvider != null) cameraProvider.unbindAll();
         binding = null;
     }
 
+    private class QrMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_qr, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            switch(menuItem.getItemId()) {
+                case R.id.menuItemQrPaste:
+                    checkClipboard();
+                    break;
+                case R.id.menuItemQrPrivateKeys:
+                    NavHostFragment.findNavController(QRFragment.this)
+                            .navigate(R.id.action_QRFragment_to_keyStoreFragment);
+                    break;
+                default:
+                    return false;
+            }
+
+            return true;
+        }
+    }
 }
