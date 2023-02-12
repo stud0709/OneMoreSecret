@@ -44,4 +44,6 @@
     <string name="valid_to">Valid to:</string>
     <string name="undefined">undefined</string>
     <string name="not_provided">(not provided)</string>
+    <string name="typing_please_wait">typing, please wait...</string>
+    <string name="share_public_key_title">%s - Public Key</string>
 </resources>

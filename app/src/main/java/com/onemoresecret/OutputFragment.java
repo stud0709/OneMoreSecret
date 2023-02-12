@@ -68,7 +68,7 @@ public class OutputFragment extends Fragment {
     private static final int DISCOVERABLE_DURATION_S = 60;
     private SharedPreferences preferences;
     private final AtomicBoolean refreshingBtControls = new AtomicBoolean();
-    private static final long KEY_STROKE_DELAY = 50;
+    private static final long KEY_STROKE_DELAY_ON = 50, KEY_STROKE_DELAY_OFF = 10;
 
     protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target", ARG_MESSAGE = "message";
 
@@ -78,12 +78,14 @@ public class OutputFragment extends Fragment {
 
     private Runnable copyValue = null;
 
-    public static OutputFragment newInstance(String message) {
-        OutputFragment fragment = new OutputFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_MESSAGE, message);
-        fragment.setArguments(args);
-        return fragment;
+    private String message = null;
+
+    private AtomicBoolean typing = new AtomicBoolean(false);
+
+    public void setMessage(String message) {
+        this.message = message;
+        refreshBluetoothControls();
+        getActivity().invalidateOptionsMenu();
     }
 
     @Override
@@ -96,7 +98,6 @@ public class OutputFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         preferences = getActivity().getPreferences(Context.MODE_PRIVATE);
-        String message = getArguments().getString(ARG_MESSAGE);
 
         bluetoothController = new BluetoothController(this,
                 result -> {
@@ -284,6 +285,9 @@ public class OutputFragment extends Fragment {
             return;
         }
 
+        typing.set(true);
+        refreshBluetoothControls();
+
         new Thread(() -> {
             BluetoothDevice bluetoothDevice = ((SpinnerItemDevice) binding
                     .spinnerBluetoothTarget
@@ -297,14 +301,17 @@ public class OutputFragment extends Fragment {
                                 bluetoothDevice,
                                 0,
                                 r.report);
-                if (KEY_STROKE_DELAY != 0 && binding.swDelayedStrokes.isChecked()) {
-                    try {
-                        Thread.sleep(KEY_STROKE_DELAY);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+
+                try {
+                    Thread.sleep(binding.swDelayedStrokes.isChecked() ? Math.max(KEY_STROKE_DELAY_ON, KEY_STROKE_DELAY_OFF) : KEY_STROKE_DELAY_OFF);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
+
             });
+
+            typing.set(false);
+            refreshBluetoothControls();
         }).start();
     }
 
@@ -432,7 +439,14 @@ public class OutputFragment extends Fragment {
 
                     //set TYPE button state
                     KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-                    binding.btnType.setEnabled(bluetoothAdapterEnabled && selectedBluetoothTarget != null && selectedLayout != null);
+                    binding.btnType.setEnabled(bluetoothAdapterEnabled &&
+                            selectedBluetoothTarget != null &&
+                            selectedLayout != null &&
+                            message != null &&
+                            !typing.get());
+
+                    binding.textTyping.setVisibility(typing.get() ? View.VISIBLE : View.INVISIBLE);
+
                 } finally {
                     refreshingBtControls.set(false);
                 }
@@ -538,6 +552,12 @@ public class OutputFragment extends Fragment {
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
             menuInflater.inflate(R.menu.menu_output, menu);
+        }
+
+        @Override
+        public void onPrepareMenu(@NonNull Menu menu) {
+            menu.setGroupVisible(R.id.menuGroupOutputAll, message != null);
+            MenuProvider.super.onPrepareMenu(menu);
         }
 
         @Override

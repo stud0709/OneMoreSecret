@@ -2,9 +2,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.onemoresecret.MainActivity">
-    <item
-        android:id="@+id/menuItemOutputCopy"
-        android:icon="@drawable/ic_baseline_content_copy_24"
-        android:title="@android:string/copy"
-        app:showAsAction="ifRoom" />
+    <group android:id="@+id/menuGroupOutputAll">
+        <item
+            android:id="@+id/menuItemOutputCopy"
+            android:icon="@drawable/ic_baseline_content_copy_24"
+            android:title="@android:string/copy"
+            app:showAsAction="ifRoom" />
+    </group>
 </menu>

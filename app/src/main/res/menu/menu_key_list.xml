@@ -9,23 +9,9 @@
             android:title="Share Public Key"
             app:showAsAction="ifRoom" />
         <item
-            android:id="@+id/menuItemTypePublicKey"
-            android:icon="@drawable/ic_baseline_keyboard_24"
-            android:title="Type Public Key"
-            app:showAsAction="ifRoom" />
-        <item
-            android:id="@+id/menuItemCopyPublicKey"
-            android:icon="@drawable/ic_baseline_content_copy_24"
-            android:title="Copy Public Key"
-            app:showAsAction="ifRoom" />
-        <item
-            android:id="@+id/menuItemGenerateQrPublicKey"
-            android:icon="@drawable/baseline_qr_code_2_24"
-            android:title="Generate QR"
-            app:showAsAction="ifRoom" />
-        <item
             android:id="@+id/menuItemDeleteKeyEntry"
+            android:icon="@drawable/baseline_delete_forever_24"
             android:title="Delete Key"
-            app:showAsAction="never" />
+            app:showAsAction="never|ifRoom" />
     </group>
 </menu>

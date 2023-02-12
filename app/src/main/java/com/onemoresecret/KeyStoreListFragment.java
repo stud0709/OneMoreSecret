@@ -3,6 +3,8 @@ package com.onemoresecret;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.icu.util.Output;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -88,12 +90,29 @@ public class KeyStoreListFragment extends Fragment {
             public void onSelectionChanged() {
                 super.onSelectionChanged();
                 getActivity().invalidateOptionsMenu();
+                OutputFragment of = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.keyListOutputFragment);
+                if (selectionTracker.hasSelection()) {
+                    of.setMessage(getPublicKeyMessage());
+                } else {
+                    of.setMessage(null);
+                }
             }
         });
 
         requireActivity().addMenuProvider(menuProvider);
 
         return binding.getRoot();
+    }
+
+    private String getPublicKeyMessage() {
+        try {
+            String alias = selectionTracker.getSelection().iterator().next();
+            byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
+            return Base64.getEncoder().encodeToString(bArr);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
     @Override
@@ -214,26 +233,24 @@ public class KeyStoreListFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (!selectionTracker.hasSelection()) return false;
+
             try {
-                String alias = selectionTracker.getSelection().iterator().next();
-                byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
-                String message = Base64.getEncoder().encodeToString(bArr);
+                String message = getPublicKeyMessage();
 
                 switch (menuItem.getItemId()) {
-                    case R.id.menuItemCopyPublicKey:
-                        ClipData clipData = ClipData.newPlainText("oneMoreSecret", message);
-                        clipboardManager.setPrimaryClip(clipData);
-                        break;
                     case R.id.menuItemSharePublicKey:
-                        //todo
-                        break;
-                    case R.id.menuItemTypePublicKey:
-                        //todo
+                        Intent sendIntent = new Intent();
+                        sendIntent.setAction(Intent.ACTION_SEND);
+                        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+                        String alias = selectionTracker.getSelection().iterator().next();
+                        sendIntent.putExtra(Intent.EXTRA_TITLE, String.format(getString(R.string.share_public_key_title), alias));
+                        sendIntent.setType("text/plain");
+
+                        Intent shareIntent = Intent.createChooser(sendIntent, null);
+                        startActivity(shareIntent);
                         break;
                     case R.id.menuItemDeleteKeyEntry:
-                        //todo
-                        break;
-                    case R.id.menuItemGenerateQrPublicKey:
                         //todo
                         break;
                     default:

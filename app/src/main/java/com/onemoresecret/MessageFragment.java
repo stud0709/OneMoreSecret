@@ -15,6 +15,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.icu.util.Output;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
@@ -247,8 +248,8 @@ public class MessageFragment extends Fragment {
             binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal));
         });
 
-        OutputFragment of = OutputFragment.newInstance(message);
-        getParentFragmentManager().beginTransaction().add(binding.layoutMain.getId(), of, "output").commit();
+        OutputFragment of = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+        of.setMessage(message);
     }
 
     @Override
