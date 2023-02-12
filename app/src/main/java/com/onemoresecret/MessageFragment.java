@@ -1,63 +1,30 @@
 package com.onemoresecret;
 
-import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHidDevice;
-import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
-import android.icu.util.Output;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.biometric.BiometricPrompt;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.bt.BluetoothController;
-import com.onemoresecret.bt.layout.KeyboardLayout;
-import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -99,6 +66,7 @@ public class MessageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        assert getArguments() != null;
         String message = getArguments().getString("MESSAGE");
 
         try {
@@ -193,7 +161,7 @@ public class MessageFragment extends Fragment {
     public void onAuthenticationError(int errCode, CharSequence errString) {
         Log.d(TAG,
                 "Authentication failed: " + errString + " (" + errCode + ")");
-        getContext().getMainExecutor().execute(() -> {
+        requireContext().getMainExecutor().execute(() -> {
             Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
             NavHostFragment.findNavController(MessageFragment.this).popBackStack();
         });
@@ -202,7 +170,7 @@ public class MessageFragment extends Fragment {
     public void onAuthenticationFailed() {
         Log.d(TAG,
                 "User biometric rejected");
-        getContext().getMainExecutor().execute(() -> {
+        requireContext().getMainExecutor().execute(() -> {
             Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
             NavHostFragment.findNavController(MessageFragment.this).popBackStack();
         });
@@ -212,8 +180,9 @@ public class MessageFragment extends Fragment {
         Log.d(TAG,
                 "Authentication was successful");
 
-        Cipher cipher = result.getCryptoObject().getCipher();
+        Cipher cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
         try {
+            assert cipher != null;
             byte[] aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
             SecretKey aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
             byte[] bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
@@ -221,7 +190,7 @@ public class MessageFragment extends Fragment {
             onDecryptedData(bArr);
         } catch (Exception e) {
             e.printStackTrace();
-            getContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() -> {
                 Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
                 NavHostFragment.findNavController(MessageFragment.this).popBackStack();
             });
@@ -244,12 +213,11 @@ public class MessageFragment extends Fragment {
             throw new IllegalArgumentException(getString(R.string.msg_integrity_check_failed));
         }
 
-        binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> {
-            binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal));
-        });
+        binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal)));
 
-        OutputFragment of = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
-        of.setMessage(message);
+        OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+        assert outputFragment != null;
+        outputFragment.setMessage(message);
     }
 
     @Override

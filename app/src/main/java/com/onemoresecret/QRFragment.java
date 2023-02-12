@@ -54,7 +54,7 @@ public class QRFragment extends Fragment {
             Manifest.permission.CAMERA
     };
 
-    private final QrMenuProvider menuProvider= new QrMenuProvider();
+    private final QrMenuProvider menuProvider = new QrMenuProvider();
 
     @Override
     public View onCreateView(
@@ -65,7 +65,7 @@ public class QRFragment extends Fragment {
 
         requireActivity().addMenuProvider(menuProvider);
 
-        BiometricManager biometricManager = (BiometricManager) getContext().getSystemService(Context.BIOMETRIC_SERVICE);
+        BiometricManager biometricManager = (BiometricManager) requireContext().getSystemService(Context.BIOMETRIC_SERVICE);
 
         int canAuthenticate = biometricManager.
                 canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK |
@@ -75,7 +75,7 @@ public class QRFragment extends Fragment {
             //TODO: biometric auth not supported - check this on startup
         }
 
-        Intent intent = getActivity().getIntent();
+        Intent intent = requireActivity().getIntent();
         if (intent != null) {
             Uri data = intent.getData();
             if (data != null && data.getScheme().equals(MessageComposer.URI_SCHEME)) {
@@ -106,35 +106,32 @@ public class QRFragment extends Fragment {
 
     }
 
-    private boolean checkClipboard() {
-        ClipboardManager clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+    private void checkClipboard() {
+        ClipboardManager clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         Log.d(TAG, "primaryClip: " + clipboardManager.hasPrimaryClip());
 
         if (!clipboardManager.hasPrimaryClip()
                 || !clipboardManager.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
-            return false;
+            return;
         }
 
         ClipData clipData = clipboardManager.getPrimaryClip();
 
         for (int i = 0; i < clipData.getItemCount(); i++) {
-            String txt = String.valueOf(clipData.getItemAt(i).getText());
-            if (txt == null) {
-                String message = MessageComposer.decode(txt);
-                if (message == null) {
-                    getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
-                } else {
-                    //found text encoded message on the clipboard
-                    Log.d(TAG, message);
-                    clipboardManager.clearPrimaryClip();
-                    onMessage(message);
-                    return true;
-                }
+            String txt = clipData.getItemAt(i).getText().toString();
+            String message = MessageComposer.decode(txt);
+            if (message == null) {
+                requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
+            } else {
+                //found text encoded message on the clipboard
+                Log.d(TAG, message);
+                clipboardManager.clearPrimaryClip();
+                onMessage(message);
+                return;
             }
         }
 
-        return false;
     }
 
     private void onAllPermissionsGranted() {
@@ -142,12 +139,12 @@ public class QRFragment extends Fragment {
     }
 
     private boolean isAllPermissionsGranted() {
-        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(getContext(), p) == PackageManager.PERMISSION_GRANTED))
+        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(requireContext(), p) == PackageManager.PERMISSION_GRANTED))
             return true;
 
         Log.d(TAG, "Granted permissions:");
         Arrays.stream(REQUIRED_PERMISSIONS).forEach(p -> {
-            int check = ContextCompat.checkSelfPermission(getContext(), p);
+            int check = ContextCompat.checkSelfPermission(requireContext(), p);
             Log.d(TAG, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
         });
 
@@ -155,7 +152,7 @@ public class QRFragment extends Fragment {
     }
 
     private void startCamera() {
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(getContext());
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
 
         cameraProviderFuture.addListener(() -> {
             try {
@@ -185,7 +182,7 @@ public class QRFragment extends Fragment {
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build();
 
-                imageAnalysis.setAnalyzer(getContext().getMainExecutor(), new QRCodeAnalyzer() {
+                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer() {
                     @Override
                     public void onQRCodeFound(Result result) {
                         try {
@@ -201,12 +198,12 @@ public class QRFragment extends Fragment {
             } catch (ExecutionException | InterruptedException e) {
                 Toast.makeText(getContext(), "Error starting camera " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        }, getContext().getMainExecutor());
+        }, requireContext().getMainExecutor());
     }
 
     private void onMessage(String message) {
         try {
-            getContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() -> {
                 String[] sArr = message.split("\t", 2);
 
                 //(1) application ID
@@ -247,8 +244,8 @@ public class QRFragment extends Fragment {
         String s = IntStream.range(0, totalChunks)
                 .filter(i -> !receivedChunks.get(i))
                 .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(", "));
-        getContext().getMainExecutor().execute(() -> {
-            if (binding != null && binding.txtRemainingCodes != null) { //prevent post mortem calls
+        requireContext().getMainExecutor().execute(() -> {
+            if (binding != null) { //prevent post mortem calls
                 binding.txtRemainingCodes.setText(s);
             }
         });
@@ -271,16 +268,13 @@ public class QRFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            switch(menuItem.getItemId()) {
-                case R.id.menuItemQrPaste:
-                    checkClipboard();
-                    break;
-                case R.id.menuItemQrPrivateKeys:
-                    NavHostFragment.findNavController(QRFragment.this)
-                            .navigate(R.id.action_QRFragment_to_keyStoreFragment);
-                    break;
-                default:
-                    return false;
+            if (menuItem.getItemId() == R.id.menuItemQrPaste) {
+                checkClipboard();
+            } else if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
+                NavHostFragment.findNavController(QRFragment.this)
+                        .navigate(R.id.action_QRFragment_to_keyStoreFragment);
+            } else {
+                return false;
             }
 
             return true;

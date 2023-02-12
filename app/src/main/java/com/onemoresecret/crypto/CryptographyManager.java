@@ -52,6 +52,7 @@ import javax.crypto.NoSuchPaddingException;
 public class CryptographyManager {
     public static final String ANDROID_KEYSTORE = "AndroidKeyStore";
     private static final String TAG = CryptographyManager.class.getSimpleName();
+    @NonNull
     public final KeyStore keyStore;
 
     public static final String[] ENCRYPTION_PADDINGS = {
@@ -62,23 +63,17 @@ public class CryptographyManager {
     public static final int DEFAULT_DAYS_VALID = 9999, DEFAULT_KEY_LENGTH = 2048;
 
     public CryptographyManager() {
-        KeyStore _keyStore;
-
         try {
-            _keyStore = KeyStore.getInstance(CryptographyManager.ANDROID_KEYSTORE);
+            keyStore = KeyStore.getInstance(CryptographyManager.ANDROID_KEYSTORE);
         } catch (Exception ex) {
-            ex.printStackTrace();
-            keyStore = null;
-            return;
+            throw new RuntimeException(ex);
         }
 
         try {
-            _keyStore.load(null); // Keystore must be loaded before it can be accessed
+            keyStore.load(null); // Keystore must be loaded before it can be accessed
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
-        keyStore = _keyStore;
     }
 
     public Cipher getInitializedCipherForEncryption(String keyName, String rsaTransformation) throws

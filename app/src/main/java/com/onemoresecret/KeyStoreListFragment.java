@@ -1,29 +1,8 @@
 package com.onemoresecret;
 
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.icu.util.Output;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.selection.ItemDetailsLookup;
-import androidx.recyclerview.selection.ItemKeyProvider;
-import androidx.recyclerview.selection.SelectionPredicates;
-import androidx.recyclerview.selection.SelectionTracker;
-import androidx.recyclerview.selection.StableIdKeyProvider;
-import androidx.recyclerview.selection.StorageStrategy;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import android.os.PersistableBundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -32,6 +11,18 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.selection.ItemDetailsLookup;
+import androidx.recyclerview.selection.ItemKeyProvider;
+import androidx.recyclerview.selection.SelectionPredicates;
+import androidx.recyclerview.selection.SelectionTracker;
+import androidx.recyclerview.selection.StorageStrategy;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -50,7 +41,6 @@ import java.util.List;
  * A fragment representing a list of Items.
  */
 public class KeyStoreListFragment extends Fragment {
-    public static final String TAG = KeyStoreListFragment.class.getSimpleName();
     private FragmentKeyStoreListBinding binding;
     private SelectionTracker<String> selectionTracker;
 
@@ -63,7 +53,7 @@ public class KeyStoreListFragment extends Fragment {
     private final ItemAdapter itemAdapter = new ItemAdapter();
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         try {
             Enumeration<String> aliasesEnum = cryptographyManager.keyStore.aliases();
@@ -92,12 +82,13 @@ public class KeyStoreListFragment extends Fragment {
             @Override
             public void onSelectionChanged() {
                 super.onSelectionChanged();
-                getActivity().invalidateOptionsMenu();
-                OutputFragment of = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.keyListOutputFragment);
+                requireActivity().invalidateOptionsMenu();
+                OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.keyListOutputFragment);
+                assert outputFragment != null;
                 if (selectionTracker.hasSelection()) {
-                    of.setMessage(getPublicKeyMessage());
+                    outputFragment.setMessage(getPublicKeyMessage());
                 } else {
-                    of.setMessage(null);
+                    outputFragment.setMessage(null);
                 }
             }
         });
@@ -242,38 +233,35 @@ public class KeyStoreListFragment extends Fragment {
                 String alias = selectionTracker.getSelection().iterator().next();
                 String message = getPublicKeyMessage();
 
-                switch (menuItem.getItemId()) {
-                    case R.id.menuItemSharePublicKey:
-                        Intent sendIntent = new Intent();
-                        sendIntent.setAction(Intent.ACTION_SEND);
-                        sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+                if (menuItem.getItemId() == R.id.menuItemSharePublicKey) {
+                    Intent sendIntent = new Intent();
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, message);
 
-                        sendIntent.putExtra(Intent.EXTRA_TITLE, String.format(getString(R.string.share_public_key_title), alias));
-                        sendIntent.setType("text/plain");
+                    sendIntent.putExtra(Intent.EXTRA_TITLE, String.format(getString(R.string.share_public_key_title), alias));
+                    sendIntent.setType("text/plain");
 
-                        Intent shareIntent = Intent.createChooser(sendIntent, null);
-                        startActivity(shareIntent);
-                        break;
-                    case R.id.menuItemDeleteKeyEntry:
-                        new AlertDialog.Builder(getContext())
-                                .setTitle(R.string.delete_private_key)
-                                .setMessage(String.format(getString(R.string.ok_to_delete), alias))
-                                .setIcon(android.R.drawable.ic_dialog_alert)
-                                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                                    try {
-                                        cryptographyManager.deleteKey(alias);
-                                        int idx = aliasList.indexOf(alias);
-                                        aliasList.remove(alias);
-                                        itemAdapter.notifyItemRemoved(idx);
-                                        Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
-                                    } catch (KeyStoreException e) {
-                                        e.printStackTrace();
-                                        Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-                                    }
-                                }).setNegativeButton(android.R.string.cancel, null).show();
-                        break;
-                    default:
-                        return false;
+                    Intent shareIntent = Intent.createChooser(sendIntent, null);
+                    startActivity(shareIntent);
+                } else if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
+                    new AlertDialog.Builder(getContext())
+                            .setTitle(R.string.delete_private_key)
+                            .setMessage(String.format(getString(R.string.ok_to_delete), alias))
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                                try {
+                                    cryptographyManager.deleteKey(alias);
+                                    int idx = aliasList.indexOf(alias);
+                                    aliasList.remove(alias);
+                                    itemAdapter.notifyItemRemoved(idx);
+                                    Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
+                                } catch (KeyStoreException e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            }).setNegativeButton(android.R.string.cancel, null).show();
+                } else {
+                    return false;
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();

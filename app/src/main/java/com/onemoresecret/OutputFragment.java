@@ -19,8 +19,10 @@ import android.os.Bundle;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 
@@ -70,7 +72,8 @@ public class OutputFragment extends Fragment {
     private final AtomicBoolean refreshingBtControls = new AtomicBoolean();
     private static final long KEY_STROKE_DELAY_ON = 50, KEY_STROKE_DELAY_OFF = 10;
 
-    protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout", LAST_SELECTED_BT_TARGET = "last_selected_bt_target", ARG_MESSAGE = "message";
+    protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout";
+    protected static final String LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
     private ClipboardManager clipboardManager;
 
@@ -80,12 +83,12 @@ public class OutputFragment extends Fragment {
 
     private String message = null;
 
-    private AtomicBoolean typing = new AtomicBoolean(false);
+    private final AtomicBoolean typing = new AtomicBoolean(false);
 
-    public void setMessage(String message) {
+    public void setMessage(@Nullable String message) {
         this.message = message;
         refreshBluetoothControls();
-        getActivity().invalidateOptionsMenu();
+        requireActivity().invalidateOptionsMenu();
     }
 
     @Override
@@ -97,7 +100,7 @@ public class OutputFragment extends Fragment {
 
         requireActivity().addMenuProvider(menuProvider);
 
-        preferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         bluetoothController = new BluetoothController(this,
                 result -> {
@@ -105,7 +108,7 @@ public class OutputFragment extends Fragment {
                 new OutputFragment.BluetoothHidDeviceCallback()
         );
 
-        clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         if (isAllPermissionsGranted()) {
             onAllPermissionsGranted();
@@ -130,7 +133,7 @@ public class OutputFragment extends Fragment {
 
             if (strokes.contains(null)) {
                 //not all characters could be converted into key strokes
-                getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.wrong_keyboard_layout), Toast.LENGTH_LONG).show());
+                requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.wrong_keyboard_layout), Toast.LENGTH_LONG).show());
                 return;
             }
 
@@ -222,20 +225,19 @@ public class OutputFragment extends Fragment {
         //register broadcast receiver for BT events
         bluetoothBroadcastReceiver = new BluetoothBroadcastReceiver();
 
-        getContext().registerReceiver(
-                bluetoothBroadcastReceiver,
-                new IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED),
-                Context.RECEIVER_EXPORTED);
+        Context ctx = requireContext();
 
-        getContext().registerReceiver(
+        ctx.registerReceiver(
                 bluetoothBroadcastReceiver,
-                new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
-                Context.RECEIVER_EXPORTED);
+                new IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED));
 
-        getContext().registerReceiver(
+        ctx.registerReceiver(
                 bluetoothBroadcastReceiver,
-                new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED),
-                Context.RECEIVER_EXPORTED);
+                new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+
+        ctx.registerReceiver(
+                bluetoothBroadcastReceiver,
+                new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
 
         //initialize "request discoverable" button
         binding.imgButtonDiscoverable.setOnClickListener(
@@ -246,12 +248,12 @@ public class OutputFragment extends Fragment {
     }
 
     private boolean isAllPermissionsGranted() {
-        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(getContext(), p) == PackageManager.PERMISSION_GRANTED))
+        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(requireContext(), p) == PackageManager.PERMISSION_GRANTED))
             return true;
 
         Log.d(TAG, "Granted permissions:");
         Arrays.stream(REQUIRED_PERMISSIONS).forEach(p -> {
-            int check = ContextCompat.checkSelfPermission(getContext(), p);
+            int check = ContextCompat.checkSelfPermission(requireContext(), p);
             Log.d(TAG, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
         });
 
@@ -262,16 +264,16 @@ public class OutputFragment extends Fragment {
         SpinnerItemDevice selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
         if (selectedSpinnerItem == null) {
-            getContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.select_bt_target), Toast.LENGTH_LONG));
+            requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.select_bt_target), Toast.LENGTH_LONG));
             return;
         }
 
-        if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        if (!bluetoothController.getBluetoothHidDevice().getConnectedDevices()
-                .stream().anyMatch(d -> d.getAddress()
+        if (bluetoothController.getBluetoothHidDevice().getConnectedDevices()
+                .stream().noneMatch(d -> d.getAddress()
                         .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))) {
             bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
             Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
@@ -281,7 +283,7 @@ public class OutputFragment extends Fragment {
 
         Log.d(TAG, "sending message (size: " + list.size() + ")");
 
-        if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
@@ -319,11 +321,11 @@ public class OutputFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         if (bluetoothBroadcastReceiver != null)
-            getContext().unregisterReceiver(bluetoothBroadcastReceiver);
-        if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            requireContext().unregisterReceiver(bluetoothBroadcastReceiver);
+        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        bluetoothController.getBluetoothHidDevice().getConnectedDevices().stream().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
+        bluetoothController.getBluetoothHidDevice().getConnectedDevices().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
         bluetoothController.getBluetoothHidDevice().unregisterApp();
 
         binding.btnType.setOnClickListener(null);
@@ -340,7 +342,7 @@ public class OutputFragment extends Fragment {
             if (!bluetoothController.isBluetoothAvailable() || !isAllPermissionsGranted()) {
                 //disable all bluetooth functionality
                 String status = getString(R.string.bt_not_available);
-                Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
                 binding.chipBtStatus.setChipIcon(drawable);
                 binding.chipBtStatus.setText(status);
@@ -366,10 +368,10 @@ public class OutputFragment extends Fragment {
                     Collections.emptyList() :
                     bluetoothController.getBluetoothHidDevice().getConnectedDevices();
 
-            SpinnerItemDevice bondedDevices[] = bluetoothAdapter.getBondedDevices().stream().filter(
+            SpinnerItemDevice[] bondedDevices = bluetoothAdapter.getBondedDevices().stream().filter(
                             d -> d.getBluetoothClass()
                                     .getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
-                    .map(d -> new SpinnerItemDevice(d))
+                    .map(SpinnerItemDevice::new)
                     .sorted((s1, s2) -> {
                         int i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
                         int i2 = connectedDevices.contains(s2.getBluetoothDevice()) ? 0 : 1;
@@ -387,16 +389,16 @@ public class OutputFragment extends Fragment {
                     binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
 
                     String status = getString(R.string.bt_off);
-                    Drawable drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                    Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
                     if (bluetoothAdapterEnabled) {
                         status = getString(R.string.bt_disconnected);
-                        drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
+                        drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
                     }
 
                     if (discoverable) {
                         status = getString(R.string.bt_discoverable);
-                        drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
+                        drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
                     }
 
                     binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
@@ -432,7 +434,7 @@ public class OutputFragment extends Fragment {
                         selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
                         if (selectedDeviceConnected) {
                             status = getString(R.string.bt_connected);
-                            drawable = getResources().getDrawable(R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
+                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
                         }
                     }
 
@@ -479,10 +481,11 @@ public class OutputFragment extends Fragment {
             return bluetoothDevice;
         }
 
+        @NonNull
         @Override
         public String toString() {
-            if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return null;
+            if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                throw new RuntimeException(getString(R.string.insufficient_permissions));
             }
             return bluetoothDevice.getAlias() + " (" + bluetoothDevice.getAddress() + ")";
         }
@@ -524,7 +527,7 @@ public class OutputFragment extends Fragment {
             Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
 
             if (registered) {
-                if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return;
                 }
 
@@ -565,12 +568,10 @@ public class OutputFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            switch (menuItem.getItemId()) {
-                case R.id.menuItemOutputCopy:
-                    copyValue.run();
-                    break;
-                default:
-                    return false;
+            if (menuItem.getItemId() == R.id.menuItemOutputCopy) {
+                copyValue.run();
+            } else {
+                return false;
             }
 
             return true;

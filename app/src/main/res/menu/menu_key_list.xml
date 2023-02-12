@@ -6,12 +6,12 @@
         <item
             android:id="@+id/menuItemSharePublicKey"
             android:icon="@drawable/baseline_share_24"
-            android:title="Share Public Key"
+            android:title="@string/share_public_key"
             app:showAsAction="ifRoom" />
         <item
             android:id="@+id/menuItemDeleteKeyEntry"
             android:icon="@drawable/baseline_delete_forever_24"
-            android:title="Delete Key"
+            android:title="@string/delete_key"
             app:showAsAction="never|ifRoom" />
     </group>
 </menu>

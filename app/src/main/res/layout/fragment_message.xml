@@ -28,15 +28,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />
 
-    <fragment
+    <androidx.fragment.app.FragmentContainerView
         android:id="@+id/messageOutputFragment"
         android:name="com.onemoresecret.OutputFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         tools:layout="@layout/fragment_output"
-        tools:layout_editor_absoluteX="0dp">
-
-    </fragment>
+        tools:layout_editor_absoluteX="0dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

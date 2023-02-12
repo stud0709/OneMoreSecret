@@ -44,7 +44,7 @@
     <string name="valid_to">Valid to:</string>
     <string name="undefined">undefined</string>
     <string name="not_provided">(not provided)</string>
-    <string name="typing_please_wait">typing, please wait...</string>
+    <string name="typing_please_wait">typing, please wait&#8230;</string>
     <string name="share_public_key_title">%s - Public Key</string>
     <string name="warning_alias_exists">Warning: this alias is already assigned to a key with fingerprint %s. It will be overwritten.</string>
     <string name="warning_same_fingerprint">Warning: key \'%s\' has the same fingerprint. It will be deleted.</string>
@@ -52,4 +52,8 @@
     <string name="key_deleted">Key \'%s\' deleted.</string>
     <string name="ok_to_delete">OK to delete \'%s\'?</string>
     <string name="delete_private_key">Delete Private Key</string>
+    <string name="share_public_key">Share Public Key</string>
+    <string name="delete_key">Delete Key</string>
+    <string name="dummy_text">dummy text</string>
+    <string name="key_icon">Key Icon</string>
 </resources>

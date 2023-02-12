@@ -40,7 +40,7 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
     public BluetoothController(Fragment fragment, ActivityResultCallback<ActivityResult> onActivityResult, BluetoothHidDevice.Callback callback) {
         this.fragment = fragment;
         this.callback = callback;
-        this.bluetoothManager = (BluetoothManager) fragment.getContext().getSystemService(Context.BLUETOOTH_SERVICE);
+        this.bluetoothManager = (BluetoothManager) fragment.requireContext().getSystemService(Context.BLUETOOTH_SERVICE);
         if (this.bluetoothManager == null) {
             Log.i(TAG, "No bluetooth Manager found");
             activityResultLauncher = null;
@@ -82,12 +82,12 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             return;
         }
 
-        if (ActivityCompat.checkSelfPermission(fragment.getContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(fragment.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
         bluetoothHidDevice = (BluetoothHidDevice) proxy;
-        bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.getContext().getMainExecutor(), callback);
+        bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.requireContext().getMainExecutor(), callback);
     }
 
     @Override

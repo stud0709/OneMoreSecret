@@ -21,7 +21,7 @@
         tools:context=".KeyStoreListFragment"
         tools:listitem="@layout/private_key_list_item" />
 
-    <fragment
+    <androidx.fragment.app.FragmentContainerView
         android:id="@+id/keyListOutputFragment"
         android:name="com.onemoresecret.OutputFragment"
         android:layout_width="0dp"

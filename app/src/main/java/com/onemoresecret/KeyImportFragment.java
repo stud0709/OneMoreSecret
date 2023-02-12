@@ -11,11 +11,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.util.TimeUtils;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.android.material.internal.TextWatcherAdapter;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -28,7 +26,6 @@ import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.text.DateFormat;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -50,9 +47,10 @@ public class KeyImportFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        assert getArguments() != null;
         String message = getArguments().getString("MESSAGE");
 
-        String sArr[] = message.split("\t");
+        String[] sArr = message.split("\t");
 
         //(1) Application ID
         int applicationId = Integer.parseInt(sArr[0]);
@@ -158,7 +156,7 @@ public class KeyImportFragment extends Fragment {
             sha256.update(rsaKey);
             sha256.update(rsaCert);
 
-            byte longBytes[] = new byte[Long.BYTES];
+            byte[] longBytes = new byte[Long.BYTES];
             for (int i = 0; i < longBytes.length; i++) {
                 int shift = 8 * i;
                 longBytes[i] = (byte) (validityEnd >> shift);
@@ -172,14 +170,14 @@ public class KeyImportFragment extends Fragment {
             }
 
             X509Certificate certificate = rsaCert.length == 0 ? null :
-                    (X509Certificate) CryptographyManager.createCertificate(rsaCert);
+                    CryptographyManager.createCertificate(rsaCert);
 
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 
             byte[] fingerprintBytes = CryptographyManager.getFingerprint(privateKey);
             String fingerprint = BluetoothController.byteArrayToHex(fingerprintBytes);
 
-            getContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() -> {
                 //default validity end date
                 Date validityEndDate = Date.from(validityEnd == 0 ? Instant.ofEpochMilli(
                         System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)) : Instant.ofEpochMilli(validityEnd));
@@ -202,7 +200,7 @@ public class KeyImportFragment extends Fragment {
                             try {
                                 //delete other keys with the same fingerprint
                                 List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
-                                sameFingerprint.stream().forEach(a -> {
+                                sameFingerprint.forEach(a -> {
                                     try {
                                         cryptographyManager.deleteKey(a);
                                     } catch (KeyStoreException ex) {
@@ -221,7 +219,7 @@ public class KeyImportFragment extends Fragment {
                                         certificate,
                                         validityEndDate,
                                         getContext());
-                                getContext().getMainExecutor().execute(
+                                requireContext().getMainExecutor().execute(
                                         () -> {
                                             Toast.makeText(this.getContext(),
                                                     "Private key '" + keyAlias + "' successfully imported",
@@ -231,7 +229,7 @@ public class KeyImportFragment extends Fragment {
 
                             } catch (Exception ex) {
                                 ex.printStackTrace();
-                                getContext().getMainExecutor().execute(
+                                requireContext().getMainExecutor().execute(
                                         () -> Toast.makeText(this.getContext(),
                                                 ex.getMessage(),
                                                 Toast.LENGTH_LONG).show());
@@ -241,7 +239,7 @@ public class KeyImportFragment extends Fragment {
             });
         } catch (Exception ex) {
             ex.printStackTrace();
-            getContext().getMainExecutor().execute(
+            requireContext().getMainExecutor().execute(
                     () -> Toast.makeText(this.getContext(),
                             "Could not decrypt. Wrong passphrase?",
                             Toast.LENGTH_LONG).show());
@@ -281,7 +279,7 @@ public class KeyImportFragment extends Fragment {
 
             String _warning = warning;
 
-            getContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() -> {
                 binding.txtWarnings.setText(_warning == null ? "" : _warning);
                 binding.txtWarnings.setVisibility(_warning == null ? View.GONE : View.VISIBLE);
             });
@@ -296,12 +294,10 @@ public class KeyImportFragment extends Fragment {
 
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                return;
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                return;
             }
 
             @Override
