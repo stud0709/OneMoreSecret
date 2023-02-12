@@ -1,8 +1,10 @@
 package com.onemoresecret;
 
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.icu.util.Output;
 import android.os.Bundle;
@@ -29,6 +31,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -37,8 +40,11 @@ import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 
 /**
  * A fragment representing a list of Items.
@@ -50,32 +56,29 @@ public class KeyStoreListFragment extends Fragment {
 
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
-    private String[] aliases;
+    private final List<String> aliasList = new ArrayList<>();
 
     private final KeyEntryMenuProvider menuProvider = new KeyEntryMenuProvider();
 
-    private ClipboardManager clipboardManager;
+    private final ItemAdapter itemAdapter = new ItemAdapter();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         try {
-            aliases = new String[cryptographyManager.keyStore.size()];
-            int i = 0;
             Enumeration<String> aliasesEnum = cryptographyManager.keyStore.aliases();
             while (aliasesEnum.hasMoreElements()) {
-                aliases[i++] = aliasesEnum.nextElement();
+                aliasList.add(aliasesEnum.nextElement());
             }
+            Collections.sort(aliasList);
         } catch (KeyStoreException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
 
-        clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-
         binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
         binding.list.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.list.setAdapter(new ItemAdapter());
+        binding.list.setAdapter(itemAdapter);
 
         selectionTracker = new SelectionTracker.Builder<>("selectionTracker",
                 binding.list,
@@ -128,7 +131,10 @@ public class KeyStoreListFragment extends Fragment {
         @NonNull
         @Override
         public KeyStoreListFragment.PrivateKeyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            PrivateKeyListItemBinding binding = PrivateKeyListItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+            PrivateKeyListItemBinding binding =
+                    PrivateKeyListItemBinding.inflate(LayoutInflater.from(parent.getContext()),
+                            parent,
+                            false);
             return new KeyStoreListFragment.PrivateKeyViewHolder(binding);
         }
 
@@ -139,7 +145,7 @@ public class KeyStoreListFragment extends Fragment {
 
         @Override
         public int getItemCount() {
-            return aliases.length;
+            return aliasList.size();
         }
 
     }
@@ -157,7 +163,7 @@ public class KeyStoreListFragment extends Fragment {
 
         public void bind(int position) {
             this.position = position;
-            this.alias = aliases[position];
+            this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
                 binding.textItemFingerprint.setText(
@@ -212,15 +218,12 @@ public class KeyStoreListFragment extends Fragment {
         @Nullable
         @Override
         public String getKey(int position) {
-            return aliases[position];
+            return aliasList.get(position);
         }
 
         @Override
         public int getPosition(@NonNull String key) {
-            for (int i = 0; i < aliases.length; i++) {
-                if (aliases[i].equals(key)) return i;
-            }
-            return -1;
+            return aliasList.indexOf(key);
         }
     }
 
@@ -236,6 +239,7 @@ public class KeyStoreListFragment extends Fragment {
             if (!selectionTracker.hasSelection()) return false;
 
             try {
+                String alias = selectionTracker.getSelection().iterator().next();
                 String message = getPublicKeyMessage();
 
                 switch (menuItem.getItemId()) {
@@ -243,7 +247,7 @@ public class KeyStoreListFragment extends Fragment {
                         Intent sendIntent = new Intent();
                         sendIntent.setAction(Intent.ACTION_SEND);
                         sendIntent.putExtra(Intent.EXTRA_TEXT, message);
-                        String alias = selectionTracker.getSelection().iterator().next();
+
                         sendIntent.putExtra(Intent.EXTRA_TITLE, String.format(getString(R.string.share_public_key_title), alias));
                         sendIntent.setType("text/plain");
 
@@ -251,7 +255,22 @@ public class KeyStoreListFragment extends Fragment {
                         startActivity(shareIntent);
                         break;
                     case R.id.menuItemDeleteKeyEntry:
-                        //todo
+                        new AlertDialog.Builder(getContext())
+                                .setTitle(R.string.delete_private_key)
+                                .setMessage(String.format(getString(R.string.ok_to_delete), alias))
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                                    try {
+                                        cryptographyManager.deleteKey(alias);
+                                        int idx = aliasList.indexOf(alias);
+                                        aliasList.remove(alias);
+                                        itemAdapter.notifyItemRemoved(idx);
+                                        Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
+                                    } catch (KeyStoreException e) {
+                                        e.printStackTrace();
+                                        Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                }).setNegativeButton(android.R.string.cancel, null).show();
                         break;
                     default:
                         return false;

@@ -50,7 +50,7 @@
             android:clickable="false"
             android:text="@string/unsupported"
             app:chipIcon="@drawable/ic_baseline_bluetooth_24"
-            app:chipIconTint="@color/mtrl_chip_close_icon_tint"
+            app:chipIconTint="@android:color/primary_text_light"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spinnerBluetoothTarget" />
@@ -62,7 +62,7 @@
             android:layout_marginStart="8dp"
             android:checked="false"
             android:minHeight="48dp"
-            android:text="@string/delayed_strokes" />
+            android:text="@string/delay" />
     </LinearLayout>
 
     <TextView
