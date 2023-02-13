@@ -277,8 +277,11 @@ public class OutputFragment extends Fragment {
                         .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))) {
             Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
             keyboardQueue.put(selectedSpinnerItem.getBluetoothDevice().getAddress(), list);
-            boolean b = bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
-            Log.d(TAG, "send connect command: " + b);
+
+            if (!bluetoothController.registerApp()) //if app is not registered, connect will be executed upon register event
+                //app is registered
+                bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
+
             return;
         }
 
@@ -333,12 +336,6 @@ public class OutputFragment extends Fragment {
         requireActivity().removeMenuProvider(menuProvider);
         copyValue = null;
         binding = null;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        if(bluetoothController != null) bluetoothController.registerApp();
     }
 
     protected void refreshBluetoothControls() {

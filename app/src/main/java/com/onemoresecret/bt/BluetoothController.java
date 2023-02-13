@@ -91,14 +91,14 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         registerApp();
     }
 
-    public void registerApp() {
+    public boolean registerApp() {
         if (ActivityCompat.checkSelfPermission(fragment.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
+            return false;
         }
 
-        if (bluetoothHidDevice == null) return;
+        if (bluetoothHidDevice == null) return false;
 
-        bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.requireContext().getMainExecutor(), callback);
+        return bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.requireContext().getMainExecutor(), callback);
     }
 
     @Override
