@@ -275,9 +275,10 @@ public class OutputFragment extends Fragment {
         if (bluetoothController.getBluetoothHidDevice().getConnectedDevices()
                 .stream().noneMatch(d -> d.getAddress()
                         .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))) {
-            bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
             Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
             keyboardQueue.put(selectedSpinnerItem.getBluetoothDevice().getAddress(), list);
+            boolean b = bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
+            Log.d(TAG, "send connect command: " + b);
             return;
         }
 
@@ -332,6 +333,12 @@ public class OutputFragment extends Fragment {
         requireActivity().removeMenuProvider(menuProvider);
         copyValue = null;
         binding = null;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(bluetoothController != null) bluetoothController.registerApp();
     }
 
     protected void refreshBluetoothControls() {
@@ -445,7 +452,7 @@ public class OutputFragment extends Fragment {
                     KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
                     binding.btnType.setEnabled(bluetoothAdapterEnabled &&
                             selectedBluetoothTarget != null &&
-                            selectedDeviceConnected &&
+//                            selectedDeviceConnected &&
                             selectedLayout != null &&
                             message != null &&
                             !typing.get());
@@ -521,10 +528,11 @@ public class OutputFragment extends Fragment {
 
         @Override
         public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
+            Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
+
             if (device == null) return;
 
             super.onAppStatusChanged(device, registered);
-            Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
 
             if (registered) {
                 if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {

@@ -59,7 +59,7 @@ public class MessageFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (paused)
-            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+            NavHostFragment.findNavController(this).popBackStack();
     }
 
     @Override

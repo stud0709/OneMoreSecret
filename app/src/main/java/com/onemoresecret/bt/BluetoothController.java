@@ -87,6 +87,17 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         }
 
         bluetoothHidDevice = (BluetoothHidDevice) proxy;
+
+        registerApp();
+    }
+
+    public void registerApp() {
+        if (ActivityCompat.checkSelfPermission(fragment.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        if (bluetoothHidDevice == null) return;
+
         bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.requireContext().getMainExecutor(), callback);
     }
 
