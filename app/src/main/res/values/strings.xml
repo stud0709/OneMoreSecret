@@ -36,7 +36,7 @@
     <string name="wrong_keyboard_layout">Wrong keyboard layout?</string>
     <string name="msg_integrity_check_failed">Could not confirm message integrity</string>
     <string name="auth_failed">Authentication failed</string>
-    <string name="no_key_found">No key found</string>
+    <string name="no_key_found">No key found: %s</string>
     <string name="wrong_application">wrong applicationId:</string>
     <string name="insufficient_permissions">Insufficient permissions</string>
     <string name="delay">delay</string>

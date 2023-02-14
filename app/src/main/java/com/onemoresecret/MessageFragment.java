@@ -107,7 +107,7 @@ public class MessageFragment extends Fragment {
             List<String> aliases = cryptographyManager.getByFingerprint(fingerprint);
 
             if (aliases.isEmpty())
-                throw new NoSuchElementException(getString(R.string.no_key_found));
+                throw new NoSuchElementException(String.format(getString(R.string.no_key_found), BluetoothController.byteArrayToHex(fingerprint)));
 
             if (aliases.size() > 1)
                 throw new NoSuchElementException(getString(R.string.multiple_keys_found));

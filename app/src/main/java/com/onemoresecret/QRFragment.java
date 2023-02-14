@@ -51,6 +51,8 @@ public class QRFragment extends Fragment {
     private ImageAnalysis imageAnalysis;
     private ProcessCameraProvider cameraProvider;
 
+    private boolean consumeIntentIfAny = true;
+
     private final String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.CAMERA
     };
@@ -67,10 +69,11 @@ public class QRFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         Intent intent = requireActivity().getIntent();
-        if (intent != null) {
+
+        if (intent != null && consumeIntentIfAny) {
             Uri data = intent.getData();
-            if (data != null && data.getScheme().equals(MessageComposer.URI_SCHEME)) {
-                String message = MessageComposer.decode(data.getSchemeSpecificPart());
+            if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
+                String message = MessageComposer.decode(data.getPath().substring(1));
                 if (message == null) {
                     Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
                 } else {
@@ -101,6 +104,12 @@ public class QRFragment extends Fragment {
     public void onStart() {
         super.onStart();
         checkBiometrics();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        consumeIntentIfAny = false;
     }
 
     private void checkBiometrics() {
