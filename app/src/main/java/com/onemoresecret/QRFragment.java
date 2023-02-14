@@ -1,6 +1,7 @@
 package com.onemoresecret;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
@@ -39,7 +41,6 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -64,16 +65,6 @@ public class QRFragment extends Fragment {
         binding = FragmentQrBinding.inflate(inflater, container, false);
 
         requireActivity().addMenuProvider(menuProvider);
-
-        BiometricManager biometricManager = (BiometricManager) requireContext().getSystemService(Context.BIOMETRIC_SERVICE);
-
-        int canAuthenticate = biometricManager.
-                canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK |
-                        BiometricManager.Authenticators.BIOMETRIC_STRONG);
-
-        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-            //TODO: biometric auth not supported - check this on startup
-        }
 
         Intent intent = requireActivity().getIntent();
         if (intent != null) {
@@ -104,6 +95,49 @@ public class QRFragment extends Fragment {
 
         return binding.getRoot();
 
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        checkBiometrics();
+    }
+
+    private void checkBiometrics() {
+        BiometricManager biometricManager = (BiometricManager) requireContext().getSystemService(Context.BIOMETRIC_SERVICE);
+
+        switch (biometricManager.
+                canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK |
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+            case BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE:
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Biometrics unavailable")
+                        .setMessage("Looks like your biometric hardware is not available right now. Try again later.")
+                        .setIcon(R.drawable.baseline_fingerprint_24)
+                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .show();
+                break;
+            case BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE:
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Biometrics not detected")
+                        .setMessage("Sorry, we cannot continue without biometric hardware.")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .show();
+                break;
+            case BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED:
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Biometrics not enabled")
+                        .setMessage("Please set up biometric authentication on your device.")
+                        .setIcon(R.drawable.baseline_fingerprint_24)
+                        .setPositiveButton("Open Settings", (dialog, which) -> startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS)))
+                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .show();
+                break;
+            case BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED:
+            case BiometricManager.BIOMETRIC_SUCCESS:
+                break;
+        }
     }
 
     private void checkClipboard() {
@@ -195,15 +229,16 @@ public class QRFragment extends Fragment {
                 });
 
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
-            } catch (ExecutionException | InterruptedException e) {
-                Toast.makeText(getContext(), "Error starting camera " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(getContext(), String.format(getString(R.string.error_starting_camera), e.getMessage()), Toast.LENGTH_SHORT).show();
             }
         }, requireContext().getMainExecutor());
     }
 
     private void onMessage(String message) {
-        try {
-            requireContext().getMainExecutor().execute(() -> {
+        requireContext().getMainExecutor().execute(() -> {
+            try {
                 String[] sArr = message.split("\t", 2);
 
                 //(1) application ID
@@ -222,6 +257,7 @@ public class QRFragment extends Fragment {
                         Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                         NavHostFragment.findNavController(QRFragment.this)
                                 .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        break;
                     default:
                         Log.d(TAG,
                                 "No processor defined for application ID " +
@@ -229,10 +265,10 @@ public class QRFragment extends Fragment {
                         );
                         break;
                 }
-            });
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
     private BitSet lastReceivedChunks = null;

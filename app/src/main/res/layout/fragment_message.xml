@@ -12,6 +12,7 @@
         android:id="@+id/swRevealMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:enabled="false"
         android:minHeight="48dp"
         android:text="@string/reveal_message"
         app:layout_constraintStart_toStartOf="parent"

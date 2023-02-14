@@ -1,5 +1,6 @@
 package com.onemoresecret;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +19,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -114,6 +116,7 @@ public class MessageFragment extends Fragment {
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(this.getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            binding.textViewMessage.setText(String.format(getString(R.string.error_message), ex.getMessage()));
         }
     }
 
@@ -214,6 +217,7 @@ public class MessageFragment extends Fragment {
         }
 
         binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal)));
+        binding.swRevealMessage.setEnabled(true);
 
         OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
         assert outputFragment != null;

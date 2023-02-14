@@ -56,4 +56,6 @@
     <string name="delete_key">Delete Key</string>
     <string name="dummy_text">dummy text</string>
     <string name="key_icon">Key Icon</string>
+    <string name="error_message">Error: %s</string>
+    <string name="error_starting_camera">\"Error starting camera: %s \"</string>
 </resources>

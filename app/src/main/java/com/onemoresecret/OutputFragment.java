@@ -27,6 +27,7 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 
 import android.os.PersistableBundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -431,7 +432,7 @@ public class OutputFragment extends Fragment {
 
                     //set BT connection state
                     SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                    boolean selectedDeviceConnected = false;
+                    boolean selectedDeviceConnected;
 
                     if (selectedBluetoothTarget != null) {
                         String selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
@@ -563,6 +564,10 @@ public class OutputFragment extends Fragment {
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
             menuInflater.inflate(R.menu.menu_output, menu);
+            //bluetooth settings available?
+            menu.findItem(R.id.menuItemBtSettings).setVisible(
+                    new Intent(Settings.ACTION_BLUETOOTH_SETTINGS).
+                            resolveActivityInfo(requireActivity().getPackageManager(), 0) != null);
         }
 
         @Override
@@ -575,6 +580,9 @@ public class OutputFragment extends Fragment {
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemOutputCopy) {
                 copyValue.run();
+            } else if (menuItem.getItemId() == R.id.menuItemBtSettings) {
+                startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+
             } else {
                 return false;
             }
