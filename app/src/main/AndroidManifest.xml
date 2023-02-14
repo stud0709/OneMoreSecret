@@ -31,7 +31,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- Accepts URIs that begin with "oms:” -->
-                <data android:scheme="oms"/>
+                <data android:scheme="https"
+                    android:host="oms-app-intent"/>
             </intent-filter>
 
             <meta-data

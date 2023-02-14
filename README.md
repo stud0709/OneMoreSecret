@@ -52,7 +52,7 @@ The only way to restore your private key is the backup file (or paper document) 
 ### Login without a password
 ...yes, I know, there is [FIDO2](https://fidoalliance.org/). But hey, with oneMoreSecret, your users can share their public key with you - with one click. Now you can generate a one-time verification code for the user, encrypt is with his key and show it as a QR sequence on your login page ([omsCompanion](https://github.com/stud0709/oms_companion) has already all the logic written in Java). 
 
-Login from a mobile device? No problem. omeMoreSecret will respond to clicks on URLs with scheme `oms:`. Just add the encrypted message (`<a href="oms:oms00_.....">Mobile Log-In</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
+Login from a mobile device? No problem. omeMoreSecret will respond to clicks on URLs with scheme `oms:`. Just add the encrypted message (`<a href="https://oms-app-intent/oms00_.....">Mobile Log-In</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
 
 ## How It Works
 If you store your passwords on your desktop computer, [omsCompanion](https://github.com/stud0709/oms_companion) will convert your encrypted data into a QR code sequence as soon as you copy it to your clipboard. So on your desktop, a window will pop up:
