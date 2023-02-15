@@ -3,12 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.onemoresecret.MainActivity">
     <item
-        android:id="@+id/menuItemQrPaste"
-        android:icon="@drawable/ic_baseline_content_paste_24"
-        android:iconTint="@android:color/primary_text_light"
-        android:title="@android:string/paste"
-        app:showAsAction="ifRoom" />
-    <item
         android:id="@+id/menuItemQrPrivateKeys"
         android:orderInCategory="100"
         android:title="@string/action_private_keys"

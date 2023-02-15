@@ -61,7 +61,7 @@ If you store your passwords on your desktop computer, [omsCompanion](https://git
 
 If we need more than one code, there will be a fast changing sequence of codes in this window, so that it takes maybe a couple of seconds to transfer all the data.
 
-The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can copy the text format `oms00_....` of the message into the clipboard of your phone and paste it into the QR code scanner from the tool bar.
+The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with the app.
 
 The App will then request the key from Android Keystore system. Android will ask you to scan your fingerprint, verify it and decrypt the message on behalf of the app ([here](https://developer.android.com/training/articles/keystore) are some technical details). Now you can either make your password visible by using the slider *reveal message*  or you just tell the app to *TYPE* the password back to your PC. See the next chapter for details. 
 
@@ -106,3 +106,4 @@ Many thanks to the folks whose projects helped me to find my way through HID and
 - [Aleksander-Drewnicki](https://github.com/Aleksander-Drewnicki/BLE_HID_EXAMPLE)
 - [Eleccelerator](https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/)
 - [misterpki](https://github.com/misterpki/selfsignedcert)
+- [divan](https://github.com/divan/txqr)

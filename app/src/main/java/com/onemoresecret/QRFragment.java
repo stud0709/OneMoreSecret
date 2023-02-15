@@ -71,16 +71,34 @@ public class QRFragment extends Fragment {
         Intent intent = requireActivity().getIntent();
 
         if (intent != null && consumeIntentIfAny) {
-            Uri data = intent.getData();
-            if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
-                String message = MessageComposer.decode(data.getPath().substring(1));
-                if (message == null) {
-                    Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
-                } else {
-                    onMessage(message);
-                    return binding.getRoot();
-                }
+            String action = intent.getAction();
+            String type = intent.getType();
+            Log.d(TAG, "Action: " + action + ", type: " + type);
+
+            switch (intent.getAction()) {
+                case Intent.ACTION_VIEW:
+                    Uri data = intent.getData();
+                    if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
+                        String message = MessageComposer.decode(data.getPath().substring(1));
+                        if (message == null) {
+                            Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
+                        } else {
+                            onMessage(message);
+                            return binding.getRoot();
+                        }
+                    }
+                    break;
+                case Intent.ACTION_SEND:
+                    String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+                    String message = MessageComposer.decode(text);
+                    if (message == null) {
+                        requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
+                    } else {
+                        onMessage(message);
+                    }
+                    break;
             }
+
         }
 
         //enable camera
@@ -147,34 +165,6 @@ public class QRFragment extends Fragment {
             case BiometricManager.BIOMETRIC_SUCCESS:
                 break;
         }
-    }
-
-    private void checkClipboard() {
-        ClipboardManager clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
-
-        Log.d(TAG, "primaryClip: " + clipboardManager.hasPrimaryClip());
-
-        if (!clipboardManager.hasPrimaryClip()
-                || !clipboardManager.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
-            return;
-        }
-
-        ClipData clipData = clipboardManager.getPrimaryClip();
-
-        for (int i = 0; i < clipData.getItemCount(); i++) {
-            String txt = clipData.getItemAt(i).getText().toString();
-            String message = MessageComposer.decode(txt);
-            if (message == null) {
-                requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
-            } else {
-                //found text encoded message on the clipboard
-                Log.d(TAG, message);
-                clipboardManager.clearPrimaryClip();
-                onMessage(message);
-                return;
-            }
-        }
-
     }
 
     private void onAllPermissionsGranted() {
@@ -313,9 +303,7 @@ public class QRFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemQrPaste) {
-                checkClipboard();
-            } else if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
+            if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_keyStoreFragment);
             } else {
