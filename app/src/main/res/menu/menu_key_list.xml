@@ -14,4 +14,7 @@
             android:title="@string/delete_key"
             app:showAsAction="never|ifRoom" />
     </group>
+    <item
+        android:id="@+id/menuItemNewPrivateKey"
+        android:title="New Private Key" />
 </menu>

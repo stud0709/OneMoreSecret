@@ -98,6 +98,12 @@ public class OutputFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentOutputBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         requireActivity().addMenuProvider(menuProvider);
 
@@ -128,7 +134,7 @@ public class OutputFragment extends Fragment {
 
         initSpinnerKeyboardLayout();
 
-        binding.btnType.setOnClickListener(view -> {
+        binding.btnType.setOnClickListener(v -> {
             KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
             List<Stroke> strokes = selectedLayout.forString(message);
 
@@ -149,8 +155,6 @@ public class OutputFragment extends Fragment {
             clipData.getDescription().setExtras(persistableBundle);
             clipboardManager.setPrimaryClip(clipData);
         };
-
-        return binding.getRoot();
     }
 
     private void initSpinnerTargetDevice() {
@@ -341,6 +345,7 @@ public class OutputFragment extends Fragment {
 
     protected void refreshBluetoothControls() {
         if (getContext() == null) return; //post mortem call
+        if (binding == null) return;
         if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {

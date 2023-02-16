@@ -58,6 +58,15 @@ public class KeyStoreListFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        aliasList.clear();
+
         try {
             Enumeration<String> aliasesEnum = cryptographyManager.keyStore.aliases();
             while (aliasesEnum.hasMoreElements()) {
@@ -69,7 +78,7 @@ public class KeyStoreListFragment extends Fragment {
             throw new RuntimeException(e);
         }
 
-        binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
+
         binding.list.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.list.setAdapter(itemAdapter);
 
@@ -97,8 +106,6 @@ public class KeyStoreListFragment extends Fragment {
         });
 
         requireActivity().addMenuProvider(menuProvider);
-
-        return binding.getRoot();
     }
 
     private String getPublicKeyMessage() {
@@ -230,6 +237,12 @@ public class KeyStoreListFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemNewPrivateKey) {
+                NavHostFragment.findNavController(KeyStoreListFragment.this)
+                        .navigate(R.id.action_keyStoreFragment_to_newPrivateKeyFragment, null);
+                return true;
+            }
+
             if (!selectionTracker.hasSelection()) return false;
 
             try {

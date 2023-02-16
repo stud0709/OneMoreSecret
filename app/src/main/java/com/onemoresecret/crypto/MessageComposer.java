@@ -1,4 +1,4 @@
-package com.onemoresecret;
+package com.onemoresecret.crypto;
 
 import java.util.Base64;
 import java.util.Objects;
@@ -42,7 +42,7 @@ public class MessageComposer {
         return OMS_PREFIX + Base64.getEncoder().encodeToString(message.getBytes());
     }
 
-    static String decode(String omsText) {
+    public static String decode(String omsText) {
         Matcher m = OMS_PATTERN.matcher(omsText);
 
         if (!m.find()) // not a valid OMS message
@@ -52,8 +52,9 @@ public class MessageComposer {
 
         int version = Integer.parseInt(Objects.requireNonNull(m.group(1)));
 
-        // (1) remove prefix
+        // (1) remove prefix and line breaks
         omsText = omsText.substring(m.group().length());
+        omsText = omsText.replaceAll("\\s+", "");
 
         if (version == 0) {
             // (2) convert to byte array

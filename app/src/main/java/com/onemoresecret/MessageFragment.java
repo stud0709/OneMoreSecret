@@ -1,6 +1,5 @@
 package com.onemoresecret;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -17,9 +16,9 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
-import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;

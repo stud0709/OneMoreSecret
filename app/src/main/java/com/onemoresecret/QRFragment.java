@@ -2,9 +2,6 @@ package com.onemoresecret;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -24,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
@@ -35,6 +33,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
+import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
@@ -65,6 +64,12 @@ public class QRFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentQrBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         requireActivity().addMenuProvider(menuProvider);
 
@@ -81,10 +86,10 @@ public class QRFragment extends Fragment {
                     if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
                         String message = MessageComposer.decode(data.getPath().substring(1));
                         if (message == null) {
-                            Toast.makeText(getContext(), "Wrong message format", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
                         } else {
                             onMessage(message);
-                            return binding.getRoot();
+                            return;
                         }
                     }
                     break;
@@ -92,13 +97,12 @@ public class QRFragment extends Fragment {
                     String text = intent.getStringExtra(Intent.EXTRA_TEXT);
                     String message = MessageComposer.decode(text);
                     if (message == null) {
-                        requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), MessageComposer.OMS_PREFIX + "... not found", Toast.LENGTH_LONG).show());
+                        requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), R.string.message_not_found, Toast.LENGTH_LONG).show());
                     } else {
                         onMessage(message);
                     }
                     break;
             }
-
         }
 
         //enable camera
@@ -109,12 +113,10 @@ public class QRFragment extends Fragment {
                 if (isAllPermissionsGranted()) {
                     onAllPermissionsGranted();
                 } else {
-                    Toast.makeText(getContext(), "Insufficient permissions", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), R.string.insufficient_permissions, Toast.LENGTH_LONG).show();
                 }
             }).launch(REQUIRED_PERMISSIONS);
         }
-
-        return binding.getRoot();
 
     }
 
@@ -138,27 +140,27 @@ public class QRFragment extends Fragment {
                         BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
             case BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE:
                 new AlertDialog.Builder(getContext())
-                        .setTitle("Biometrics unavailable")
-                        .setMessage("Looks like your biometric hardware is not available right now. Try again later.")
+                        .setTitle(R.string.biometrics_unavailable)
+                        .setMessage(R.string.biometrics_unavailable_long_text)
                         .setIcon(R.drawable.baseline_fingerprint_24)
-                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
                 break;
             case BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE:
                 new AlertDialog.Builder(getContext())
-                        .setTitle("Biometrics not detected")
-                        .setMessage("Sorry, we cannot continue without biometric hardware.")
+                        .setTitle(R.string.biometrics_not_detected)
+                        .setMessage(R.string.biometrics_not_detected_long_text)
                         .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
                 break;
             case BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED:
                 new AlertDialog.Builder(getContext())
-                        .setTitle("Biometrics not enabled")
-                        .setMessage("Please set up biometric authentication on your device.")
+                        .setTitle(R.string.biometrics_not_enabled)
+                        .setMessage(R.string.biometrics_not_enabled_long_text)
                         .setIcon(R.drawable.baseline_fingerprint_24)
-                        .setPositiveButton("Open Settings", (dialog, which) -> startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS)))
-                        .setNegativeButton("Exit", (dialog, which) -> requireActivity().finish())
+                        .setPositiveButton(R.string.open_settings, (dialog, which) -> startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS)))
+                        .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
                 break;
             case BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED:
@@ -306,6 +308,11 @@ public class QRFragment extends Fragment {
             if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_keyStoreFragment);
+            } else if (menuItem.getItemId() == R.id.menuItemHelp) {
+                String url = getString(R.string.readme_url);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                startActivity(intent);
             } else {
                 return false;
             }

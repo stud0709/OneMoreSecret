@@ -7,4 +7,8 @@
         android:orderInCategory="100"
         android:title="@string/action_private_keys"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/menuItemHelp"
+        android:orderInCategory="110"
+        android:title="@string/help" />
 </menu>

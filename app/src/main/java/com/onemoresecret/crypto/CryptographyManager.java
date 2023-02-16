@@ -9,10 +9,18 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.KeyGenerationParameters;
+import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
+import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
+import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
+import org.bouncycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -26,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -127,10 +136,10 @@ public class CryptographyManager {
 
     /**
      * Creates a key pair in AndroidKeyStore. The key material will not be accessible!
-     *
      * @return new {@link KeyPair}
+     * @see CryptographyManager#getDefaultSpecBuilder(String) 
      */
-    public KeyPair createKeyPair(KeyGenParameterSpec spec) throws
+    public KeyPair generateKeyPair(KeyGenParameterSpec spec) throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException {
@@ -143,6 +152,23 @@ public class CryptographyManager {
 
         keyPairGenerator.initialize(spec);
         return keyPairGenerator.generateKeyPair();
+    }
+
+    /**
+     * Generate private key material by means of the BouncyCastle library.
+     * @return key material
+     * @throws IOException
+     */
+    public static byte[] generatePrivateKeyMaterial() throws IOException {
+        RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
+        rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(
+                BigInteger.valueOf(0x10001),
+                new SecureRandom(),
+                DEFAULT_KEY_LENGTH,
+                PrimeCertaintyCalculator.getDefaultCertainty(DEFAULT_KEY_LENGTH)));
+        AsymmetricCipherKeyPair asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
+        PrivateKeyInfo privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
+        return privateKeyInfo.getEncoded();
     }
 
     public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName) {

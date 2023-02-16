@@ -18,6 +18,11 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class AESUtil {
+    public static final String AES_TRANSFORMATION = "AES/CBC/PKCS5Padding";
+    public static final String KEY_ALGORITHM = "PBKDF2WithHmacSHA256";
+    public static final int KEY_LENGTH = 256;
+    public static final int KEYSPEC_ITERATIONS = 1024;
+    public static final int SALT_LENGTH = 16;
 
     public static SecretKey getKeyFromPassword(char[] password, byte[] salt, String keyAlgorithm, int keyLength, int keySpecIterations)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -37,6 +42,12 @@ public class AESUtil {
         byte[] bArr = new byte[keyLength / 8];
         new SecureRandom().nextBytes(bArr);
         return new SecretKeySpec(bArr, "AES");
+    }
+
+    public static byte[] generateSalt() {
+        byte[] salt = new byte[SALT_LENGTH];
+        new SecureRandom().nextBytes(salt);
+        return salt;
     }
 
     public static byte[] encrypt(byte[] input, SecretKey key, IvParameterSpec iv, String aesTransformation)

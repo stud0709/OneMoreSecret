@@ -17,6 +17,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.security.KeyStoreException;

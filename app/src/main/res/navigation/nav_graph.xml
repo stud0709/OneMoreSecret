@@ -30,11 +30,20 @@
     <fragment
         android:id="@+id/KeyImportFragment"
         android:name="com.onemoresecret.KeyImportFragment"
-        android:label="Private Key Import"
+        android:label="@string/private_key_import"
         tools:layout="@layout/fragment_key_import" />
     <fragment
         android:id="@+id/keyStoreFragment"
         android:name="com.onemoresecret.KeyStoreListFragment"
-        android:label="Private Keys"
-        tools:layout="@layout/fragment_key_store_list" />
+        android:label="@string/private_keys"
+        tools:layout="@layout/fragment_key_store_list" >
+        <action
+            android:id="@+id/action_keyStoreFragment_to_newPrivateKeyFragment"
+            app:destination="@id/newPrivateKeyFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/newPrivateKeyFragment"
+        android:name="com.onemoresecret.NewPrivateKeyFragment"
+        android:label="@string/new_private_key"
+        tools:layout="@layout/fragment_new_private_key" />
 </navigation>

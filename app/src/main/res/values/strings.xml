@@ -58,4 +58,25 @@
     <string name="key_icon">Key Icon</string>
     <string name="error_message">Error: %s</string>
     <string name="error_starting_camera">\"Error starting camera: %s \"</string>
+    <string name="help">Help</string>
+    <string name="biometrics_unavailable">Biometrics unavailable</string>
+    <string name="biometrics_not_enabled">Biometrics not enabled</string>
+    <string name="biometrics_not_detected">Biometrics not detected</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="exit">Exit</string>
+    <string name="biometrics_unavailable_long_text">Looks like your biometric hardware is not available right now. Try again later.</string>
+    <string name="biometrics_not_detected_long_text">Sorry, we cannot continue without biometric hardware.</string>
+    <string name="biometrics_not_enabled_long_text">Please set up biometric authentication on your device.</string>
+    <string name="wrong_message_format">Wrong message format</string>
+    <string name="message_not_found">Message not found</string>
+    <string name="readme_url">https://github.com/stud0709/OneMoreSecret/blob/master/README.md</string>
+    <string name="key_successfully_activated">Key %s successfully activated</string>
+    <string name="new_private_key">New Private Key</string>
+    <string name="private_keys">Private Keys</string>
+    <string name="private_key_import">Private Key Import</string>
+    <string name="backup_file">%s: Backup File</string>
+    <string name="key_alias_may_not_be_empty">Key Alias may not be empty</string>
+    <string name="key_alias_already_exists">Key alias already exists</string>
+    <string name="password_too_short">Password shorter than 10 symbols</string>
+    <string name="password_mismatch">Both password fields should match</string>
 </resources>
