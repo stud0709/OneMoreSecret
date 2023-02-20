@@ -3,6 +3,9 @@ package com.onemoresecret;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -10,6 +13,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.biometric.BiometricPrompt;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -39,6 +43,10 @@ public class MessageFragment extends Fragment {
     private FragmentMessageBinding binding;
     private boolean paused = false;
 
+    private boolean reveal = false;
+    private Runnable revealHandler = null;
+    private MessageMenuProvider menuProvider = new MessageMenuProvider();
+
 
     @Override
     public View onCreateView(
@@ -66,6 +74,7 @@ public class MessageFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        requireActivity().addMenuProvider(menuProvider);
 
         assert getArguments() != null;
         String message = getArguments().getString("MESSAGE");
@@ -215,18 +224,48 @@ public class MessageFragment extends Fragment {
             throw new IllegalArgumentException(getString(R.string.msg_integrity_check_failed));
         }
 
-        binding.swRevealMessage.setOnCheckedChangeListener((compoundButton, b) -> binding.textViewMessage.setText(b ? message : getString(R.string.hidden_text_slide_to_reveal)));
-        binding.swRevealMessage.setEnabled(true);
+        revealHandler = ()->binding.textViewMessage.setText(reveal ? message : getString(R.string.hidden_text_slide_to_reveal));
+        requireActivity().invalidateOptionsMenu();
 
         OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
         assert outputFragment != null;
-        outputFragment.setMessage(message);
+        outputFragment.setMessage(message, "OneMoreSecret Message");
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
         binding.textViewMessage.setText(getString(R.string.hidden_text_slide_to_reveal));
         binding = null;
+    }
+
+    private class MessageMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_message, menu);
+        }
+
+        @Override
+        public void onPrepareMenu(@NonNull Menu menu) {
+            MenuProvider.super.onPrepareMenu(menu);
+            menu.findItem(R.id.menuItemMsgVisibility).setVisible(revealHandler != null);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
+                if(revealHandler == null) return true;
+
+                reveal = !reveal;
+                menuItem.setIcon(reveal ? R.drawable.baseline_visibility_off_24 : R.drawable.baseline_visibility_24);
+                revealHandler.run();
+            }  else {
+                return false;
+            }
+
+            return true;
+        }
     }
 }

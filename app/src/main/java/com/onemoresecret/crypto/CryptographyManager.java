@@ -136,8 +136,9 @@ public class CryptographyManager {
 
     /**
      * Creates a key pair in AndroidKeyStore. The key material will not be accessible!
+     *
      * @return new {@link KeyPair}
-     * @see CryptographyManager#getDefaultSpecBuilder(String) 
+     * @see CryptographyManager#getDefaultSpecBuilder(String)
      */
     public KeyPair generateKeyPair(KeyGenParameterSpec spec) throws
             InvalidAlgorithmParameterException,
@@ -156,6 +157,7 @@ public class CryptographyManager {
 
     /**
      * Generate private key material by means of the BouncyCastle library.
+     *
      * @return key material
      * @throws IOException
      */
@@ -195,13 +197,9 @@ public class CryptographyManager {
 
     /**
      * Import RSA key pair using encoded key data from {@link PrivateKey#getEncoded()} and {@link PublicKey#getEncoded()}.
-     *
-     * @param certificate if {@code null}, the private key will be signed by the generated self-signed certificate.
      */
     public void importKey(String keyName,
-                          @NonNull PrivateKey privateKey,
-                          X509Certificate certificate,
-                          Date validityEnd, Context ctx) throws
+                          @NonNull PrivateKey privateKey, Context ctx) throws
             CertificateException,
             NoSuchAlgorithmException,
             InvalidKeySpecException,
@@ -209,22 +207,16 @@ public class CryptographyManager {
             IOException,
             OperatorCreationException {
 
-        if (certificate == null) {
-            int daysValid = validityEnd == null ? 9999 :
-                    (int) TimeUnit.DAYS.convert(
-                            validityEnd.getTime() - System.currentTimeMillis(),
-                            TimeUnit.MILLISECONDS);
+        int daysValid = DEFAULT_DAYS_VALID;
 
-            //create self-signed certificate with the specified end validity
-            PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
-            KeyPair keyPair = new KeyPair(publicKey, privateKey);
-            certificate = SelfSignedCertGenerator.generate(keyPair,
-                    "SHA256withRSA",
-                    "OneMoreSecret",
-                    daysValid);
-        } else {
-            validityEnd = certificate.getNotAfter();
-        }
+        //create self-signed certificate with the specified end validity
+        PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
+        KeyPair keyPair = new KeyPair(publicKey, privateKey);
+        X509Certificate certificate = SelfSignedCertGenerator.generate(keyPair,
+                "SHA256withRSA",
+                "OneMoreSecret",
+                daysValid);
+
 
         KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{certificate});
 
@@ -232,7 +224,6 @@ public class CryptographyManager {
                 .setUserAuthenticationRequired(true)
                 .setEncryptionPaddings(ENCRYPTION_PADDINGS)
                 .setIsStrongBoxBacked(ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE))
-                .setKeyValidityEnd(validityEnd)
                 .build();
 
         keyStore.setEntry(keyName, privateKeyEntry, keyProtection);

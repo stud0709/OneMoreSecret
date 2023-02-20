@@ -55,7 +55,7 @@ public class KeyImportFragment extends Fragment {
 
         //(1) Application ID
         int applicationId = Integer.parseInt(sArr[0]);
-        if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER)
+        if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER)
             throw new IllegalArgumentException("wrong applicationId: " + applicationId);
 
         //(2) alias
@@ -88,17 +88,10 @@ public class KeyImportFragment extends Fragment {
         int iterations = Integer.parseInt(sArr[7]);
         Log.d(TAG, "iterations: " + iterations);
 
-        //(9) validity end
-        long validityEnd = Long.parseLong(sArr[8]);
-        Log.d(TAG, "validity end: " + validityEnd);
-        if (validityEnd == 0) {
-            binding.textValidTo.setVisibility(View.GONE);
-            binding.textValidityLabel.setVisibility(View.GONE);
-        }
         // --- Encrypted part ---
 
-        //(10) cipher text
-        byte[] cipherText = Base64.getDecoder().decode(sArr[9]);
+        //(9) cipher text
+        byte[] cipherText = Base64.getDecoder().decode(sArr[8]);
         Log.d(TAG, cipherText.length + " bytes cipher text read");
 
         binding.editTextKeyAlias.setText(alias);
@@ -111,8 +104,7 @@ public class KeyImportFragment extends Fragment {
                                 aesTransformation,
                                 aesKeyAlg,
                                 aesKeyLength,
-                                iterations,
-                                validityEnd)).start()
+                                iterations)).start()
         );
 
     }
@@ -124,8 +116,7 @@ public class KeyImportFragment extends Fragment {
             String aesTransformation,
             String keyAlg,
             int keyLength,
-            int iterations,
-            long validityEnd) {
+            int iterations) {
 
         try {
             //try decrypt
@@ -147,31 +138,18 @@ public class KeyImportFragment extends Fragment {
             //(1) RSA Key
             byte[] rsaKey = Base64.getDecoder().decode(sArr[0]);
 
-            //(2) RSA Certificate
-            byte[] rsaCert = Base64.getDecoder().decode(sArr[1]);
-
-            //(3) hash
-            byte[] _hash = Base64.getDecoder().decode(sArr[2]);
+            //(2) hash
+            byte[] _hash = Base64.getDecoder().decode(sArr[1]);
 
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             sha256.update(rsaKey);
-            sha256.update(rsaCert);
 
-            byte[] longBytes = new byte[Long.BYTES];
-            for (int i = 0; i < longBytes.length; i++) {
-                int shift = 8 * i;
-                longBytes[i] = (byte) (validityEnd >> shift);
-            }
-
-            byte[] hash = sha256.digest(longBytes);
+            byte[] hash = sha256.digest();
 
             //compare hash values
             if (!Arrays.equals(hash, _hash)) {
                 throw new IllegalArgumentException(getString(R.string.hash_mismatch));
             }
-
-            X509Certificate certificate = rsaCert.length == 0 ? null :
-                    CryptographyManager.createCertificate(rsaCert);
 
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 
@@ -180,13 +158,9 @@ public class KeyImportFragment extends Fragment {
 
             requireContext().getMainExecutor().execute(() -> {
                 //default validity end date
-                Date validityEndDate = Date.from(validityEnd == 0 ? Instant.ofEpochMilli(
-                        System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)) : Instant.ofEpochMilli(validityEnd));
+                Date validityEndDate = Date.from(Instant.ofEpochMilli(
+                        System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)));
 
-                //set default validity end
-                binding.textValidTo.setText(validityEnd == 0 ? getText(R.string.undefined) : DateFormat.getDateTimeInstance().format(validityEndDate));
-
-                binding.textCertificateData.setText(certificate == null ? getString(R.string.not_provided) : certificate.toString());
                 binding.textFingerprintData.setText(fingerprint);
 
                 //check alias
@@ -217,8 +191,6 @@ public class KeyImportFragment extends Fragment {
                                 cryptographyManager.importKey(
                                         keyAlias,
                                         privateKey,
-                                        certificate,
-                                        validityEndDate,
                                         getContext());
                                 requireContext().getMainExecutor().execute(
                                         () -> {

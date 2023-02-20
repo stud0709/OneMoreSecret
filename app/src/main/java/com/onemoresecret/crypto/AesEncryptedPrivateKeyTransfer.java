@@ -19,23 +19,30 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
-public class AesEncryptedKeyPairTransfer {
+public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
     private final String message;
 
-    public AesEncryptedKeyPairTransfer(String alias, Key rsaPrivateKey, X509Certificate rsaCertificate,
-                                       SecretKey aesKey, IvParameterSpec iv, byte[] salt, long validityEnd)
-            throws CertificateEncodingException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
+    public AesEncryptedPrivateKeyTransfer(String alias,
+                                          Key rsaPrivateKey,
+                                          SecretKey aesKey,
+                                          IvParameterSpec iv,
+                                          byte[] salt) throws
+            NoSuchAlgorithmException,
+            InvalidKeyException,
+            NoSuchPaddingException,
+            InvalidAlgorithmParameterException,
+            BadPaddingException,
+            IllegalBlockSizeException {
+        super();
 
         byte[] privateKeyEncoded = rsaPrivateKey.getEncoded();
-        byte[] certificateEncoded = rsaCertificate == null ? new byte[] {} : rsaCertificate.getEncoded();
-        byte[] cipherText = encryptKeyData(privateKeyEncoded, certificateEncoded, aesKey, iv, salt, validityEnd);
+        byte[] cipherText = encryptKeyData(privateKeyEncoded, aesKey, iv);
 
         // --- create message ---
         List<String> list = new ArrayList<>();
 
         // (1) application-ID
-        list.add(Integer.toString(MessageComposer.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER));
+        list.add(Integer.toString(MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER));
 
         // (2) alias
         list.add(alias);
@@ -60,43 +67,35 @@ public class AesEncryptedKeyPairTransfer {
         // (8) keyspec iterations
         list.add(Integer.toString(AESUtil.KEYSPEC_ITERATIONS));
 
-        // (9) validity end
-        list.add(Long.toString(validityEnd));
-
         // --- encrypted data ---
 
-        // (10) cipher text
+        // (9) cipher text
         list.add(Base64.getEncoder().encodeToString(cipherText));
 
         this.message = list.stream().collect(Collectors.joining("\t"));
     }
 
-    protected byte[] encryptKeyData(byte[] privateKeyEncoded, byte[] certificateEncoded, SecretKey aesKey,
-                                    IvParameterSpec iv, byte[] salt, long validityEnd)
-            throws CertificateEncodingException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
+    protected byte[] encryptKeyData(byte[] privateKeyEncoded,
+                                    SecretKey aesKey,
+                                    IvParameterSpec iv) throws
+            NoSuchAlgorithmException,
+            InvalidKeyException,
+            NoSuchPaddingException,
+            InvalidAlgorithmParameterException,
+            BadPaddingException,
+            IllegalBlockSizeException {
 
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
         sha256.update(privateKeyEncoded);
-        sha256.update(certificateEncoded);
 
-        byte longBytes[] = new byte[Long.BYTES];
-        for (int i = 0; i < longBytes.length; i++) {
-            int shift = 8 * i;
-            longBytes[i] = (byte) (validityEnd >> shift);
-        }
-
-        byte[] hash = sha256.digest(longBytes);
+        byte[] hash = sha256.digest();
 
         List<String> list = new ArrayList<>();
 
         // (1) key data
         list.add(Base64.getEncoder().encodeToString(privateKeyEncoded));
 
-        // (2) certificate data
-        list.add(Base64.getEncoder().encodeToString(certificateEncoded));
-
-        // (3) hash
+        // (2) hash
         list.add(Base64.getEncoder().encodeToString(hash));
 
         String s = list.stream().collect(Collectors.joining("\t"));

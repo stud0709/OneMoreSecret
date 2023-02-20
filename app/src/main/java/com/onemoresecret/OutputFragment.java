@@ -83,13 +83,19 @@ public class OutputFragment extends Fragment {
     private Runnable copyValue = null;
 
     private String message = null;
+    private String shareTitle = null;
 
     private final AtomicBoolean typing = new AtomicBoolean(false);
 
-    public void setMessage(@Nullable String message) {
+    public void setMessage(@Nullable String message, @Nullable String shareTitle) {
         this.message = message;
+        this.shareTitle = shareTitle;
         refreshBluetoothControls();
         requireActivity().invalidateOptionsMenu();
+    }
+
+    public KeyboardLayout getSelectedLayout() {
+        return (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
     }
 
     @Override
@@ -588,6 +594,16 @@ public class OutputFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemBtSettings) {
                 startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
 
+            } else if(menuItem.getItemId() == R.id.menuItemShare){
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, message);
+
+                sendIntent.putExtra(Intent.EXTRA_TITLE, shareTitle);
+                sendIntent.setType("text/plain");
+
+                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
             } else {
                 return false;
             }

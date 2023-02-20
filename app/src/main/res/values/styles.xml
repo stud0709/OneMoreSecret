@@ -5,4 +5,7 @@
         <item name="android:minWidth">48dp</item>
         <item name="android:minHeight">48dp</item>
     </style>
+    <style name="PassGeneratorChip" parent="@style/Widget.MaterialComponents.Chip.Action">
+        <item name="android:layout_marginEnd">8dp</item>
+    </style>
 </resources>

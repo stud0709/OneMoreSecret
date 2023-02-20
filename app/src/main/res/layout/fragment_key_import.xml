@@ -67,26 +67,6 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/textValidityLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/valid_to"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textFingerprintData" />
-
-    <TextView
-        android:id="@+id/textValidTo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/undefined"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        app:layout_constraintBottom_toTopOf="@+id/btnSave"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textCerfiticateLabel" />
-
-    <TextView
         android:id="@+id/textFingerprintLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -104,27 +84,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textFingerprintLabel" />
-
-    <TextView
-        android:id="@+id/textCerfiticateLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/certificate"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textFingerprintData" />
-
-    <TextView
-        android:id="@+id/textCertificateData"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="@string/unknown_decrypt_first"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        app:layout_constraintBottom_toTopOf="@+id/btnSave"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textCerfiticateLabel" />
 
 
     <LinearLayout

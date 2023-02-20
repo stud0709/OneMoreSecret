@@ -250,7 +250,7 @@ public class QRFragment extends Fragment {
                 bundle.putString("MESSAGE", message);
 
                 switch (applicationId) {
-                    case MessageComposer.APPLICATION_AES_ENCRYPTED_KEY_PAIR_TRANSFER:
+                    case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER:
                         NavHostFragment.findNavController(QRFragment.this)
                                 .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                         break;
@@ -307,12 +307,15 @@ public class QRFragment extends Fragment {
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
                 NavHostFragment.findNavController(QRFragment.this)
-                        .navigate(R.id.action_QRFragment_to_keyStoreFragment);
+                        .navigate(R.id.action_QRFragment_to_keyManagementFragment);
             } else if (menuItem.getItemId() == R.id.menuItemHelp) {
                 String url = getString(R.string.readme_url);
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse(url));
                 startActivity(intent);
+            } else if (menuItem.getItemId() == R.id.menuItemPwdGenerator) {
+                NavHostFragment.findNavController(QRFragment.this)
+                        .navigate(R.id.action_QRFragment_to_passwordGeneratorFragment);
             } else {
                 return false;
             }

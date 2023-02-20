@@ -2,17 +2,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.onemoresecret.MainActivity">
-    <item
-        android:id="@+id/menuItemBtSettings"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orderInCategory="200"
-        android:title="Bluetooth Settings" />
     <group android:id="@+id/menuGroupOutputAll">
         <item
             android:id="@+id/menuItemOutputCopy"
             android:icon="@drawable/ic_baseline_content_copy_24"
             android:title="@android:string/copy"
             app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemShare"
+            android:icon="@drawable/baseline_share_24"
+            android:title="Share"
+            app:showAsAction="ifRoom" />
     </group>
+    <item
+        android:id="@+id/menuItemBtSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orderInCategory="200"
+        android:title="Bluetooth Settings" />
 </menu>

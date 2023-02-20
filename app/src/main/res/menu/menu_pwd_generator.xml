@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menuItemGenPwd"
+        android:icon="@drawable/baseline_auto_fix_high_24"
+        android:title="Generate"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menuItemUcase"
+        android:title="Upper Case..." />
+    <item
+        android:id="@+id/menuItemLcase"
+        android:title="Lower Case..." />
+    <item
+        android:id="@+id/menuItemDigits"
+        android:title="Digits..." />
+    <item
+        android:id="@+id/menuItemSpecials"
+        android:title="Specials..." />
+    <item
+        android:id="@+id/menuItemSimilar"
+        android:title="Similar..." />
+</menu>

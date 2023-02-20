@@ -1,28 +1,19 @@
 package com.onemoresecret;
 
-import android.app.AlertDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.ItemDetailsLookup;
 import androidx.recyclerview.selection.ItemKeyProvider;
 import androidx.recyclerview.selection.SelectionPredicates;
 import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.selection.StorageStrategy;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.onemoresecret.bt.BluetoothController;
@@ -33,10 +24,10 @@ import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A fragment representing a list of Items.
@@ -49,17 +40,36 @@ public class KeyStoreListFragment extends Fragment {
 
     private final List<String> aliasList = new ArrayList<>();
 
-    private final KeyEntryMenuProvider menuProvider = new KeyEntryMenuProvider();
-
     private final ItemAdapter itemAdapter = new ItemAdapter();
 
-    private boolean paused = false;
+    private Consumer<FragmentKeyStoreListBinding> runOnStart;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
         return binding.getRoot();
+    }
+
+    public SelectionTracker<String> getSelectionTracker() {
+        return selectionTracker;
+    }
+
+    public void setRunOnStart(Consumer<FragmentKeyStoreListBinding> runOnStart) {
+        this.runOnStart = runOnStart;
+    }
+
+    public void onItemRemoved(String alias) {
+        int idx = aliasList.indexOf(alias);
+        aliasList.remove(alias);
+        itemAdapter.notifyItemRemoved(idx);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (runOnStart != null) runOnStart.accept(binding);
+        runOnStart = null;
     }
 
     @Override
@@ -78,8 +88,6 @@ public class KeyStoreListFragment extends Fragment {
             throw new RuntimeException(e);
         }
 
-
-        binding.list.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.list.setAdapter(itemAdapter);
 
         selectionTracker = new SelectionTracker.Builder<>("selectionTracker",
@@ -89,45 +97,19 @@ public class KeyStoreListFragment extends Fragment {
                 StorageStrategy.createStringStorage())
                 .withSelectionPredicate(SelectionPredicates.createSelectSingleAnything())
                 .build();
-
-        selectionTracker.addObserver(new SelectionTracker.SelectionObserver<String>() {
-            @Override
-            public void onSelectionChanged() {
-                super.onSelectionChanged();
-                requireActivity().invalidateOptionsMenu();
-                OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.keyListOutputFragment);
-                assert outputFragment != null;
-                if (selectionTracker.hasSelection()) {
-                    outputFragment.setMessage(getPublicKeyMessage());
-                } else {
-                    outputFragment.setMessage(null);
-                }
-            }
-        });
-
-        requireActivity().addMenuProvider(menuProvider);
     }
 
-    private String getPublicKeyMessage() {
-        try {
-            String alias = selectionTracker.getSelection().iterator().next();
-            byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
-            return Base64.getEncoder().encodeToString(bArr);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;
+    public OutputFragment getOutputFragment() {
+        return (OutputFragment) binding.keyListOutputFragment.getFragment();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
         binding = null;
     }
 
     class ItemAdapter extends RecyclerView.Adapter<PrivateKeyViewHolder> {
-
 
         @NonNull
         @Override
@@ -228,68 +210,4 @@ public class KeyStoreListFragment extends Fragment {
         }
     }
 
-    private class KeyEntryMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_key_list, menu);
-        }
-
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemNewPrivateKey) {
-                NavHostFragment.findNavController(KeyStoreListFragment.this)
-                        .navigate(R.id.action_keyStoreFragment_to_newPrivateKeyFragment, null);
-                return true;
-            }
-
-            if (!selectionTracker.hasSelection()) return false;
-
-            try {
-                String alias = selectionTracker.getSelection().iterator().next();
-                String message = getPublicKeyMessage();
-
-                if (menuItem.getItemId() == R.id.menuItemSharePublicKey) {
-                    Intent sendIntent = new Intent();
-                    sendIntent.setAction(Intent.ACTION_SEND);
-                    sendIntent.putExtra(Intent.EXTRA_TEXT, message);
-
-                    sendIntent.putExtra(Intent.EXTRA_TITLE, String.format(getString(R.string.share_public_key_title), alias));
-                    sendIntent.setType("text/plain");
-
-                    Intent shareIntent = Intent.createChooser(sendIntent, null);
-                    startActivity(shareIntent);
-                } else if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
-                    new AlertDialog.Builder(getContext())
-                            .setTitle(R.string.delete_private_key)
-                            .setMessage(String.format(getString(R.string.ok_to_delete), alias))
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                                try {
-                                    cryptographyManager.deleteKey(alias);
-                                    int idx = aliasList.indexOf(alias);
-                                    aliasList.remove(alias);
-                                    itemAdapter.notifyItemRemoved(idx);
-                                    Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
-                                } catch (KeyStoreException e) {
-                                    e.printStackTrace();
-                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-                                }
-                            }).setNegativeButton(android.R.string.cancel, null).show();
-                } else {
-                    return false;
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            return true;
-        }
-
-        @Override
-        public void onPrepareMenu(@NonNull Menu menu) {
-            menu.setGroupVisible(R.id.group_key_all, selectionTracker.hasSelection());
-            MenuProvider.super.onPrepareMenu(menu);
-        }
-    }
 }

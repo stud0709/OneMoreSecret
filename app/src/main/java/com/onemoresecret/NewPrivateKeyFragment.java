@@ -19,7 +19,7 @@ import android.widget.Toast;
 import com.google.zxing.WriterException;
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.AesEncryptedKeyPairTransfer;
+import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentNewPrivateKeyBinding;
@@ -96,18 +96,11 @@ public class NewPrivateKeyFragment extends Fragment {
                     AESUtil.KEY_LENGTH,
                     AESUtil.KEYSPEC_ITERATIONS);
 
-            String message = new AesEncryptedKeyPairTransfer(alias,
+            String message = new AesEncryptedPrivateKeyTransfer(alias,
                     privateKey,
-                    null,
                     aesSecretKey,
                     iv,
-                    salt,
-                    0).getMessage();
-
-            Date validityEndDate = Date.from(
-                    Instant.ofEpochMilli(
-                            System.currentTimeMillis() +
-                                    TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)));
+                    salt).getMessage();
 
             binding.checkBox.setEnabled(true);
             binding.checkBox.setChecked(false);
@@ -117,8 +110,6 @@ public class NewPrivateKeyFragment extends Fragment {
                     cryptographyManager.importKey(
                             alias,
                             privateKey,
-                            null,
-                            validityEndDate,
                             requireContext());
 
                     Toast.makeText(
@@ -137,7 +128,7 @@ public class NewPrivateKeyFragment extends Fragment {
             //share HTML file
             String html = getKeyBackupHtml(alias, fingerprint, message);
 
-            File backupDir = new File(getContext().getCacheDir(), "pk_backup");
+            File backupDir = new File(requireContext().getCacheDir(), "pk_backup");
             if (!backupDir.exists()) backupDir.mkdirs();
 
             String fingerprintString = BluetoothController.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
@@ -149,7 +140,7 @@ public class NewPrivateKeyFragment extends Fragment {
             privateKeyBackup.toFile().deleteOnExit();
             Files.write(privateKeyBackup, html.getBytes(StandardCharsets.UTF_8));
 
-            Uri contentUri = OmsFileProvider.getUriForFile(getContext(), "com.onemoresecret.fileprovider", privateKeyBackup.toFile());
+            Uri contentUri = OmsFileProvider.getUriForFile(requireContext(), "com.onemoresecret.fileprovider", privateKeyBackup.toFile());
 
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
@@ -257,20 +248,14 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append(sArr[6])
                 .append("</li><li>").append("Keyspec Iterations = ")
                 .append(sArr[7])
-                .append("</li><li>").append("Validity end: epoch-milliseconds = ")
-                .append(sArr[8])
-                .append(" (")
-                .append(validityEnd == 0 ? "undefined" : Date.from(Instant.ofEpochMilli(validityEnd)))
-                .append(")</li><li>")
+                .append("</li><li>")
                 .append("Cipher Text: base64-encoded byte[] (see below)")
                 .append("</li></ol><p>")
                 .append("Private Key Information (encrypted within Cipher Text. String (utf-8), separator: TAB)")
                 .append("</p><ol><li>")
                 .append("Private Key Data: base64-encoded byte[]")
                 .append("</li><li>")
-                .append("Certificate Data: base64-encoded byte[]")
-                .append("</li><li>")
-                .append("SHA-256 over Private Key, Certificate, Validity end: base64-encoded byte[]")
+                .append("Private Key's SHA-256 hash: base64-encoded byte[]")
                 .append("</li></ol></body></html>");
 
         return stringBuilder.toString();

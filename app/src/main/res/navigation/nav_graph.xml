@@ -19,8 +19,11 @@
             android:id="@+id/action_QRFragment_to_keyImportFragment"
             app:destination="@id/KeyImportFragment" />
         <action
-            android:id="@+id/action_QRFragment_to_keyStoreFragment"
-            app:destination="@id/keyStoreFragment" />
+            android:id="@+id/action_QRFragment_to_keyManagementFragment"
+            app:destination="@id/keyManagementFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_passwordGeneratorFragment"
+            app:destination="@id/passwordGeneratorFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -33,17 +36,22 @@
         android:label="@string/private_key_import"
         tools:layout="@layout/fragment_key_import" />
     <fragment
-        android:id="@+id/keyStoreFragment"
-        android:name="com.onemoresecret.KeyStoreListFragment"
-        android:label="@string/private_keys"
-        tools:layout="@layout/fragment_key_store_list" >
-        <action
-            android:id="@+id/action_keyStoreFragment_to_newPrivateKeyFragment"
-            app:destination="@id/newPrivateKeyFragment" />
-    </fragment>
-    <fragment
         android:id="@+id/newPrivateKeyFragment"
         android:name="com.onemoresecret.NewPrivateKeyFragment"
         android:label="@string/new_private_key"
         tools:layout="@layout/fragment_new_private_key" />
+    <fragment
+        android:id="@+id/keyManagementFragment"
+        android:name="com.onemoresecret.KeyManagementFragment"
+        android:label="Private Keys"
+        tools:layout="@layout/fragment_key_management">
+        <action
+            android:id="@+id/action_keyManagementFragment_to_newPrivateKeyFragment"
+            app:destination="@id/newPrivateKeyFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/passwordGeneratorFragment"
+        android:name="com.onemoresecret.PasswordGeneratorFragment"
+        android:label="Password Generator"
+        tools:layout="@layout/fragment_password_generator" />
 </navigation>

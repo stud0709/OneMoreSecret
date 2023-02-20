@@ -4,11 +4,6 @@
 
     <group android:id="@+id/group_key_all">
         <item
-            android:id="@+id/menuItemSharePublicKey"
-            android:icon="@drawable/baseline_share_24"
-            android:title="@string/share_public_key"
-            app:showAsAction="ifRoom" />
-        <item
             android:id="@+id/menuItemDeleteKeyEntry"
             android:icon="@drawable/baseline_delete_forever_24"
             android:title="@string/delete_key"
@@ -16,5 +11,5 @@
     </group>
     <item
         android:id="@+id/menuItemNewPrivateKey"
-        android:title="New Private Key" />
+        android:title="@string/new_private_key" />
 </menu>

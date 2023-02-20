@@ -11,7 +11,7 @@ public abstract class KeyboardLayout {
     protected final Map<Character, Stroke> layout = new HashMap<>();
     public static final Class<?>[] knownSubclasses = {USLayout.class, GermanLayout.class};
 
-    protected abstract Stroke forKey(char c);
+    public abstract Stroke forKey(char c);
 
     /**
      * Convert a {@link String} to key strokes

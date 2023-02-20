@@ -8,16 +8,6 @@
     android:orientation="vertical"
     tools:context=".MessageFragment">
 
-    <Switch
-        android:id="@+id/swRevealMessage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="false"
-        android:minHeight="48dp"
-        android:text="@string/reveal_message"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <TextView
         android:id="@+id/textViewMessage"
         android:layout_width="match_parent"
@@ -27,7 +17,7 @@
         app:layout_constraintBottom_toTopOf="@+id/messageOutputFragment"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/swRevealMessage" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/messageOutputFragment"
@@ -35,7 +25,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
-        tools:layout="@layout/fragment_output"
-        tools:layout_editor_absoluteX="0dp"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout="@layout/fragment_output" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
