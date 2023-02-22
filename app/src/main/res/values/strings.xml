@@ -4,16 +4,13 @@
     <!-- Strings used for fragments for navigation -->
     <string name="qr_fragment_label">Scan QR Code Sequence</string>
     <string name="message_fragment_label">Decrypted Message</string>
-    <string name="key_import_fragment_label">Private Key Import</string>
-    <string name="prompt_info_title">KeyStore access</string>
-    <string name="prompt_info_subtitle">Authorization required to access the keystore</string>
-    <string name="prompt_info_description">We need to check your identity to access the key data</string>
-    <string name="prompt_info_negative_text">Cancel</string>
-    <string name="hidden_text_slide_to_reveal">(hidden text, slide to reveal)</string>
+    <string name="prompt_info_title">Authorization required</string>
+    <string name="prompt_info_subtitle">Requested key: %s</string>
+    <string name="prompt_info_description">We need to verify your identity to access the key data</string>
+    <string name="hidden_text">(hidden text)</string>
     <string name="remaining_codes">Remaining Codes</string>
     <string name="save">Save</string>
     <string name="passphrase">Passphrase</string>
-    <string name="reveal_message">reveal message</string>
     <string name="bluetooth_target">Bluetooth Target:</string>
     <string name="bluetooth_targets">Bluetooth Targets</string>
     <string name="unsupported">unsupported</string>
@@ -22,7 +19,6 @@
     <string name="make_this_device_discoverable">Make this device discoverable</string>
     <string name="keyboard_layouts">Keyboard Layouts</string>
     <string name="unknown_decrypt_first">(unknown, decrypt first)</string>
-    <string name="certificate">Certificate:</string>
     <string name="key_alias">Key Alias</string>
     <string name="transport_passphrase_required">Transport Passphrase (required)</string>
     <string name="decrypt">Decrypt</string>
@@ -34,25 +30,19 @@
     <string name="bt_connected">connected</string>
     <string name="select_bt_target">Select BT target</string>
     <string name="wrong_keyboard_layout">Wrong keyboard layout?</string>
-    <string name="msg_integrity_check_failed">Could not confirm message integrity</string>
     <string name="auth_failed">Authentication failed</string>
     <string name="no_key_found">No key found: %s</string>
     <string name="wrong_application">wrong applicationId:</string>
     <string name="insufficient_permissions">Insufficient permissions</string>
     <string name="delay">delay</string>
     <string name="multiple_keys_found">Multiple keys found</string>
-    <string name="valid_to">Valid to:</string>
-    <string name="undefined">undefined</string>
-    <string name="not_provided">(not provided)</string>
     <string name="typing_please_wait">typing, please wait&#8230;</string>
     <string name="share_public_key_title">%s - Public Key</string>
     <string name="warning_alias_exists">Warning: this alias is already assigned to a key with fingerprint %s. It will be overwritten.</string>
     <string name="warning_same_fingerprint">Warning: key \'%s\' has the same fingerprint. It will be deleted.</string>
-    <string name="hash_mismatch">Could not confirm private key integrity</string>
     <string name="key_deleted">Key \'%s\' deleted.</string>
     <string name="ok_to_delete">OK to delete \'%s\'?</string>
     <string name="delete_private_key">Delete Private Key</string>
-    <string name="share_public_key">Share Public Key</string>
     <string name="delete_key">Delete Key</string>
     <string name="dummy_text">dummy text</string>
     <string name="key_icon">Key Icon</string>
@@ -72,7 +62,6 @@
     <string name="readme_url">https://github.com/stud0709/OneMoreSecret/blob/master/README.md</string>
     <string name="key_successfully_activated">Key %s successfully activated</string>
     <string name="new_private_key">New Private Key</string>
-    <string name="private_keys">Private Keys</string>
     <string name="private_key_import">Private Key Import</string>
     <string name="backup_file">%s: Backup File</string>
     <string name="key_alias_may_not_be_empty">Key Alias may not be empty</string>
@@ -88,4 +77,14 @@
     <string name="chip_layout">Layout</string>
     <string name="password">Password</string>
     <string name="password_generator">Password Generator</string>
+    <string name="generate">Generate</string>
+    <string name="upper_case">Upper Case...</string>
+    <string name="lower_case">Lower Case...</string>
+    <string name="digits">Digits...</string>
+    <string name="specials">Specials...</string>
+    <string name="similar">Similar...</string>
+    <string name="encrypt_with">Encrypt With:</string>
+    <string name="share">Share</string>
+    <string name="oms_secret_message">OneMoreSecret Secret Message</string>
+    <string name="auth_successful">Authentication was successful</string>
 </resources>

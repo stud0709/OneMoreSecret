@@ -1,20 +1,21 @@
 package com.onemoresecret;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
-
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.zxing.WriterException;
 import com.onemoresecret.bt.BluetoothController;
@@ -32,11 +33,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.interfaces.RSAPrivateCrtKey;
-import java.time.Instant;
 import java.util.Base64;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -66,6 +64,8 @@ public class NewPrivateKeyFragment extends Fragment {
 
     private void createPrivateKey() {
         try {
+            SharedPreferences preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+
             if (binding.txtNewKeyAlias.getText().length() == 0) {
                 throw new IllegalArgumentException(getString(R.string.key_alias_may_not_be_empty));
             }
@@ -84,23 +84,31 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            byte[] bArr = CryptographyManager.generatePrivateKeyMaterial();
+            byte[] bArr = CryptographyManager.generatePrivateKeyMaterial(preferences);
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(bArr);
             byte[] fingerprint = CryptographyManager.getFingerprint(privateKey);
             IvParameterSpec iv = AESUtil.generateIv();
-            byte[] salt = AESUtil.generateSalt();
+            byte[] salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
+            int aesKeyLength = AESUtil.getKeyLength(preferences);
+            int aesKeyspecIterations = AESUtil.getKeyspecIterations(preferences);
+            String aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
+
             SecretKey aesSecretKey = AESUtil.getKeyFromPassword(
                     binding.txtNewTransportPassword.getText().toString().toCharArray(),
                     salt,
-                    AESUtil.KEY_ALGORITHM,
-                    AESUtil.KEY_LENGTH,
-                    AESUtil.KEYSPEC_ITERATIONS);
+                    aesKeyAlgorithm,
+                    aesKeyLength,
+                    aesKeyspecIterations);
 
             String message = new AesEncryptedPrivateKeyTransfer(alias,
                     privateKey,
                     aesSecretKey,
                     iv,
-                    salt).getMessage();
+                    salt,
+                    AESUtil.getAesTransformation(preferences).transformation,
+                    aesKeyAlgorithm,
+                    aesKeyLength,
+                    aesKeyspecIterations).getMessage();
 
             binding.checkBox.setEnabled(true);
             binding.checkBox.setChecked(false);
@@ -249,13 +257,7 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append("</li><li>").append("Keyspec Iterations = ")
                 .append(sArr[7])
                 .append("</li><li>")
-                .append("Cipher Text: base64-encoded byte[] (see below)")
-                .append("</li></ol><p>")
-                .append("Private Key Information (encrypted within Cipher Text. String (utf-8), separator: TAB)")
-                .append("</p><ol><li>")
-                .append("Private Key Data: base64-encoded byte[]")
-                .append("</li><li>")
-                .append("Private Key's SHA-256 hash: base64-encoded byte[]")
+                .append("AES encrypted Private Key material: base64-encoded byte[]")
                 .append("</li></ol></body></html>");
 
         return stringBuilder.toString();

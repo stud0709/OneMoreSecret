@@ -44,7 +44,7 @@ public class KeyManagementFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
-        keyStoreListFragment = (KeyStoreListFragment) binding.fragmentContainerView.getFragment();
+        keyStoreListFragment = binding.fragmentContainerView.getFragment();
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment.
                         getSelectionTracker()

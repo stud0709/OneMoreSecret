@@ -5,21 +5,21 @@
     <item
         android:id="@+id/menuItemGenPwd"
         android:icon="@drawable/baseline_auto_fix_high_24"
-        android:title="Generate"
+        android:title="@string/generate"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/menuItemUcase"
-        android:title="Upper Case..." />
+        android:title="@string/upper_case" />
     <item
         android:id="@+id/menuItemLcase"
-        android:title="Lower Case..." />
+        android:title="@string/lower_case" />
     <item
         android:id="@+id/menuItemDigits"
-        android:title="Digits..." />
+        android:title="@string/digits" />
     <item
         android:id="@+id/menuItemSpecials"
-        android:title="Specials..." />
+        android:title="@string/specials" />
     <item
         android:id="@+id/menuItemSimilar"
-        android:title="Similar..." />
+        android:title="@string/similar" />
 </menu>

@@ -26,7 +26,11 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
                                           Key rsaPrivateKey,
                                           SecretKey aesKey,
                                           IvParameterSpec iv,
-                                          byte[] salt) throws
+                                          byte[] salt,
+                                          String aesTransformation,
+                                          String aesKeyAlgorithm,
+                                          int aesKeyLength,
+                                          int aesKeyspecIterations) throws
             NoSuchAlgorithmException,
             InvalidKeyException,
             NoSuchPaddingException,
@@ -36,7 +40,6 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
         super();
 
         byte[] privateKeyEncoded = rsaPrivateKey.getEncoded();
-        byte[] cipherText = encryptKeyData(privateKeyEncoded, aesKey, iv);
 
         // --- create message ---
         List<String> list = new ArrayList<>();
@@ -56,53 +59,27 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
         list.add(Base64.getEncoder().encodeToString(iv.getIV()));
 
         // (5) AES transformation
-        list.add(AESUtil.AES_TRANSFORMATION);
+        list.add(aesTransformation);
 
         // (6) key algorithm
-        list.add(AESUtil.KEY_ALGORITHM);
+        list.add(aesKeyAlgorithm);
 
         // (7) keyspec length
-        list.add(Integer.toString(AESUtil.KEY_LENGTH));
+        list.add(Integer.toString(aesKeyLength));
 
         // (8) keyspec iterations
-        list.add(Integer.toString(AESUtil.KEYSPEC_ITERATIONS));
+        list.add(Integer.toString(aesKeyspecIterations));
 
         // --- encrypted data ---
 
         // (9) cipher text
-        list.add(Base64.getEncoder().encodeToString(cipherText));
+        list.add(Base64.getEncoder().encodeToString(
+                AESUtil.encrypt(privateKeyEncoded,
+                        aesKey,
+                        iv,
+                        aesTransformation)));
 
         this.message = list.stream().collect(Collectors.joining("\t"));
-    }
-
-    protected byte[] encryptKeyData(byte[] privateKeyEncoded,
-                                    SecretKey aesKey,
-                                    IvParameterSpec iv) throws
-            NoSuchAlgorithmException,
-            InvalidKeyException,
-            NoSuchPaddingException,
-            InvalidAlgorithmParameterException,
-            BadPaddingException,
-            IllegalBlockSizeException {
-
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(privateKeyEncoded);
-
-        byte[] hash = sha256.digest();
-
-        List<String> list = new ArrayList<>();
-
-        // (1) key data
-        list.add(Base64.getEncoder().encodeToString(privateKeyEncoded));
-
-        // (2) hash
-        list.add(Base64.getEncoder().encodeToString(hash));
-
-        String s = list.stream().collect(Collectors.joining("\t"));
-        // System.out.println(s);
-
-        // --- encrypting the data with AES ---
-        return AESUtil.encrypt(s.getBytes(), aesKey, iv, AESUtil.AES_TRANSFORMATION);
     }
 
     public String getMessage() {

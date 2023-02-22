@@ -30,6 +30,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.EncryptedMessageTransfer;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentPasswordGeneratorBinding;
 
 import java.nio.charset.StandardCharsets;
@@ -387,7 +388,9 @@ public class PasswordGeneratorFragment extends Fragment {
                 String encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessageTransfer(pwd.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
-                                EncryptedMessageTransfer.RSA_TRANSFORMATION).getMessage());
+                                RSAUtils.getRsaTransformationIdx(preferences),
+                                AESUtil.getKeyLength(preferences),
+                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
 
                 textChangeListenerActive.set(false);
                 binding.editTextPassword.setText(

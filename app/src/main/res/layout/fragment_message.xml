@@ -12,7 +12,7 @@
         android:id="@+id/textViewMessage"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:text="@string/hidden_text_slide_to_reveal"
+        android:text="@string/hidden_text"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintBottom_toTopOf="@+id/messageOutputFragment"
         app:layout_constraintEnd_toEndOf="parent"

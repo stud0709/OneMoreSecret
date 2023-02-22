@@ -1,6 +1,7 @@
 package com.onemoresecret.crypto;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
@@ -69,7 +70,7 @@ public class CryptographyManager {
             KeyProperties.ENCRYPTION_PADDING_RSA_OAEP
     };
 
-    public static final int DEFAULT_DAYS_VALID = 9999, DEFAULT_KEY_LENGTH = 2048;
+    public static final int DEFAULT_DAYS_VALID = 9999;
 
     public CryptographyManager() {
         try {
@@ -138,7 +139,7 @@ public class CryptographyManager {
      * Creates a key pair in AndroidKeyStore. The key material will not be accessible!
      *
      * @return new {@link KeyPair}
-     * @see CryptographyManager#getDefaultSpecBuilder(String)
+     * @see CryptographyManager#getDefaultSpecBuilder(String, SharedPreferences)
      */
     public KeyPair generateKeyPair(KeyGenParameterSpec spec) throws
             InvalidAlgorithmParameterException,
@@ -161,23 +162,24 @@ public class CryptographyManager {
      * @return key material
      * @throws IOException
      */
-    public static byte[] generatePrivateKeyMaterial() throws IOException {
+    public static byte[] generatePrivateKeyMaterial(SharedPreferences preferences) throws IOException {
+        int keyLength = RSAUtils.getKeyLength(preferences);
         RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
         rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(
                 BigInteger.valueOf(0x10001),
                 new SecureRandom(),
-                DEFAULT_KEY_LENGTH,
-                PrimeCertaintyCalculator.getDefaultCertainty(DEFAULT_KEY_LENGTH)));
+                keyLength,
+                PrimeCertaintyCalculator.getDefaultCertainty(keyLength)));
         AsymmetricCipherKeyPair asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
         PrivateKeyInfo privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
         return privateKeyInfo.getEncoded();
     }
 
-    public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName) {
+    public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName, SharedPreferences preferences) {
         return new KeyGenParameterSpec.Builder(
                 keyName,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                .setKeySize(DEFAULT_KEY_LENGTH)
+                .setKeySize(RSAUtils.getKeyLength(preferences))
                 .setEncryptionPaddings(ENCRYPTION_PADDINGS);
     }
 
@@ -283,7 +285,5 @@ public class CryptographyManager {
         sha256.update(publicKey.getModulus().toByteArray());
         return sha256.digest(publicKey.getPublicExponent().toByteArray());
     }
-
-
 }
 

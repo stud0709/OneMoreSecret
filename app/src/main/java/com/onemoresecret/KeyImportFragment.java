@@ -132,24 +132,8 @@ public class KeyImportFragment extends Fragment {
                     secretKey,
                     new IvParameterSpec(iv),
                     aesTransformation);
-            String s = new String(data);
-            String[] sArr = s.split("\t");
 
-            //(1) RSA Key
-            byte[] rsaKey = Base64.getDecoder().decode(sArr[0]);
-
-            //(2) hash
-            byte[] _hash = Base64.getDecoder().decode(sArr[1]);
-
-            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-            sha256.update(rsaKey);
-
-            byte[] hash = sha256.digest();
-
-            //compare hash values
-            if (!Arrays.equals(hash, _hash)) {
-                throw new IllegalArgumentException(getString(R.string.hash_mismatch));
-            }
+            byte[] rsaKey = Base64.getDecoder().decode(new String(data));
 
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 

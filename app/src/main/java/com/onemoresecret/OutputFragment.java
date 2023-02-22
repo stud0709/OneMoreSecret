@@ -575,10 +575,6 @@ public class OutputFragment extends Fragment {
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
             menuInflater.inflate(R.menu.menu_output, menu);
-            //bluetooth settings available?
-            menu.findItem(R.id.menuItemBtSettings).setVisible(
-                    new Intent(Settings.ACTION_BLUETOOTH_SETTINGS).
-                            resolveActivityInfo(requireActivity().getPackageManager(), 0) != null);
         }
 
         @Override
@@ -591,9 +587,6 @@ public class OutputFragment extends Fragment {
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemOutputCopy) {
                 copyValue.run();
-            } else if (menuItem.getItemId() == R.id.menuItemBtSettings) {
-                startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
-
             } else if(menuItem.getItemId() == R.id.menuItemShare){
                 Intent sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);

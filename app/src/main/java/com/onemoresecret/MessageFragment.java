@@ -19,8 +19,11 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
+import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.security.MessageDigest;
@@ -42,17 +45,13 @@ public class MessageFragment extends Fragment {
     private String rsaTransformation, aesTransformation;
     private FragmentMessageBinding binding;
     private boolean paused = false;
-
     private boolean reveal = false;
     private Runnable revealHandler = null;
     private MessageMenuProvider menuProvider = new MessageMenuProvider();
 
 
     @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState
-    ) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentMessageBinding.inflate(inflater, container, false);
 
         return binding.getRoot();
@@ -87,16 +86,16 @@ public class MessageFragment extends Fragment {
             if (applicationId != MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
                 throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
 
-            //(2) RSA transformation
-            rsaTransformation = sArr[1];
+            //(2) RSA transformation index
+            rsaTransformation = RsaTransformation.values()[Integer.parseInt(sArr[1])].transformation;
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
             byte[] fingerprint = Base64.getDecoder().decode(sArr[2]);
             Log.d(TAG, "RSA fingerprint: " + BluetoothController.byteArrayToHex(fingerprint));
 
-            // (4) AES transformation
-            aesTransformation = sArr[3];
+            // (4) AES transformation index
+            aesTransformation = AesTransformation.values()[Integer.parseInt(sArr[3])].transformation;
             Log.d(TAG, "AES transformation: " + aesTransformation);
 
             //(5) IV
@@ -155,9 +154,9 @@ public class MessageFragment extends Fragment {
 
         BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(getString(R.string.prompt_info_title))
-                .setSubtitle(getString(R.string.prompt_info_subtitle))
+                .setSubtitle(String.format(getString(R.string.prompt_info_subtitle), alias))
                 .setDescription(getString(R.string.prompt_info_description))
-                .setNegativeButtonText(getString(R.string.prompt_info_negative_text))
+                .setNegativeButtonText(getString(android.R.string.cancel))
                 .setConfirmationRequired(false)
                 .build();
 
@@ -170,8 +169,7 @@ public class MessageFragment extends Fragment {
     }
 
     public void onAuthenticationError(int errCode, CharSequence errString) {
-        Log.d(TAG,
-                "Authentication failed: " + errString + " (" + errCode + ")");
+        Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
         requireContext().getMainExecutor().execute(() -> {
             Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
             NavHostFragment.findNavController(MessageFragment.this).popBackStack();
@@ -180,7 +178,7 @@ public class MessageFragment extends Fragment {
 
     public void onAuthenticationFailed() {
         Log.d(TAG,
-                "User biometric rejected");
+                "User biometrics rejected");
         requireContext().getMainExecutor().execute(() -> {
             Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
             NavHostFragment.findNavController(MessageFragment.this).popBackStack();
@@ -189,7 +187,7 @@ public class MessageFragment extends Fragment {
 
     public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
         Log.d(TAG,
-                "Authentication was successful");
+                getString(R.string.auth_successful));
 
         Cipher cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
         try {
@@ -208,35 +206,22 @@ public class MessageFragment extends Fragment {
         }
     }
 
-    private void onDecryptedData(byte[] bArr) throws NoSuchAlgorithmException {
-        String[] sArr = new String(bArr).split("\t");
-        // (1) message
-        byte[] messageBytes = Base64.getDecoder().decode(sArr[0]);
-        String message = new String(messageBytes);
+    private void onDecryptedData(byte[] bArr) {
+        String message = new String(bArr);
 
-        // (2) hash
-        byte[] hash = Base64.getDecoder().decode(sArr[1]);
-
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        byte[] _hash = sha256.digest(messageBytes);
-
-        if (!Arrays.equals(hash, _hash)) {
-            throw new IllegalArgumentException(getString(R.string.msg_integrity_check_failed));
-        }
-
-        revealHandler = ()->binding.textViewMessage.setText(reveal ? message : getString(R.string.hidden_text_slide_to_reveal));
+        revealHandler = () -> binding.textViewMessage.setText(reveal ? message : getString(R.string.hidden_text));
         requireActivity().invalidateOptionsMenu();
 
         OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
         assert outputFragment != null;
-        outputFragment.setMessage(message, "OneMoreSecret Message");
+        outputFragment.setMessage(message, getString(R.string.oms_secret_message));
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
-        binding.textViewMessage.setText(getString(R.string.hidden_text_slide_to_reveal));
+        binding.textViewMessage.setText(getString(R.string.hidden_text));
         binding = null;
     }
 
@@ -256,12 +241,12 @@ public class MessageFragment extends Fragment {
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
-                if(revealHandler == null) return true;
+                if (revealHandler == null) return true;
 
                 reveal = !reveal;
                 menuItem.setIcon(reveal ? R.drawable.baseline_visibility_off_24 : R.drawable.baseline_visibility_24);
                 revealHandler.run();
-            }  else {
+            } else {
                 return false;
             }
 
