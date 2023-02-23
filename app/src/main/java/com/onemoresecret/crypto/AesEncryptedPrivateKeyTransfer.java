@@ -27,8 +27,8 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
                                           SecretKey aesKey,
                                           IvParameterSpec iv,
                                           byte[] salt,
-                                          String aesTransformation,
-                                          String aesKeyAlgorithm,
+                                          int aesTransformationIdx,
+                                          int aesKeyAlgorithmIdx,
                                           int aesKeyLength,
                                           int aesKeyspecIterations) throws
             NoSuchAlgorithmException,
@@ -58,11 +58,11 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
         // (4) iv
         list.add(Base64.getEncoder().encodeToString(iv.getIV()));
 
-        // (5) AES transformation
-        list.add(aesTransformation);
+        // (5) AES transformation index
+        list.add(Integer.toString(aesTransformationIdx));
 
-        // (6) key algorithm
-        list.add(aesKeyAlgorithm);
+        // (6) key algorithm index
+        list.add(Integer.toString(aesKeyAlgorithmIdx));
 
         // (7) keyspec length
         list.add(Integer.toString(aesKeyLength));
@@ -77,7 +77,7 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
                 AESUtil.encrypt(privateKeyEncoded,
                         aesKey,
                         iv,
-                        aesTransformation)));
+                        AesTransformation.values()[aesTransformationIdx].transformation)));
 
         this.message = list.stream().collect(Collectors.joining("\t"));
     }

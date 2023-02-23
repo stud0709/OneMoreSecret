@@ -14,24 +14,19 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
+import com.onemoresecret.crypto.AesKeyAlgorithm;
+import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.security.KeyStoreException;
-import java.security.MessageDigest;
-import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
-import java.text.DateFormat;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -66,18 +61,18 @@ public class KeyImportFragment extends Fragment {
 
         //(3) salt
         byte[] salt = Base64.getDecoder().decode(sArr[2]);
-        Log.d(TAG, "salt: " + BluetoothController.byteArrayToHex(salt));
+        Log.d(TAG, "salt: " + Util.byteArrayToHex(salt));
 
         //(4) IV
         byte[] iv = Base64.getDecoder().decode(sArr[3]);
-        Log.d(TAG, "IV: " + BluetoothController.byteArrayToHex(iv));
+        Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
-        //(5) AES transformation
-        String aesTransformation = sArr[4];
+        //(5) AES transformation index
+        String aesTransformation = AesTransformation.values()[Integer.parseInt(sArr[4])].transformation;
         Log.d(TAG, "cipher algorithm: " + aesTransformation);
 
-        //(6) key algorithm
-        String aesKeyAlg = sArr[5];
+        //(6) key algorithm index
+        String aesKeyAlg = AesKeyAlgorithm.values()[Integer.parseInt(sArr[5])].keyAlgorithm;
         Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
 
         //(7) key length
@@ -127,24 +122,18 @@ public class KeyImportFragment extends Fragment {
                     keyLength,
                     iterations);
 
-            byte[] data = AESUtil.decrypt(
+            byte[] rsaKey = AESUtil.decrypt(
                     cipherText,
                     secretKey,
                     new IvParameterSpec(iv),
                     aesTransformation);
 
-            byte[] rsaKey = Base64.getDecoder().decode(new String(data));
-
             RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
 
             byte[] fingerprintBytes = CryptographyManager.getFingerprint(privateKey);
-            String fingerprint = BluetoothController.byteArrayToHex(fingerprintBytes);
+            String fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
             requireContext().getMainExecutor().execute(() -> {
-                //default validity end date
-                Date validityEndDate = Date.from(Instant.ofEpochMilli(
-                        System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(CryptographyManager.DEFAULT_DAYS_VALID, TimeUnit.DAYS)));
-
                 binding.textFingerprintData.setText(fingerprint);
 
                 //check alias
@@ -225,7 +214,7 @@ public class KeyImportFragment extends Fragment {
             if (cryptographyManager.keyStore.containsAlias(alias)) {
                 byte[] fingerprint = CryptographyManager.getFingerprint((RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey());
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
-                    warning = String.format(getString(R.string.warning_alias_exists), BluetoothController.byteArrayToHex(fingerprintNew));
+                    warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprintNew));
                 }
             }
 

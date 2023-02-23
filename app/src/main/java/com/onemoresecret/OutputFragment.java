@@ -27,7 +27,6 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 
 import android.os.PersistableBundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -526,7 +525,7 @@ public class OutputFragment extends Fragment {
         @Override
         public void onSetReport(BluetoothDevice device, byte type, byte id, byte[] data) {
             super.onSetReport(device, type, id, data);
-            Log.i(TAG, "onSetReport - device: " + device.toString() + ", type: " + type + ", id: " + id + ", data: " + BluetoothController.byteArrayToHex(data));
+            Log.i(TAG, "onSetReport - device: " + device.toString() + ", type: " + type + ", id: " + id + ", data: " + Util.byteArrayToHex(data));
         }
 
         @Override
@@ -563,7 +562,7 @@ public class OutputFragment extends Fragment {
         @Override
         public void onInterruptData(BluetoothDevice device, byte reportId, byte[] data) {
             super.onInterruptData(device, reportId, data);
-            Log.d(TAG, "onInterruptData - -  device: " + device + ", reportId: " + reportId + ", data: " + BluetoothController.byteArrayToHex(data));
+            Log.d(TAG, "onInterruptData - -  device: " + device + ", reportId: " + reportId + ", data: " + Util.byteArrayToHex(data));
 
 //            boolean numLockActive = (data[0] & KeyboardReport.NUM_LOCK) == KeyboardReport.NUM_LOCK;
 //            boolean capsLockActive = (data[0] & KeyboardReport.CAPS_LOCK) == KeyboardReport.CAPS_LOCK;

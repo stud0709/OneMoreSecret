@@ -17,18 +17,13 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -92,7 +87,7 @@ public class MessageFragment extends Fragment {
 
             //(3) RSA fingerprint
             byte[] fingerprint = Base64.getDecoder().decode(sArr[2]);
-            Log.d(TAG, "RSA fingerprint: " + BluetoothController.byteArrayToHex(fingerprint));
+            Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
 
             // (4) AES transformation index
             aesTransformation = AesTransformation.values()[Integer.parseInt(sArr[3])].transformation;
@@ -100,7 +95,7 @@ public class MessageFragment extends Fragment {
 
             //(5) IV
             iv = Base64.getDecoder().decode(sArr[4]);
-            Log.d(TAG, "IV: " + BluetoothController.byteArrayToHex(iv));
+            Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
             //(6) RSA-encrypted AES secret key
             encryptedAesSecretKey = Base64.getDecoder().decode(sArr[5]);
@@ -114,7 +109,7 @@ public class MessageFragment extends Fragment {
             List<String> aliases = cryptographyManager.getByFingerprint(fingerprint);
 
             if (aliases.isEmpty())
-                throw new NoSuchElementException(String.format(getString(R.string.no_key_found), BluetoothController.byteArrayToHex(fingerprint)));
+                throw new NoSuchElementException(String.format(getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
 
             if (aliases.size() > 1)
                 throw new NoSuchElementException(getString(R.string.multiple_keys_found));

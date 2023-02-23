@@ -1,5 +1,6 @@
 package com.onemoresecret.qr;
 
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 
@@ -12,8 +13,11 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
-public class QRUtil {
-    public static final int CHUNK_SIZE = 200, BARCODE_SIZE = 400;
+public final class QRUtil {
+    public static final String PROP_CHUNK_SIZE = "chunk_size", PROP_BARCODE_SIZE = "barcode_size";
+
+    private QRUtil() {
+    }
 
     /**
      * Cuts a message into chunks and creates a barcode for every chunk. Every barcode contains (as readable text, separated by TAB):
@@ -24,8 +28,10 @@ public class QRUtil {
      *     <li>data length in this chunk (padding is added to the last code)</li>
      *     <li>data</li>
      * </ul>
+     *
      * @throws WriterException
      */
+
     public static List<Bitmap> getQrSequence(String message, int chunkSize, int barcodeSize)
             throws WriterException {
         char[] data = message.toCharArray();
@@ -67,6 +73,14 @@ public class QRUtil {
             }
         }
         return bitmap;
+    }
+
+    public static int getChunkSize(SharedPreferences preferences) {
+        return preferences.getInt(PROP_CHUNK_SIZE, 200);
+    }
+
+    public static int getBarcodeSize(SharedPreferences preferences) {
+        return preferences.getInt(PROP_BARCODE_SIZE, 400);
     }
 
 }

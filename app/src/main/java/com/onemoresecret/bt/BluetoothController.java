@@ -107,14 +107,6 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         bluetoothHidDevice = null;
     }
 
-    public static String byteArrayToHex(byte[] a) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        for (byte b : a)
-            sb.append(String.format("%02x", b)).append(i++ % 2 == 1 ? " " : "");
-        return sb.toString();
-    }
-
     private static final byte[] REPORT_MAP_KEYBOARD = {
 
             (byte) 0x05, (byte) 0x01,                         // Usage Page (Generic Desktop)

@@ -1,12 +1,13 @@
 # ![App Icon](/app/src/main/res/mipmap-xhdpi/ic_launcher.png) OneMoreSecret
-
-OneMoreSecret is an additional security layer for your data (e.g. passwords). It leverages the Android Keystore system, which is in fact a [hardware security module](https://en.wikipedia.org/wiki/Hardware_security_module). In other words: with oneMoreSecret, you access all your secrets with your phone and your fingerprint. 
+OneMoreSecret is a standalone security layer for your data (e.g. passwords, more to come). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://en.wikipedia.org/wiki/Hardware_security_module). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
 
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
 
 ### For the impatient one
 TLDR? See it in action! Try our ["Hello, World!" Tutorial](hello_world.md).
+
+**WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
 
 ## What's wrong with password managers?
 In the early days, the computers were not password protected. The first password [dates back](https://www.smh.com.au/national/scientist-who-introduced-the-computer-password-20190717-p527zf.html) to 1961. As things got worse, [password policies](https://en.wikipedia.org/wiki/Password_policy) were born, together with the recommendation to have separate passwords for every application. This is how the [password manager](https://en.wikipedia.org/wiki/Password_manager) came into being - as a workaround for the password policy. You *kind of* have different passwords for every service, and still, there is only one password.
@@ -40,63 +41,49 @@ It's your ~~problem~~ choice how to store your credentials. You could use a text
 
 ![oms ontop KeePass](readme_images/oms_ontop_keepass.png)
 
-If your database is stolen, the guys will still end up with encrypted password. 
+If your database is stolen, the guys will still end up with encrypted passwords. 
 
 Personally, I prefer to store my KeePass database in the cloud storage. The file is encrypted, synced between your devices and protected from data loss.
 
 ### No Private Key Exposure 
 The Android Keystore system does not "hand over" the key to the app. Once the key has been imported into the storage, you cannot extract it from the phone any more. 
 
-The only way to restore your private key is the backup file (or paper document) together with the transport password. ⚠️DO NOT share this document and password with others as this will grant access to all data encrypted by this private key. ⚠️
+The only way to restore your private key is the backup document together with the transport password. ⚠️DO NOT share this document and password with others as this will grant access to all data encrypted by this private key. ⚠️
 
 ### Login without a password
-...yes, I know, there is [FIDO2](https://fidoalliance.org/). But hey, with oneMoreSecret, your users can share their public key with you - with one click. Now you can generate a one-time verification code for the user, encrypt is with his key and show it as a QR sequence on your login page ([omsCompanion](https://github.com/stud0709/oms_companion) has already all the logic written in Java). 
+...yes, I know, there is [FIDO2](https://fidoalliance.org/). But hey, with OneMoreSecret, your users can share their public key with you - with just one click. Now you can generate a one-time verification code for the user, encrypt is with his key and show it as a QR sequence on your login page ([omsCompanion](https://github.com/stud0709/oms_companion) has already all the logic written in Java). 
 
-Login from a mobile device? No problem. omeMoreSecret will respond to clicks on URLs with scheme `oms:`. Just add the encrypted message (`<a href="https://oms-app-intent/oms00_.....">Mobile Log-In</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
+Login from a mobile device? No problem, OneMoreSecret will respond to browser links. Just add the encrypted message (`<a href="https://oms-app-intent/oms00_.....">Click here to log in from your phone</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
 
 ## How It Works
+This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
+
+### On Your Smartphone
+You have all the toolbox to encrypt and decrypt passwords on your mobile phone, create and import private keys etc.
+
+The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and send it to the app via Android OS (OneMoreSecret will register as a recipient of text data).
+
+### On Your Desktop Computer
 If you store your passwords on your desktop computer, [omsCompanion](https://github.com/stud0709/oms_companion) will convert your encrypted data into a QR code sequence as soon as you copy it to your clipboard. So on your desktop, a window will pop up:
 
 ![QR sequence](readme_images/scan.png)
 
 If we need more than one code, there will be a fast changing sequence of codes in this window, so that it takes maybe a couple of seconds to transfer all the data.
 
-The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with the app.
-
-The App will then request the key from Android Keystore system. Android will ask you to scan your fingerprint, verify it and decrypt the message on behalf of the app ([here](https://developer.android.com/training/articles/keystore) are some technical details). Now you can either make your password visible by using the slider *reveal message*  or you just tell the app to *TYPE* the password back to your PC. See the next chapter for details. 
-
-![Decrypted message](readme_images/decrypted.png)
+### Decrypting the Data
+The App will then request the key from Android Keystore system. Android will ask you to scan your fingerprint, verify it and decrypt the message on behalf of the app ([here](https://developer.android.com/training/articles/keystore) are some technical details). Now you can either make your password visible on the phone or you just tell the app to *TYPE* the password back to your PC. 
 
 ## Setting Things Up
-You will need [omsCompanion](https://github.com/stud0709/oms_companion) - the companion app for your desktop. omsCompanion will generate a private key for you and transfer it to your phone. You will also use it to encrypt your secrets with the public key and to send the encrypted data to your phone from your desktop. 
+You will need a smartphone with Android 12 (API 31) or higher, a fingerprint sensor and a HID Bluetooth Profile (there is an [app](https://play.google.com/store/apps/details?id=com.rdapps.bluetoothhidtester&hl=en&gl=US) to test that).
 
 On your Android smartphone, you will need to set up the fingerprint authentification from your system settings. 
 
-### Importing Your Private Key
-omsCompanion will generate a private key for you. To import the key into your phone, you can use either the QR pop-up window from the *Cryptography -> New Private Key* wizard, or you can scan the codes from the backup document one by one. 
+If your password database is on your decktop PC, you will also need [omsCompanion](https://github.com/stud0709/oms_companion). omsCompanion will transfer your encrypted data to your phone. You will also use it to encrypt your secrets with the public key. 
 
-![private key import](readme_images/key_import.png)
-
-You can change the key alias if there is a conflict with other keys.
-
-Enter your transport password, click *DECRYPT* and then *SAVE*. 
-
-
-### Setting Up Bluetooth
-Once in the *Decrypted Message* screen, you can make your phone visible to other bluetooth devices (3) and connect from there (e.g. linking to your phone from your Windows PC. It will be registered as a keyboard). Select the target (2), make sure you have the correct keyboard layout (4) and press (5). If the the strokes are generated too fast for the target system (this is mostly the case if you are typing into Remote Desktop session), it can result in wrong entry. Please activate *delay* (6) in this case.
-
-### On Keyboard Layouts
-Long story short: select the *Keyboard Layout* (4) that matches that of your target PC. 
-
-A keyboard is not aware of the layout. If you press ";" on the US keyboard, there is a key code behind it: 51. Depending on the keyboard layout of your operation system, your PC will make out of it: 
-- ";" for English keyboard layout
-- "ö" for German keyboard layout
-- "ж" for Russian keyboard layout
-
-...or the other way: if I wanted ";" to be typed from the German layout, I would send SHIFT + key code 54 instead. 
+Onve the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See auto-type help page in the app for more details.
 
 ## Roadmap and Bugs
-This software is being developed by one person, the amount of effort I can put into it is therefore limited. Please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues) to file a bug or if you have a feature request. 
+For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
 
 ## Credits
 Images:
@@ -107,3 +94,4 @@ Many thanks to the folks whose projects helped me to find my way through HID and
 - [Eleccelerator](https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/)
 - [misterpki](https://github.com/misterpki/selfsignedcert)
 - [divan](https://github.com/divan/txqr)
+- [memorynotfound](https://memorynotfound.com/generate-gif-image-java-delay-infinite-loop-example/)

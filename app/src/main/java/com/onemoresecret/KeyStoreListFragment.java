@@ -16,7 +16,6 @@ import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
 import com.onemoresecret.databinding.PrivateKeyListItemBinding;
@@ -151,7 +150,7 @@ public class KeyStoreListFragment extends Fragment {
             try {
                 binding.textItemKeyAlias.setText(alias);
                 binding.textItemFingerprint.setText(
-                        BluetoothController.byteArrayToHex(
+                        Util.byteArrayToHex(
                                 CryptographyManager.getFingerprint(
                                         (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey())));
             } catch (Exception e) {

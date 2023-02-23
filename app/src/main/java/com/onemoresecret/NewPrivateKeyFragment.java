@@ -18,9 +18,10 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.zxing.WriterException;
-import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
+import com.onemoresecret.crypto.AesKeyAlgorithm;
+import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentNewPrivateKeyBinding;
@@ -44,6 +45,8 @@ public class NewPrivateKeyFragment extends Fragment {
     private FragmentNewPrivateKeyBinding binding;
     private CryptographyManager cryptographyManager = new CryptographyManager();
 
+    private SharedPreferences preferences;
+
     private Path privateKeyBackup = null;
 
     @Override
@@ -57,6 +60,7 @@ public class NewPrivateKeyFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         cryptographyManager = new CryptographyManager();
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         binding.btnCreatePrivateKey.setOnClickListener(e -> createPrivateKey());
         binding.checkBox.setOnCheckedChangeListener((btn, isChecked) -> binding.btnActivatePrivateKey.setEnabled(isChecked));
@@ -105,8 +109,8 @@ public class NewPrivateKeyFragment extends Fragment {
                     aesSecretKey,
                     iv,
                     salt,
-                    AESUtil.getAesTransformation(preferences).transformation,
-                    aesKeyAlgorithm,
+                    AESUtil.getAesTransformationIdx(preferences),
+                    AESUtil.getAesKeyAlgorithmIdx(preferences),
                     aesKeyLength,
                     aesKeyspecIterations).getMessage();
 
@@ -139,7 +143,7 @@ public class NewPrivateKeyFragment extends Fragment {
             File backupDir = new File(requireContext().getCacheDir(), "pk_backup");
             if (!backupDir.exists()) backupDir.mkdirs();
 
-            String fingerprintString = BluetoothController.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
+            String fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
 
             if (privateKeyBackup != null && Files.exists(privateKeyBackup))
                 Files.delete(privateKeyBackup);
@@ -166,7 +170,7 @@ public class NewPrivateKeyFragment extends Fragment {
     private String getKeyBackupHtml(String alias, byte[] fingerprint, String message) throws WriterException, IOException {
         StringBuilder stringBuilder = new StringBuilder();
 
-        List<Bitmap> list = QRUtil.getQrSequence(message, QRUtil.CHUNK_SIZE, QRUtil.BARCODE_SIZE);
+        List<Bitmap> list = QRUtil.getQrSequence(message, QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
 
         stringBuilder
                 .append("<html><body><h1>")
@@ -191,7 +195,7 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append(Html.escapeHtml(alias))
                 .append("</b></p><p><b>RSA Fingerprint:")
                 .append("&nbsp;")
-                .append(BluetoothController.byteArrayToHex(fingerprint))
+                .append(Util.byteArrayToHex(fingerprint))
                 .append("</b></p><p>")
                 .append("Scan this with your OneMoreSecret App:")
                 .append("</p><p>");
@@ -226,7 +230,6 @@ public class NewPrivateKeyFragment extends Fragment {
         }
 
         String sArr[] = message.split("\t");
-        long validityEnd = Long.parseLong(sArr[8]);
 
         stringBuilder.append("</p><p>")
                 .append("Message format: oms00_[base64 encoded data]")
@@ -245,14 +248,19 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append(Html.escapeHtml(alias))
                 .append("</li><li>")
                 .append("Salt: base64-encoded byte[] = ")
-                .append(BluetoothController.byteArrayToHex(Base64.getDecoder().decode(sArr[2])))
+                .append(Util.byteArrayToHex(Base64.getDecoder().decode(sArr[2])))
                 .append("</li><li>").append("IV: base64-encoded byte[] = ")
-                .append(BluetoothController.byteArrayToHex(Base64.getDecoder().decode(sArr[3])))
+                .append(Util.byteArrayToHex(Base64.getDecoder().decode(sArr[3])))
                 .append("</li><li>").append("Cipher Algorithm = ")
-                .append(Html.escapeHtml(sArr[4]))
-                .append("</li><li>").append("Key Algorithm = ")
+                .append(sArr[4])
+                .append(" (")
+                .append(Html.escapeHtml(AesTransformation.values()[Integer.parseInt(sArr[4])].transformation))
+                .append(" )</li><li>")
+                .append("Key Algorithm = ")
                 .append(sArr[5])
-                .append("</li><li>").append("Keyspec Length = ")
+                .append(" (")
+                .append(Html.escapeHtml(AesKeyAlgorithm.values()[Integer.parseInt(sArr[5])].keyAlgorithm))
+                .append(")</li><li>").append("Keyspec Length = ")
                 .append(sArr[6])
                 .append("</li><li>").append("Keyspec Iterations = ")
                 .append(sArr[7])

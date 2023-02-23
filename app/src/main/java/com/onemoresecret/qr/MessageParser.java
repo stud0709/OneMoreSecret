@@ -72,9 +72,10 @@ public abstract class MessageParser {
 
         if (cntReceived == chunks.size()) {
             Log.d(TAG, "All chunks have been received");
-            String msg = chunks.stream().collect(Collectors.joining());
+            //remove line breaks
+            String msg = chunks.stream().collect(Collectors.joining()).replaceAll("[\\r\\n]", "");
             transactionId = null;
-            if(!eventFired.get()) {
+            if (!eventFired.get()) {
                 onMessage(msg);
                 eventFired.set(true);
             }
