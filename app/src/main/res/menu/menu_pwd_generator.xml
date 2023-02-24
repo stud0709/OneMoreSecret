@@ -22,4 +22,7 @@
     <item
         android:id="@+id/menuItemSimilar"
         android:title="@string/similar" />
+    <item
+        android:id="@+id/enuItemPwGenHelp"
+        android:title="@string/help" />
 </menu>

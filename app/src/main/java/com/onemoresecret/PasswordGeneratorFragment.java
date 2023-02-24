@@ -2,7 +2,9 @@ package com.onemoresecret;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -24,7 +26,6 @@ import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Toast;
 
-import com.google.android.material.internal.TextWatcherAdapter;
 import com.onemoresecret.bt.layout.KeyboardLayout;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -34,10 +35,6 @@ import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentPasswordGeneratorBinding;
 
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
@@ -45,12 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 
 public class PasswordGeneratorFragment extends Fragment {
     private FragmentPasswordGeneratorBinding binding;
@@ -76,8 +68,13 @@ public class PasswordGeneratorFragment extends Fragment {
             DEFAULT_DIGITS = "0123456789",
             DEFAULT_LCASE = "abcdefghijklmnopqrstuvwxyz",
             DEFAULT_SPECIALS = "!#$%&'*+,-.:;<=>?@_~",
-            DEFAULT_SIMILAR = "01IOl";
-    private static final int PWD_LEN_DEFAULT = 10, PWD_LEN_MIN = 5, PWD_LEN_MAX = 50, OCCURS_DEFAUL = 1, OCCURS_MIN = 1, OCCURS_MAX = 10;
+            DEFAULT_SIMILAR = "01IOl|";
+    private static final int PWD_LEN_DEFAULT = 10,
+            PWD_LEN_MIN = 5,
+            PWD_LEN_MAX = 50,
+            OCCURS_DEFAULT = 1,
+            OCCURS_MIN = 1,
+            OCCURS_MAX = 10;
 
     private SharedPreferences.OnSharedPreferenceChangeListener onSharedPreferenceChangeListener;
 
@@ -96,7 +93,7 @@ public class PasswordGeneratorFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
 
-        keyStoreListFragment = (KeyStoreListFragment) binding.fragmentContainerView.getFragment();
+        keyStoreListFragment = binding.fragmentContainerView.getFragment();
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         binding.chipUpperCase.setChecked(preferences.getBoolean(PROP_UCASE, true));
@@ -120,7 +117,7 @@ public class PasswordGeneratorFragment extends Fragment {
         binding.chipPwdLength.setText(Integer.toString(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)));
         binding.chipPwdLength.setOnClickListener(e -> changePwdLen());
 
-        binding.chipOccurs.setText(Integer.toString(preferences.getInt(PROP_OCCURS, OCCURS_DEFAUL)));
+        binding.chipOccurs.setText(Integer.toString(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT)));
         binding.chipOccurs.setOnClickListener(e -> changeOccurs());
 
         onSharedPreferenceChangeListener = (sharedPreferences, key) -> {
@@ -133,7 +130,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 requireActivity()
                         .getMainExecutor()
                         .execute(() -> binding.chipOccurs
-                                .setText(Integer.toString(preferences.getInt(key, OCCURS_DEFAUL))));
+                                .setText(Integer.toString(preferences.getInt(key, OCCURS_DEFAULT))));
             }
         };
 
@@ -209,7 +206,7 @@ public class PasswordGeneratorFragment extends Fragment {
         NumberPicker numberPicker = new NumberPicker(requireContext());
         numberPicker.setMinValue(OCCURS_MIN);
         numberPicker.setMaxValue(OCCURS_MAX);
-        numberPicker.setValue(preferences.getInt(PROP_OCCURS, OCCURS_DEFAUL));
+        numberPicker.setValue(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT));
         builder.setView(numberPicker);
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
             preferences.edit().putInt(PROP_OCCURS, numberPicker.getValue()).apply();
@@ -224,23 +221,23 @@ public class PasswordGeneratorFragment extends Fragment {
         switch (propertyName) {
             case PROP_DIGITS_LIST:
                 defaultList = DEFAULT_DIGITS;
-                title = "Digits";
+                title = getString(R.string.digits);
                 break;
             case PROP_LCASE_LIST:
                 defaultList = DEFAULT_LCASE;
-                title = "Lower-Case Characters";
+                title = getString(R.string.lower_case);
                 break;
             case PROP_SIMILAR_LIST:
                 defaultList = DEFAULT_SIMILAR;
-                title = "Similar Symbols";
+                title = getString(R.string.similar);
                 break;
             case PROP_SPECIALS_LIST:
                 defaultList = DEFAULT_SPECIALS;
-                title = "Special Characters";
+                title = getString(R.string.specials);
                 break;
             case PROP_UCASE_LIST:
                 defaultList = DEFAULT_LCASE.toUpperCase();
-                title = "Uppper-Case Characters";
+                title = getString(R.string.upper_case);
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -283,7 +280,7 @@ public class PasswordGeneratorFragment extends Fragment {
         int size = charClasses.size();
 
         if (!binding.chipSimilar.isChecked()) {
-            char[] blacklist = preferences.getString(PROP_SIMILAR_LIST, "").toCharArray();
+            char[] blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR).toCharArray();
             Arrays.sort(blacklist);
 
             for (int i = 0; i < size; i++) {
@@ -291,7 +288,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 StringBuilder sb = new StringBuilder();
                 char[] cArr = charClasses.remove(0).toCharArray();
                 for (char c : cArr) {
-                    if (Arrays.binarySearch(blacklist, c) == -1) {
+                    if (Arrays.binarySearch(blacklist, c) < 0) {
                         sb.append(c);
                     }
                 }
@@ -307,7 +304,7 @@ public class PasswordGeneratorFragment extends Fragment {
                             .getSelectedLayout();
 
             if (keyboardLayout == null) {
-                Toast.makeText(requireContext(), "Cannot apply layout filter - no layout selected", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), R.string.cannot_apply_layout_filter, Toast.LENGTH_LONG).show();
                 return;
             }
 
@@ -336,13 +333,13 @@ public class PasswordGeneratorFragment extends Fragment {
         charClasses = charClasses.stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
 
         if (charClasses.isEmpty()) {
-            Toast.makeText(requireContext(), "No symbols available, check settings", Toast.LENGTH_LONG).show();
+            Toast.makeText(requireContext(), R.string.no_symbols_available, Toast.LENGTH_LONG).show();
             return;
         }
 
         //ensure minimal occurrence
         List<String> list = new ArrayList<>();
-        for (int i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAUL); i++) {
+        for (int i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
             for (String s : charClasses) {
                 list.add(s);
             }
@@ -377,7 +374,7 @@ public class PasswordGeneratorFragment extends Fragment {
             textChangeListenerActive.set(true);
 
             binding.editTextPassword.setEnabled(true);
-            keyStoreListFragment.getOutputFragment().setMessage(pwd, "Readable Password");
+            keyStoreListFragment.getOutputFragment().setMessage(pwd, getString(R.string.unprotected_password));
             switchControls(true);
         };
     }
@@ -398,7 +395,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 textChangeListenerActive.set(true);
 
                 binding.editTextPassword.setEnabled(false);
-                keyStoreListFragment.getOutputFragment().setMessage(encrypted, "Encrypted Password");
+                keyStoreListFragment.getOutputFragment().setMessage(encrypted, getString(R.string.encrypted_password));
 
                 //disable controls that can trigger password generator. Otherwise, the user can accidentally
                 //trigger password change.
@@ -462,6 +459,8 @@ public class PasswordGeneratorFragment extends Fragment {
                 changeCharList(PROP_SPECIALS_LIST);
             } else if (menuItem.getItemId() == R.id.menuItemSimilar) {
                 changeCharList(PROP_SIMILAR_LIST);
+            } else if(menuItem.getItemId() == R.id.enuItemPwGenHelp) {
+                Util.openUrl(R.string.pwd_generator_md_url, requireContext());
             } else {
                 return false;
             }

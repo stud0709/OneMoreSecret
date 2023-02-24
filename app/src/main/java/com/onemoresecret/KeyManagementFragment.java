@@ -2,6 +2,7 @@ package com.onemoresecret;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -121,6 +122,8 @@ public class KeyManagementFragment extends Fragment {
                                     Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
                                 }
                             }).setNegativeButton(android.R.string.cancel, null).show();
+                } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
+                    Util.openUrl(R.string.key_management_md_url, requireContext());
                 } else {
                     return false;
                 }

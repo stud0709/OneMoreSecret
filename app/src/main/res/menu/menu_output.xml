@@ -13,5 +13,8 @@
             android:icon="@drawable/baseline_share_24"
             android:title="@string/share"
             app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/menuItemOutputHelp"
+            android:title="@string/help_auto_type" />
     </group>
 </menu>

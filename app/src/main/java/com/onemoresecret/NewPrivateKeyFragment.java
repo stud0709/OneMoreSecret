@@ -8,12 +8,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -49,6 +53,8 @@ public class NewPrivateKeyFragment extends Fragment {
 
     private Path privateKeyBackup = null;
 
+    private PrivateKeyMenuProvider menuProvider = new PrivateKeyMenuProvider();
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -59,6 +65,7 @@ public class NewPrivateKeyFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        requireActivity().addMenuProvider(menuProvider);
         cryptographyManager = new CryptographyManager();
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
@@ -274,12 +281,31 @@ public class NewPrivateKeyFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
         binding = null;
         try {
             if (privateKeyBackup != null && Files.exists(privateKeyBackup))
                 Files.delete(privateKeyBackup);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private class PrivateKeyMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_new_private_key, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemNewPrivateKeyHelp) {
+                Util.openUrl(R.string.new_private_key_md_url, getContext());
+            } else {
+                return false;
+            }
+            return true;
         }
     }
 }

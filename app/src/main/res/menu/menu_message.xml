@@ -7,4 +7,7 @@
         android:icon="@drawable/baseline_visibility_off_24"
         android:title="@string/visibility"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/menuItemMsgHelp"
+        android:title="@string/help" />
 </menu>

@@ -87,4 +87,17 @@
     <string name="share">Share</string>
     <string name="oms_secret_message">OneMoreSecret Secret Message</string>
     <string name="auth_successful">Authentication was successful</string>
+    <string name="cannot_apply_layout_filter">Cannot apply layout filter - no layout selected</string>
+    <string name="no_symbols_available">No symbols available, check settings</string>
+    <string name="unprotected_password">Unprotected Password</string>
+    <string name="encrypted_password">Encrypted Password</string>
+    <string name="project_home_page">Project Home Page</string>
+    <string name="qr_scanner_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/qr_scanner.md</string>
+    <string name="pwd_generator_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/password_generator.md</string>
+    <string name="autotype_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/autotype.md</string>
+    <string name="key_management_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_management.md</string>
+    <string name="decrypted_message_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/decrypted_message.md</string>
+    <string name="key_import_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_import.md</string>
+    <string name="new_private_key_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/new_private_key.md</string>
+    <string name="help_auto_type">Help (Auto-Type)</string>
 </resources>

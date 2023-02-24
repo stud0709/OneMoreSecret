@@ -12,4 +12,7 @@
     <item
         android:id="@+id/menuItemNewPrivateKey"
         android:title="@string/new_private_key" />
+    <item
+        android:id="@+id/menuItemKeyMgtHelp"
+        android:title="@string/help" />
 </menu>

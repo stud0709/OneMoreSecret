@@ -309,13 +309,12 @@ public class QRFragment extends Fragment {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_keyManagementFragment);
             } else if (menuItem.getItemId() == R.id.menuItemHelp) {
-                String url = getString(R.string.readme_url);
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse(url));
-                startActivity(intent);
+                Util.openUrl(R.string.qr_scanner_md_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemPwdGenerator) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_passwordGeneratorFragment);
+            } else if (menuItem.getItemId() == R.id.menuItemHomePage) {
+                Util.openUrl(R.string.readme_url, requireContext());
             } else {
                 return false;
             }

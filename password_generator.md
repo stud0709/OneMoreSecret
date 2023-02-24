@@ -6,9 +6,9 @@ Here you can generate new passwords based on the profile you define in the upper
 - a...z - lower-case letters
 - 0...9 - digits
 - !%&#... - special characters
-- Similar - allo characters, that can be easily confused (like *one* and *capital I* or *capital O* and *zero*). 
+- Similar - allow characters, that can be easily confused (like *one* and *capital I* or *capital O* and *zero*). 
 - Layout - allow only characters that can be typed with the keyboard layout selected in the [auto-type](autotype.md) tool.
-- *** is the password length
+- *** - the password length
 - the last parameter is minimal occurrence of every character class in the password. In our example, the password will contain *at least one* character of every class. 
 
 You can define character lists behind every character class in the toolbar menu. 
@@ -17,6 +17,6 @@ Every time you change the settings or click the *magic wand* button, a new passw
 
 ## Encrypting the password
 
-Long-pressing one of the available private key entries will encrypt the password. Again, you can copy the encrypted password, send it to another app or [auto-type](autotype.md) it. 
+Selecting one of the available private key entries will encrypt the password. Again, you can copy the encrypted password, send it to another app or [auto-type](autotype.md) it. 
 
 OneMoreSecret does not store your passwords, this password generator is only a helper.

@@ -15,6 +15,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -84,6 +85,8 @@ public class OutputFragment extends Fragment {
     private String message = null;
     private String shareTitle = null;
 
+    private Runnable beforePause = null;
+
     private final AtomicBoolean typing = new AtomicBoolean(false);
 
     public void setMessage(@Nullable String message, @Nullable String shareTitle) {
@@ -91,6 +94,16 @@ public class OutputFragment extends Fragment {
         this.shareTitle = shareTitle;
         refreshBluetoothControls();
         requireActivity().invalidateOptionsMenu();
+    }
+
+    /**
+     * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
+     * This is to notify the parent, that this is about to happen.
+     *
+     * @param onBtDiscover
+     */
+    public void setBeforePause(Runnable onBtDiscover) {
+        this.beforePause = onBtDiscover;
     }
 
     public KeyboardLayout getSelectedLayout() {
@@ -251,7 +264,11 @@ public class OutputFragment extends Fragment {
 
         //initialize "request discoverable" button
         binding.imgButtonDiscoverable.setOnClickListener(
-                e -> bluetoothController.requestDiscoverable(DISCOVERABLE_DURATION_S));
+                e -> {
+                    if (beforePause != null) beforePause.run();
+
+                    bluetoothController.requestDiscoverable(DISCOVERABLE_DURATION_S);
+                });
 
         refreshBluetoothControls();
 
@@ -586,7 +603,9 @@ public class OutputFragment extends Fragment {
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemOutputCopy) {
                 copyValue.run();
-            } else if(menuItem.getItemId() == R.id.menuItemShare){
+            } else if (menuItem.getItemId() == R.id.menuItemShare) {
+                if (beforePause != null) beforePause.run();
+
                 Intent sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);
                 sendIntent.putExtra(Intent.EXTRA_TEXT, message);
@@ -596,6 +615,8 @@ public class OutputFragment extends Fragment {
 
                 Intent shareIntent = Intent.createChooser(sendIntent, null);
                 startActivity(shareIntent);
+            } else if (menuItem.getItemId() == R.id.menuItemOutputHelp) {
+                Util.openUrl(R.string.autotype_md_url, requireContext());
             } else {
                 return false;
             }

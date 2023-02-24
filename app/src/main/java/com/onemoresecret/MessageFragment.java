@@ -1,5 +1,7 @@
 package com.onemoresecret;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -39,11 +41,11 @@ public class MessageFragment extends Fragment {
     private byte[] cipherText, encryptedAesSecretKey, iv;
     private String rsaTransformation, aesTransformation;
     private FragmentMessageBinding binding;
-    private boolean paused = false;
+    private boolean navBackOnResume = false;
     private boolean reveal = false;
     private Runnable revealHandler = null;
     private MessageMenuProvider menuProvider = new MessageMenuProvider();
-
+    private volatile boolean navBackIfPaused = true;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -55,13 +57,17 @@ public class MessageFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        paused = true;
+        Log.d(TAG, "fragment paused");
+
+        if (navBackIfPaused) navBackOnResume = true;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (paused)
+        navBackIfPaused = true;
+
+        if (navBackOnResume)
             NavHostFragment.findNavController(this).popBackStack();
     }
 
@@ -69,6 +75,7 @@ public class MessageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
+        ((OutputFragment) binding.messageOutputFragment.getFragment()).setBeforePause(() -> navBackIfPaused = false);
 
         assert getArguments() != null;
         String message = getArguments().getString("MESSAGE");
@@ -241,6 +248,8 @@ public class MessageFragment extends Fragment {
                 reveal = !reveal;
                 menuItem.setIcon(reveal ? R.drawable.baseline_visibility_off_24 : R.drawable.baseline_visibility_24);
                 revealHandler.run();
+            } else if (menuItem.getItemId() == R.id.menuItemMsgHelp) {
+                Util.openUrl(R.string.decrypted_message_md_url, requireContext());
             } else {
                 return false;
             }

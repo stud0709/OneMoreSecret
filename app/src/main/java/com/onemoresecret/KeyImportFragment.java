@@ -1,16 +1,22 @@
 package com.onemoresecret;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -39,9 +45,12 @@ public class KeyImportFragment extends Fragment {
     private static final String TAG = KeyImportFragment.class.getSimpleName();
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
+    private KeyImportMenu menuProvider = new KeyImportMenu();
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        requireActivity().addMenuProvider(menuProvider);
 
         assert getArguments() != null;
         String message = getArguments().getString("MESSAGE");
@@ -202,6 +211,7 @@ public class KeyImportFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
         binding = null;
     }
 
@@ -251,6 +261,24 @@ public class KeyImportFragment extends Fragment {
                 validateAlias(fingerprintBytes);
             }
         };
+    }
+
+    private class KeyImportMenu implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_key_import, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemKeyImportHelp) {
+                Util.openUrl(R.string.key_import_md_url, requireContext());
+            } else {
+                return false;
+            }
+            return true;
+        }
     }
 
 }
