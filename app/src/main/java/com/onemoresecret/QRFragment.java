@@ -2,6 +2,8 @@ package com.onemoresecret;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -58,6 +60,8 @@ public class QRFragment extends Fragment {
 
     private final QrMenuProvider menuProvider = new QrMenuProvider();
 
+    private ClipboardManager clipboardManager;
+
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater, ViewGroup container,
@@ -70,6 +74,8 @@ public class QRFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        clipboardManager = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         requireActivity().addMenuProvider(menuProvider);
 
@@ -315,6 +321,20 @@ public class QRFragment extends Fragment {
                         .navigate(R.id.action_QRFragment_to_passwordGeneratorFragment);
             } else if (menuItem.getItemId() == R.id.menuItemHomePage) {
                 Util.openUrl(R.string.readme_url, requireContext());
+            } else if (menuItem.getItemId() == R.id.menuItemPaste) {
+                ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
+                String text = (String) item.getText();
+                boolean success = false;
+                if (text != null) {
+                    String message = MessageComposer.decode(text);
+                    if (message != null) {
+                        success = true;
+                        onMessage(message);
+                    }
+                }
+                if (!success) {
+                    Toast.makeText(getContext(), String.format("%s... not on the clipboard", MessageComposer.OMS_PREFIX), Toast.LENGTH_LONG).show();
+                }
             } else {
                 return false;
             }

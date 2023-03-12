@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.onemoresecret.MainActivity">
     <item
+        android:id="@+id/menuItemPaste"
+        android:icon="@drawable/baseline_content_paste_24"
+        android:title="@android:string/paste"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/menuItemPwdGenerator"
         android:title="@string/password_generator" />
     <item
