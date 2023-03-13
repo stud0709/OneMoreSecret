@@ -1,7 +1,5 @@
 package com.onemoresecret;
 
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,7 +42,7 @@ public class MessageFragment extends Fragment {
     private boolean navBackOnResume = false;
     private boolean reveal = false;
     private Runnable revealHandler = null;
-    private MessageMenuProvider menuProvider = new MessageMenuProvider();
+    private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
 
     @Override

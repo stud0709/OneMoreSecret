@@ -20,8 +20,6 @@ public final class Util {
     /**
      * open URL via {@link android.content.Intent}.
      *
-     * @param stringId
-     * @param ctx
      */
     public static void openUrl(int stringId, Context ctx) {
         String url = ctx.getString(stringId);

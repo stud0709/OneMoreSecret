@@ -61,7 +61,7 @@ public class KeyStoreListFragment extends Fragment {
     public void onItemRemoved(String alias) {
         int idx = aliasList.indexOf(alias);
         aliasList.remove(alias);
-        //itemAdapter.notifyItemRemoved(idx); //this is not working
+        //itemAdapter.notifyItemRemoved(idx); //this is not working as per 1.21
         itemAdapter.notifyDataSetChanged();
     }
 
@@ -100,7 +100,7 @@ public class KeyStoreListFragment extends Fragment {
     }
 
     public OutputFragment getOutputFragment() {
-        return (OutputFragment) binding.keyListOutputFragment.getFragment();
+        return binding.keyListOutputFragment.getFragment();
     }
 
     @Override

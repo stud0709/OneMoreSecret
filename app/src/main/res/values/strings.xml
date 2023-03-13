@@ -100,4 +100,10 @@
     <string name="key_import_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_import.md</string>
     <string name="new_private_key_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/new_private_key.md</string>
     <string name="help_auto_type">Help (Auto-Type)</string>
+    <string name="activate_private_key">activate</string>
+    <string name="private_key_consent">I have SAVED the backup file and REMEMBERED the password. I understand, that this is the ONLY way to restore my private key.</string>
+    <string name="create">Create</string>
+    <string name="repeat_transport_password">Repeat Transport Password</string>
+    <string name="new_transport_password">New Transport Password</string>
+    <string name="new_key_alias">New Key Alias</string>
 </resources>

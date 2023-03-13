@@ -13,7 +13,7 @@ Here you can generate new passwords based on the profile you define in the upper
 
 You can define character lists behind every character class in the toolbar menu. 
 
-Every time you change the settings or click the *magic wand* button, a new password is generated. Now you can copy the **unencrypted** password to the clipboard, send it to another app or [auto-type](autotype.md) it to your desktop PC. 
+Every time you change the settings or click the *magic wand* button, a new password is generated. Now you can manually edit, copy the **unencrypted** password to the clipboard, send it to another app or [auto-type](autotype.md) it to your desktop PC. 
 
 ## Encrypting the password
 

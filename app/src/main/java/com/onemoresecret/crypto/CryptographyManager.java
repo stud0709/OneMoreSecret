@@ -12,7 +12,6 @@ import androidx.annotation.NonNull;
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.KeyGenerationParameters;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
@@ -48,12 +47,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -160,7 +155,6 @@ public class CryptographyManager {
      * Generate private key material by means of the BouncyCastle library.
      *
      * @return key material
-     * @throws IOException
      */
     public static byte[] generatePrivateKeyMaterial(SharedPreferences preferences) throws IOException {
         int keyLength = RSAUtils.getKeyLength(preferences);
@@ -209,15 +203,13 @@ public class CryptographyManager {
             IOException,
             OperatorCreationException {
 
-        int daysValid = DEFAULT_DAYS_VALID;
-
         //create self-signed certificate with the specified end validity
         PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
         KeyPair keyPair = new KeyPair(publicKey, privateKey);
         X509Certificate certificate = SelfSignedCertGenerator.generate(keyPair,
                 "SHA256withRSA",
                 "OneMoreSecret",
-                daysValid);
+                DEFAULT_DAYS_VALID);
 
 
         KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{certificate});

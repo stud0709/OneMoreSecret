@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -53,10 +54,10 @@ public class NewPrivateKeyFragment extends Fragment {
 
     private Path privateKeyBackup = null;
 
-    private PrivateKeyMenuProvider menuProvider = new PrivateKeyMenuProvider();
+    private final PrivateKeyMenuProvider menuProvider = new PrivateKeyMenuProvider();
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentNewPrivateKeyBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -77,7 +78,7 @@ public class NewPrivateKeyFragment extends Fragment {
         try {
             SharedPreferences preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
-            if (binding.txtNewKeyAlias.getText().length() == 0) {
+            if (Objects.requireNonNull(binding.txtNewKeyAlias.getText()).length() == 0) {
                 throw new IllegalArgumentException(getString(R.string.key_alias_may_not_be_empty));
             }
 
@@ -87,11 +88,11 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.key_alias_already_exists));
             }
 
-            if (binding.txtNewTransportPassword.getText().length() < 10) {
+            if (Objects.requireNonNull(binding.txtNewTransportPassword.getText()).length() < 10) {
                 throw new IllegalArgumentException(getString(R.string.password_too_short));
             }
 
-            if (!binding.txtNewTransportPassword.getText().toString().equals(binding.txtRepeatTransportPassword.getText().toString())) {
+            if (!binding.txtNewTransportPassword.getText().toString().equals(Objects.requireNonNull(binding.txtRepeatTransportPassword.getText()).toString())) {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
@@ -236,7 +237,7 @@ public class NewPrivateKeyFragment extends Fragment {
             offset += BASE64_LINE_LENGTH;
         }
 
-        String sArr[] = message.split("\t");
+        String[] sArr = message.split("\t");
 
         stringBuilder.append("</p><p>")
                 .append("Message format: oms00_[base64 encoded data]")
@@ -301,7 +302,7 @@ public class NewPrivateKeyFragment extends Fragment {
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemNewPrivateKeyHelp) {
-                Util.openUrl(R.string.new_private_key_md_url, getContext());
+                Util.openUrl(R.string.new_private_key_md_url, requireContext());
             } else {
                 return false;
             }

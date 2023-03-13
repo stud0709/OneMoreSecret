@@ -1,6 +1,5 @@
 package com.onemoresecret.crypto;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.security.InvalidAlgorithmParameterException;

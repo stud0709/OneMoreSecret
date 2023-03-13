@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="New Key Alias">
+        android:hint="@string/new_key_alias">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/txtNewKeyAlias"
@@ -26,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="New Transport Password"
+        android:hint="@string/new_transport_password"
         app:endIconMode="password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -42,7 +42,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Repeat Transport Password"
+        android:hint="@string/repeat_transport_password"
         app:endIconMode="password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -60,14 +60,14 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:text="Create" />
+        android:text="@string/create" />
 
     <CheckBox
         android:id="@+id/checkBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:enabled="false"
-        android:text="I have SAVED the backup file and REMEMBERED the password. I understand, that this is the ONLY way to restore my private key." />
+        android:text="@string/private_key_consent" />
 
     <Button
         android:id="@+id/btnActivatePrivateKey"
@@ -76,6 +76,6 @@
         android:layout_gravity="center"
         android:layout_marginTop="8dp"
         android:enabled="false"
-        android:text="activate" />
+        android:text="@string/activate_private_key" />
 
 </LinearLayout>

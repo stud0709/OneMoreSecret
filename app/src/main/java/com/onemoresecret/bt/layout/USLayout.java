@@ -4,8 +4,6 @@ import static com.onemoresecret.bt.KeyboardReport.LEFT_SHIFT;
 
 import androidx.annotation.NonNull;
 
-import com.onemoresecret.bt.KeyboardReport;
-
 public class USLayout extends KeyboardLayout {
 
     public USLayout() {

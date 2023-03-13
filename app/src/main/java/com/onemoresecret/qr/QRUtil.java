@@ -29,7 +29,6 @@ public final class QRUtil {
      *     <li>data</li>
      * </ul>
      *
-     * @throws WriterException
      */
 
     public static List<Bitmap> getQrSequence(String message, int chunkSize, int barcodeSize)

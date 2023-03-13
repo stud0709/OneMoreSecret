@@ -1,7 +1,5 @@
 package com.onemoresecret;
 
-import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -45,7 +43,7 @@ public class KeyImportFragment extends Fragment {
     private static final String TAG = KeyImportFragment.class.getSimpleName();
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
-    private KeyImportMenu menuProvider = new KeyImportMenu();
+    private final KeyImportMenu menuProvider = new KeyImportMenu();
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -173,7 +171,7 @@ public class KeyImportFragment extends Fragment {
                                 cryptographyManager.importKey(
                                         keyAlias,
                                         privateKey,
-                                        getContext());
+                                        requireContext());
                                 requireContext().getMainExecutor().execute(
                                         () -> {
                                             Toast.makeText(this.getContext(),

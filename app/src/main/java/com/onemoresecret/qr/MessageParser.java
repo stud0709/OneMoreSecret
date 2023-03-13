@@ -5,16 +5,16 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public abstract class MessageParser {
     private static final String TAG = MessageParser.class.getSimpleName();
     protected final List<String> chunks = new ArrayList<>();
     protected String transactionId = null;
-    protected AtomicBoolean eventFired = new AtomicBoolean(false);
+    protected final AtomicBoolean eventFired = new AtomicBoolean(false);
 
-    public void consume(String qrCode) throws Exception {
+    public void consume(String qrCode) {
         String[] sArr = qrCode.split("\\t", 5);
         String tId = sArr[0];
         int chunkNo = Integer.parseInt(sArr[1]);
@@ -62,7 +62,7 @@ public abstract class MessageParser {
         chunks.remove(chunkNo);
         chunks.add(chunkNo, data);
 
-        int cntReceived = (int) chunks.stream().filter(c -> c != null).count();
+        int cntReceived = (int) chunks.stream().filter(Objects::nonNull).count();
 
         BitSet bs = new BitSet();
         for (int i = 0; i < chunks.size(); i++) {
@@ -73,7 +73,7 @@ public abstract class MessageParser {
         if (cntReceived == chunks.size()) {
             Log.d(TAG, "All chunks have been received");
             //remove line breaks
-            String msg = chunks.stream().collect(Collectors.joining()).replaceAll("[\\r\\n]", "");
+            String msg = String.join("", chunks).replaceAll("[\\r\\n]", "");
             transactionId = null;
             if (!eventFired.get()) {
                 onMessage(msg);

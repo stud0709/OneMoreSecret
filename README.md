@@ -80,9 +80,9 @@ You will need a smartphone with Android 12 (API 31) or higher, a fingerprint sen
 
 On your Android smartphone, you will need to set up the fingerprint authentification from your system settings. 
 
-If your password database is on your decktop PC, you will also need [omsCompanion](https://github.com/stud0709/oms_companion). omsCompanion will transfer your encrypted data to your phone. You will also use it to encrypt your secrets with the public key. 
+If your password database is on your decktop PC, you will also need [omsCompanion](https://github.com/stud0709/oms_companion). omsCompanion will transfer your encrypted data to your phone. You can also use it to encrypt your secrets with the public key. 
 
-Onve the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See auto-type help page in the app for more details.
+Once the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See auto-type help page in the app for more details.
 
 ## Roadmap and Bugs
 For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 

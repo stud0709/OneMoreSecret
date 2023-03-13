@@ -15,7 +15,6 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -100,7 +99,6 @@ public class OutputFragment extends Fragment {
      * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
      * This is to notify the parent, that this is about to happen.
      *
-     * @param onBtDiscover
      */
     public void setBeforePause(Runnable onBtDiscover) {
         this.beforePause = onBtDiscover;

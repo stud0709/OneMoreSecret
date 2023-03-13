@@ -2,9 +2,7 @@ package com.onemoresecret;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -46,7 +44,7 @@ import java.util.stream.Collectors;
 
 public class PasswordGeneratorFragment extends Fragment {
     private FragmentPasswordGeneratorBinding binding;
-    private PwdMenuProvider menuProvider = new PwdMenuProvider();
+    private final PwdMenuProvider menuProvider = new PwdMenuProvider();
     private SharedPreferences preferences;
     private KeyStoreListFragment keyStoreListFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
@@ -82,7 +80,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private Runnable setPwd;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentPasswordGeneratorBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -311,7 +309,7 @@ public class PasswordGeneratorFragment extends Fragment {
             for (int i = 0; i < size; i++) {
 
                 StringBuilder sb = new StringBuilder();
-                char cArr[] = charClasses.remove(0).toCharArray();
+                char[] cArr = charClasses.remove(0).toCharArray();
                 for (char c : cArr) {
                     if (keyboardLayout.forKey(c) != null) {
                         //can type this character with this keyboard layout
@@ -340,9 +338,7 @@ public class PasswordGeneratorFragment extends Fragment {
         //ensure minimal occurrence
         List<String> list = new ArrayList<>();
         for (int i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
-            for (String s : charClasses) {
-                list.add(s);
-            }
+                list.addAll(charClasses);
         }
 
         SecureRandom rnd = new SecureRandom();
@@ -355,7 +351,7 @@ public class PasswordGeneratorFragment extends Fragment {
 
         for (int i = 0; i < length; i++) {
             String s = list.remove(rnd.nextInt(list.size()));
-            char cArr[] = s.toCharArray();
+            char[] cArr = s.toCharArray();
             sb.append(cArr[rnd.nextInt(cArr.length)]);
         }
 
@@ -416,7 +412,7 @@ public class PasswordGeneratorFragment extends Fragment {
         binding.chipLowerCase.setEnabled(enabled);
         binding.chipOccurs.setEnabled(enabled);
 
-        getActivity().invalidateOptionsMenu();
+        requireActivity().invalidateOptionsMenu();
     }
 
     private void onPropertyChange(String propertyName, boolean value) {
