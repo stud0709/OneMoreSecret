@@ -37,7 +37,7 @@ The encryption used in oneMoreSecret is based on keys, not a password phrase. Ye
 Every password is stored separately in its own encryption envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals a password, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
-It's your ~~problem~~ choice how to store your credentials. You could use a text file with the service name, user name and the encrypted password. You could use Excel, Notepad, Google Keep, or GitHub Gists. You could also conitnue using KeePass (it has a very comfortable user interface after all ❤️) and put your encrypted password into the password field: 
+It's your ~~problem~~ choice how to store your credentials. You could use a text file, Excel, [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using KeePass (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
 
 ![oms ontop KeePass](readme_images/oms_ontop_keepass.png)
 
@@ -45,12 +45,14 @@ If your database is stolen, the guys will still end up with encrypted passwords.
 
 Personally, I prefer to store my KeePass database in the cloud storage. The file is encrypted, synced between your devices and protected from data loss.
 
+⚠️ Whatever you are going to use, think of regular backups and the offline capability of the software. Cloud storage might be unavailable the very moment you need your passwords.
+
 ### No Private Key Exposure 
 The Android Keystore system does not "hand over" the key to the app. Once the key has been imported into the storage, you cannot extract it from the phone any more. 
 
 The only way to restore your private key is the backup document together with the transport password. 
 
-⚠️DO NOT share this document and password with others as this will grant access to all data encrypted by this private key. ⚠️
+⚠️ DO NOT share this document and password with others as this will grant access to all data encrypted by this private key. 
 
 ### Login without a password
 ...yes, I know, there is [FIDO2](https://fidoalliance.org/). But hey, with OneMoreSecret, your users can share their public key with you - with just one click. Now you can generate a one-time verification code for the user, encrypt is with his key and show it as a QR sequence on your login page ([omsCompanion](https://github.com/stud0709/oms_companion) has already all the logic written in Java). 
