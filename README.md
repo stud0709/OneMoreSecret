@@ -37,7 +37,7 @@ The encryption used in oneMoreSecret is based on keys, not a password phrase. Ye
 Every password is stored separately in its own encryption envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals a password, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
-It's your ~~problem~~ choice how to store your credentials. You could use a text file, Excel, [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using KeePass (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
+It's your ~~problem~~ choice how to store your credentials. You could use a text file, Excel, [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using [KeePass](https://keepass.info) (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
 
 ![oms ontop KeePass](readme_images/oms_ontop_keepass.png)
 
