@@ -40,7 +40,9 @@ import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
+import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.BitSet;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -79,6 +81,8 @@ public class QRFragment extends Fragment {
 
         requireActivity().addMenuProvider(menuProvider);
 
+        binding.txtAppVersion.setText(BuildConfig.VERSION_NAME);
+
         Intent intent = requireActivity().getIntent();
 
         if (intent != null && consumeIntentIfAny) {
@@ -90,23 +94,12 @@ public class QRFragment extends Fragment {
                 case Intent.ACTION_VIEW:
                     Uri data = intent.getData();
                     if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
-                        String message = MessageComposer.decode(data.getPath().substring(1));
-                        if (message == null) {
-                            Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
-                        } else {
-                            onMessage(message);
-                            return;
-                        }
+                        onMessage(data.getPath().substring(1));
                     }
                     break;
                 case Intent.ACTION_SEND:
                     String text = intent.getStringExtra(Intent.EXTRA_TEXT);
-                    String message = MessageComposer.decode(text);
-                    if (message == null) {
-                        requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), R.string.message_not_found, Toast.LENGTH_LONG).show());
-                    } else {
-                        onMessage(message);
-                    }
+                    onMessage(text);
                     break;
             }
         }
@@ -243,17 +236,28 @@ public class QRFragment extends Fragment {
         }, requireContext().getMainExecutor());
     }
 
+    /**
+     * Try to process inbound message
+     * @param message Message in OMS format
+     * @see MessageComposer
+     */
     private void onMessage(String message) {
         requireContext().getMainExecutor().execute(() -> {
-            try {
-                String[] sArr = message.split("\t", 2);
+            byte[] bArr = MessageComposer.decode(message);
+            if (bArr == null) {
+                Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(bArr);
+                 OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
 
                 //(1) application ID
-                int applicationId = Integer.parseInt(sArr[0]);
+                int applicationId = dataInputStream.readUnsignedShort();
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
                 Bundle bundle = new Bundle();
-                bundle.putString("MESSAGE", message);
+                bundle.putByteArray("MESSAGE", bArr);
 
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER:
@@ -324,16 +328,8 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemPaste) {
                 ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
                 String text = (String) item.getText();
-                boolean success = false;
                 if (text != null) {
-                    String message = MessageComposer.decode(text);
-                    if (message != null) {
-                        success = true;
-                        onMessage(message);
-                    }
-                }
-                if (!success) {
-                    Toast.makeText(getContext(), String.format("%s... not on the clipboard", MessageComposer.OMS_PREFIX), Toast.LENGTH_LONG).show();
+                    onMessage(text);
                 }
             } else {
                 return false;

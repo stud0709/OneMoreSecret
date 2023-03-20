@@ -15,6 +15,7 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
+import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
 import org.bouncycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator;
 import org.bouncycastle.operator.OperatorCreationException;
 
@@ -40,11 +41,12 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -156,7 +158,7 @@ public class CryptographyManager {
      *
      * @return key material
      */
-    public static byte[] generatePrivateKeyMaterial(SharedPreferences preferences) throws IOException {
+    public static KeyPair generatePrivateKeyMaterial(SharedPreferences preferences) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         int keyLength = RSAUtils.getKeyLength(preferences);
         RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
         rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(
@@ -166,7 +168,9 @@ public class CryptographyManager {
                 PrimeCertaintyCalculator.getDefaultCertainty(keyLength)));
         AsymmetricCipherKeyPair asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
         PrivateKeyInfo privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
-        return privateKeyInfo.getEncoded();
+        byte[] privateKeyMaterial = privateKeyInfo.getEncoded();
+        byte[] publicKeyMaterial = SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(asymmetricCipherKeyPair.getPublic()).getEncoded();
+        return restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
     }
 
     public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName, SharedPreferences preferences) {
@@ -177,42 +181,40 @@ public class CryptographyManager {
                 .setEncryptionPaddings(ENCRYPTION_PADDINGS);
     }
 
-    public static X509Certificate createCertificate(byte[] certificateData) throws
+    public static X509Certificate restoreCertificate(byte[] certificateData) throws
             CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X509");
         return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificateData));
     }
 
-    public static RSAPrivateCrtKey createPrivateKey(byte[] keyMaterial) throws
+    public static KeyPair restoreKeyPair(byte[] privateKeyMaterial, byte[] publicKeyMaterial) throws
             NoSuchAlgorithmException,
             InvalidKeySpecException {
         KeyFactory keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyMaterial);
-        return (RSAPrivateCrtKey) keyFactory.generatePrivate(keySpec);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyMaterial);
+        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+        return new KeyPair(publicKey, privateKey);
     }
 
     /**
      * Import RSA key pair using encoded key data from {@link PrivateKey#getEncoded()} and {@link PublicKey#getEncoded()}.
      */
-    public void importKey(String keyName,
-                          @NonNull PrivateKey privateKey, Context ctx) throws
+    public void importKey(String keyName, KeyPair keyPair, Context ctx) throws
             CertificateException,
-            NoSuchAlgorithmException,
-            InvalidKeySpecException,
             KeyStoreException,
             IOException,
             OperatorCreationException {
 
         //create self-signed certificate with the specified end validity
-        PublicKey publicKey = createPublicFromPrivateKey((RSAPrivateCrtKey) privateKey);
-        KeyPair keyPair = new KeyPair(publicKey, privateKey);
         X509Certificate certificate = SelfSignedCertGenerator.generate(keyPair,
                 "SHA256withRSA",
                 "OneMoreSecret",
                 DEFAULT_DAYS_VALID);
 
 
-        KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(privateKey, new Certificate[]{certificate});
+        KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate});
 
         KeyProtection keyProtection = new KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setUserAuthenticationRequired(true)
@@ -223,12 +225,6 @@ public class CryptographyManager {
         keyStore.setEntry(keyName, privateKeyEntry, keyProtection);
 
         Log.d(TAG, "Private key '" + keyName + "' successfully imported. Certificate: " + certificate.getSerialNumber());
-    }
-
-    public static PublicKey createPublicFromPrivateKey(RSAPrivateCrtKey privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        return KeyFactory.
-                getInstance("RSA").
-                generatePublic(new RSAPublicKeySpec(privateKey.getModulus(), privateKey.getPublicExponent()));
     }
 
     public void deleteKey(String keyName) throws
@@ -264,12 +260,6 @@ public class CryptographyManager {
         }
 
         return result;
-    }
-
-    public static byte[] getFingerprint(RSAPrivateCrtKey privateKey) throws NoSuchAlgorithmException {
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(privateKey.getModulus().toByteArray());
-        return sha256.digest(privateKey.getPublicExponent().toByteArray());
     }
 
     public static byte[] getFingerprint(RSAPublicKey publicKey) throws NoSuchAlgorithmException {

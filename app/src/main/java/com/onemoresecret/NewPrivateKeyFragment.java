@@ -37,7 +37,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.KeyPair;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -96,9 +98,9 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            byte[] bArr = CryptographyManager.generatePrivateKeyMaterial(preferences);
-            RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(bArr);
-            byte[] fingerprint = CryptographyManager.getFingerprint(privateKey);
+            KeyPair keyPair = CryptographyManager.generatePrivateKeyMaterial(preferences);
+            RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+            byte[] fingerprint = CryptographyManager.getFingerprint(publicKey);
             IvParameterSpec iv = AESUtil.generateIv();
             byte[] salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
             int aesKeyLength = AESUtil.getKeyLength(preferences);
@@ -112,8 +114,8 @@ public class NewPrivateKeyFragment extends Fragment {
                     aesKeyLength,
                     aesKeyspecIterations);
 
-            String message = new AesEncryptedPrivateKeyTransfer(alias,
-                    privateKey,
+            byte[] message = new AesEncryptedPrivateKeyTransfer(alias,
+                    keyPair,
                     aesSecretKey,
                     iv,
                     salt,
@@ -129,7 +131,7 @@ public class NewPrivateKeyFragment extends Fragment {
                 try {
                     cryptographyManager.importKey(
                             alias,
-                            privateKey,
+                            keyPair,
                             requireContext());
 
                     Toast.makeText(
@@ -175,10 +177,10 @@ public class NewPrivateKeyFragment extends Fragment {
         }
     }
 
-    private String getKeyBackupHtml(String alias, byte[] fingerprint, String message) throws WriterException, IOException {
+    private String getKeyBackupHtml(String alias, byte[] fingerprint, byte[] message) throws WriterException, IOException {
         StringBuilder stringBuilder = new StringBuilder();
 
-        List<Bitmap> list = QRUtil.getQrSequence(message, QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
+        List<Bitmap> list = QRUtil.getQrSequence(MessageComposer.encodeAsOmsText(message), QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
 
         stringBuilder
                 .append("<html><body><h1>")
@@ -237,44 +239,11 @@ public class NewPrivateKeyFragment extends Fragment {
             offset += BASE64_LINE_LENGTH;
         }
 
-        String[] sArr = message.split("\t");
-
         stringBuilder.append("</p><p>")
                 .append("Message format: oms00_[base64 encoded data]")
                 .append("</p><p>")
-                .append("Data format: String (utf-8), separator: TAB")
-                .append("</p><p>")
-                .append("Data elements:")
-                .append("</p><ol><li>")
-                .append("Application Identifier = ")
-                .append("&nbsp;")
-                .append(sArr[0])
-                .append("&nbsp;(")
-                .append("AES Encrypted Key Pair Transfer")
-                .append(")</li><li>")
-                .append("Key Alias = ")
-                .append(Html.escapeHtml(alias))
-                .append("</li><li>")
-                .append("Salt: base64-encoded byte[] = ")
-                .append(Util.byteArrayToHex(Base64.getDecoder().decode(sArr[2])))
-                .append("</li><li>").append("IV: base64-encoded byte[] = ")
-                .append(Util.byteArrayToHex(Base64.getDecoder().decode(sArr[3])))
-                .append("</li><li>").append("Cipher Algorithm = ")
-                .append(sArr[4])
-                .append(" (")
-                .append(Html.escapeHtml(AesTransformation.values()[Integer.parseInt(sArr[4])].transformation))
-                .append(" )</li><li>")
-                .append("Key Algorithm = ")
-                .append(sArr[5])
-                .append(" (")
-                .append(Html.escapeHtml(AesKeyAlgorithm.values()[Integer.parseInt(sArr[5])].keyAlgorithm))
-                .append(")</li><li>").append("Keyspec Length = ")
-                .append(sArr[6])
-                .append("</li><li>").append("Keyspec Iterations = ")
-                .append(sArr[7])
-                .append("</li><li>")
-                .append("AES encrypted Private Key material: base64-encoded byte[]")
-                .append("</li></ol></body></html>");
+                .append("Data format: see https://github.com/stud0709/OneMoreSecret/blob/master/app/src/main/java/com/onemoresecret/crypto/AesEncryptedPrivateKeyTransfer.java")
+                .append("</p></body></html>");
 
         return stringBuilder.toString();
     }

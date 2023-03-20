@@ -2,6 +2,8 @@ package com.onemoresecret.qr;
 
 import android.util.Log;
 
+import com.onemoresecret.crypto.MessageComposer;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;

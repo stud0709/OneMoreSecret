@@ -25,22 +25,21 @@ public abstract class MessageComposer {
      * You can pass messages through the clipboard. A message begins with
      * {@link MessageComposer#OMS_PREFIX}. Version 00 of OMS protocol:
      * <ol>
-     * <li>converts the message to byte array</li>
-     * <li>BASE64 encode (1)</li></li>prepend (2) with
+     * <li>BASE64 encode {@code message}</li></li>prepend (1) with
      * {@link MessageComposer#OMS_PREFIX}
      * </ol>
      */
-    public static String encodeAsOmsText(String message) {
-        return OMS_PREFIX + Base64.getEncoder().encodeToString(message.getBytes());
+    public static String encodeAsOmsText(byte[] message) {
+        return OMS_PREFIX + Base64.getEncoder().encodeToString(message);
     }
 
-    public static String decode(String omsText) {
+    public static byte[] decode(String omsText) {
         Matcher m = OMS_PATTERN.matcher(omsText);
 
         if (!m.find()) // not a valid OMS message
             return null;
 
-        String result;
+        byte[] result;
 
         int version = Integer.parseInt(Objects.requireNonNull(m.group(1)));
 
@@ -50,10 +49,7 @@ public abstract class MessageComposer {
 
         if (version == 0) {
             // (2) convert to byte array
-            byte[] bArr = Base64.getDecoder().decode(omsText);
-
-            // (3) convert to string
-            result = new String(bArr);
+            result = Base64.getDecoder().decode(omsText);
         } else {
             throw new UnsupportedOperationException("Unsupported version: " + version);
         }
@@ -61,5 +57,5 @@ public abstract class MessageComposer {
         return result;
     }
 
-    public abstract String getMessage();
+    public abstract byte[] getMessage();
 }

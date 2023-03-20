@@ -24,6 +24,7 @@ import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
+import java.io.ByteArrayInputStream;
 import java.util.Base64;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -76,37 +77,36 @@ public class MessageFragment extends Fragment {
         ((OutputFragment) binding.messageOutputFragment.getFragment()).setBeforePause(() -> navBackIfPaused = false);
 
         assert getArguments() != null;
-        String message = getArguments().getString("MESSAGE");
 
-        try {
-            String[] sArr = message.split("\t");
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(getArguments().getByteArray("MESSAGE"));
+             OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
 
             //(1) Application ID
-            int applicationId = Integer.parseInt(sArr[0]);
+            int applicationId = dataInputStream.readUnsignedShort();
             if (applicationId != MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
                 throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
 
             //(2) RSA transformation index
-            rsaTransformation = RsaTransformation.values()[Integer.parseInt(sArr[1])].transformation;
+            rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
-            byte[] fingerprint = Base64.getDecoder().decode(sArr[2]);
+            byte[] fingerprint = dataInputStream.readByteArray();
             Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
 
             // (4) AES transformation index
-            aesTransformation = AesTransformation.values()[Integer.parseInt(sArr[3])].transformation;
+            aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
             Log.d(TAG, "AES transformation: " + aesTransformation);
 
             //(5) IV
-            iv = Base64.getDecoder().decode(sArr[4]);
+            iv = dataInputStream.readByteArray();
             Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
             //(6) RSA-encrypted AES secret key
-            encryptedAesSecretKey = Base64.getDecoder().decode(sArr[5]);
+            encryptedAesSecretKey = dataInputStream.readByteArray();
 
             //(7) AES-encrypted message
-            cipherText = Base64.getDecoder().decode(sArr[6]);
+            cipherText = dataInputStream.readByteArray();
 
             //******* decrypting ********
 

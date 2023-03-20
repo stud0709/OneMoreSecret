@@ -58,7 +58,6 @@
     <string name="biometrics_not_detected_long_text">Sorry, we cannot continue without biometric hardware.</string>
     <string name="biometrics_not_enabled_long_text">Please set up biometric authentication on your device.</string>
     <string name="wrong_message_format">Wrong message format</string>
-    <string name="message_not_found">Message not found</string>
     <string name="readme_url">https://github.com/stud0709/OneMoreSecret/blob/master/README.md</string>
     <string name="key_successfully_activated">Key %s successfully activated</string>
     <string name="new_private_key">New Private Key</string>

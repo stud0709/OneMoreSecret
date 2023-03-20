@@ -149,10 +149,10 @@ public class KeyStoreListFragment extends Fragment {
             this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
+                RSAPublicKey publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
-                                CryptographyManager.getFingerprint(
-                                        (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey())));
+                                CryptographyManager.getFingerprint(publicKey)));
             } catch (Exception e) {
                 e.printStackTrace();
             }

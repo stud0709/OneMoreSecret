@@ -4,6 +4,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+
 public final class Util {
     private Util() {
     }
@@ -19,7 +24,6 @@ public final class Util {
 
     /**
      * open URL via {@link android.content.Intent}.
-     *
      */
     public static void openUrl(int stringId, Context ctx) {
         String url = ctx.getString(stringId);
@@ -27,4 +31,6 @@ public final class Util {
         intent.setData(Uri.parse(url));
         ctx.startActivity(intent);
     }
+
+
 }

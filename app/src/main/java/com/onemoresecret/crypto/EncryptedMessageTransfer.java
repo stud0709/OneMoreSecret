@@ -1,5 +1,9 @@
 package com.onemoresecret.crypto;
 
+import com.onemoresecret.OmsDataOutputStream;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -16,7 +20,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 public class EncryptedMessageTransfer extends MessageComposer {
-    private final String message;
+    private final byte[] message;
 
     public EncryptedMessageTransfer(byte[] message,
                                     RSAPublicKey rsaPublicKey,
@@ -37,37 +41,38 @@ public class EncryptedMessageTransfer extends MessageComposer {
 
         byte[] encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
 
-        List<String> list = new ArrayList<>();
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
 
-        // (1) application-ID
-        list.add(Integer.toString(APPLICATION_ENCRYPTED_MESSAGE_TRANSFER));
+            // (1) application-ID
+            dataOutputStream.writeUnsignedShort(APPLICATION_ENCRYPTED_MESSAGE_TRANSFER);
 
-        // (2) RSA transformation index
-        list.add(Integer.toString(rsaTransformationIdx));
+            // (2) RSA transformation index
+            dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
 
-        // (3) fingerprint
-        list.add(Base64.getEncoder().encodeToString(CryptographyManager.getFingerprint(rsaPublicKey)));
+            // (3) fingerprint
+            dataOutputStream.writeByteArray(CryptographyManager.getFingerprint(rsaPublicKey));
 
-        // (4) AES transformation index
-        list.add(Integer.toString(aesTransformationIdx));
+            // (4) AES transformation index
+            dataOutputStream.writeUnsignedShort(aesTransformationIdx);
 
-        // (5) IV
-        list.add(Base64.getEncoder().encodeToString(iv.getIV()));
+            // (5) IV
+            dataOutputStream.writeByteArray(iv.getIV());
 
-        // (6) RSA-encrypted AES secret key
-        list.add(Base64.getEncoder().encodeToString(encryptedSecretKey));
+            // (6) RSA-encrypted AES secret key
+            dataOutputStream.writeByteArray(encryptedSecretKey);
 
-        // (7) AES-encrypted message
-        byte[] encryptedMessage = AESUtil.encrypt(message, secretKey, iv,
-                AesTransformation.values()[aesTransformationIdx].transformation);
+            // (7) AES-encrypted message
+            dataOutputStream.writeByteArray(AESUtil.encrypt(message, secretKey, iv,
+                    AesTransformation.values()[aesTransformationIdx].transformation));
 
-        list.add(Base64.getEncoder().encodeToString(encryptedMessage));
-
-        this.message = String.join("\t", list);
+            this.message = baos.toByteArray();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     @Override
-    public String getMessage() {
+    public byte[] getMessage() {
         return message;
     }
 

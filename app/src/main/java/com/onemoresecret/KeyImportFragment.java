@@ -25,15 +25,22 @@ import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.KeyPair;
 import java.security.KeyStoreException;
-import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
 import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Key import Fragment.
@@ -51,63 +58,65 @@ public class KeyImportFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         assert getArguments() != null;
-        String message = getArguments().getString("MESSAGE");
 
-        String[] sArr = message.split("\t");
+        try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(getArguments().getByteArray("MESSAGE")))) {
+            // (1) Application ID
+            int applicationId = dataInputStream.readUnsignedShort();
+            if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER)
+                throw new IllegalArgumentException("wrong applicationId: " + applicationId);
 
-        //(1) Application ID
-        int applicationId = Integer.parseInt(sArr[0]);
-        if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER)
-            throw new IllegalArgumentException("wrong applicationId: " + applicationId);
+            // (2) alias
+            String alias = dataInputStream.readString();
+            Log.d(TAG, "alias: " + alias);
+            binding.editTextKeyAlias.setText(alias);
+            // --- AES parameter ---
 
-        //(2) alias
-        String alias = sArr[1];
-        Log.d(TAG, "alias: " + alias);
-        binding.editTextKeyAlias.setText(alias);
-        // --- AES parameter ---
+            // (3) salt
+            byte[] salt = dataInputStream.readByteArray();
+            Log.d(TAG, "salt: " + Util.byteArrayToHex(salt));
 
-        //(3) salt
-        byte[] salt = Base64.getDecoder().decode(sArr[2]);
-        Log.d(TAG, "salt: " + Util.byteArrayToHex(salt));
+            // (4) IV
+            byte[] iv = dataInputStream.readByteArray();
+            Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
-        //(4) IV
-        byte[] iv = Base64.getDecoder().decode(sArr[3]);
-        Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
+            // (5) AES transformation index
+            String aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+            Log.d(TAG, "cipher algorithm: " + aesTransformation);
 
-        //(5) AES transformation index
-        String aesTransformation = AesTransformation.values()[Integer.parseInt(sArr[4])].transformation;
-        Log.d(TAG, "cipher algorithm: " + aesTransformation);
+            // (6) key algorithm index
+            String aesKeyAlg = AesKeyAlgorithm.values()[dataInputStream.readUnsignedShort()].keyAlgorithm;
+            Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
 
-        //(6) key algorithm index
-        String aesKeyAlg = AesKeyAlgorithm.values()[Integer.parseInt(sArr[5])].keyAlgorithm;
-        Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
+            // (7) key length
+            int aesKeyLength = dataInputStream.readUnsignedShort();
+            Log.d(TAG, "AES key length: " + aesKeyLength);
 
-        //(7) key length
-        int aesKeyLength = Integer.parseInt(sArr[6]);
-        Log.d(TAG, "AES key length: " + aesKeyLength);
+            // (8) AES iterations
+            int iterations = dataInputStream.readUnsignedShort();
+            Log.d(TAG, "iterations: " + iterations);
 
-        //(8) AES iterations
-        int iterations = Integer.parseInt(sArr[7]);
-        Log.d(TAG, "iterations: " + iterations);
+            // --- Encrypted part ---
 
-        // --- Encrypted part ---
+            // (9) cipher text
+            byte[] cipherText = dataInputStream.readByteArray();
+            Log.d(TAG, cipherText.length + " bytes cipher text read");
 
-        //(9) cipher text
-        byte[] cipherText = Base64.getDecoder().decode(sArr[8]);
-        Log.d(TAG, cipherText.length + " bytes cipher text read");
+            binding.editTextKeyAlias.setText(alias);
 
-        binding.editTextKeyAlias.setText(alias);
+            binding.btnDecrypt.setOnClickListener(e ->
+                    new Thread(() ->
+                            onPasswordEntry(salt,
+                                    iv,
+                                    cipherText,
+                                    aesTransformation,
+                                    aesKeyAlg,
+                                    aesKeyLength,
+                                    iterations)).start()
+            );
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
 
-        binding.btnDecrypt.setOnClickListener(e ->
-                new Thread(() ->
-                        onPasswordEntry(salt,
-                                iv,
-                                cipherText,
-                                aesTransformation,
-                                aesKeyAlg,
-                                aesKeyLength,
-                                iterations)).start()
-        );
 
     }
 
@@ -129,67 +138,79 @@ public class KeyImportFragment extends Fragment {
                     keyLength,
                     iterations);
 
-            byte[] rsaKey = AESUtil.decrypt(
+            byte[] bArr = AESUtil.decrypt(
                     cipherText,
                     secretKey,
                     new IvParameterSpec(iv),
                     aesTransformation);
 
-            RSAPrivateCrtKey privateKey = CryptographyManager.createPrivateKey(rsaKey);
+            try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(bArr))) {
+                // (9.1) - private key material
+                byte[] privateKeyMaterial = dataInputStream.readByteArray();
 
-            byte[] fingerprintBytes = CryptographyManager.getFingerprint(privateKey);
-            String fingerprint = Util.byteArrayToHex(fingerprintBytes);
+                // (9.2) - public key material
+                byte[] publicKeyMaterial = dataInputStream.readByteArray();
 
-            requireContext().getMainExecutor().execute(() -> {
-                binding.textFingerprintData.setText(fingerprint);
+                KeyPair keyPair = CryptographyManager.restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
 
-                //check alias
-                binding.editTextKeyAlias.addTextChangedListener(getTextWatcher(fingerprintBytes));
+                RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 
-                validateAlias(fingerprintBytes);
+                byte[] fingerprintBytes = CryptographyManager.getFingerprint(publicKey);
+                String fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
-                binding.btnSave.setEnabled(true);
+                requireContext().getMainExecutor().execute(() -> {
+                    binding.textFingerprintData.setText(fingerprint);
 
-                binding.btnSave.setOnClickListener(e ->
-                        new Thread(() -> {
-                            try {
-                                //delete other keys with the same fingerprint
-                                List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
-                                sameFingerprint.forEach(a -> {
-                                    try {
-                                        cryptographyManager.deleteKey(a);
-                                    } catch (KeyStoreException ex) {
-                                        ex.printStackTrace();
-                                    }
-                                });
+                    //check alias
+                    binding.editTextKeyAlias.addTextChangedListener(getTextWatcher(fingerprintBytes));
 
-                                String keyAlias = binding.
-                                        editTextKeyAlias.
-                                        getText().
-                                        toString().
-                                        trim();
-                                cryptographyManager.importKey(
-                                        keyAlias,
-                                        privateKey,
-                                        requireContext());
-                                requireContext().getMainExecutor().execute(
-                                        () -> {
-                                            Toast.makeText(this.getContext(),
-                                                    "Private key '" + keyAlias + "' successfully imported",
-                                                    Toast.LENGTH_LONG).show();
-                                            NavHostFragment.findNavController(KeyImportFragment.this).popBackStack();
-                                        });
+                    validateAlias(fingerprintBytes);
 
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                                requireContext().getMainExecutor().execute(
-                                        () -> Toast.makeText(this.getContext(),
-                                                ex.getMessage(),
-                                                Toast.LENGTH_LONG).show());
-                            }
-                        }).start()
-                );
-            });
+                    binding.btnSave.setEnabled(true);
+
+                    binding.btnSave.setOnClickListener(e ->
+                            new Thread(() -> {
+                                try {
+                                    //delete other keys with the same fingerprint
+                                    List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
+                                    sameFingerprint.forEach(a -> {
+                                        try {
+                                            cryptographyManager.deleteKey(a);
+                                        } catch (KeyStoreException ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    });
+
+                                    String keyAlias = binding.
+                                            editTextKeyAlias.
+                                            getText().
+                                            toString().
+                                            trim();
+                                    cryptographyManager.importKey(
+                                            keyAlias,
+                                            keyPair,
+                                            requireContext());
+                                    requireContext().getMainExecutor().execute(
+                                            () -> {
+                                                Toast.makeText(this.getContext(),
+                                                        "Private key '" + keyAlias + "' successfully imported",
+                                                        Toast.LENGTH_LONG).show();
+                                                NavHostFragment.findNavController(KeyImportFragment.this).popBackStack();
+                                            });
+
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    requireContext().getMainExecutor().execute(
+                                            () -> Toast.makeText(this.getContext(),
+                                                    ex.getMessage(),
+                                                    Toast.LENGTH_LONG).show());
+                                }
+                            }).start()
+                    );
+                });
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             requireContext().getMainExecutor().execute(
@@ -220,9 +241,10 @@ public class KeyImportFragment extends Fragment {
             String warning = null;
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
-                byte[] fingerprint = CryptographyManager.getFingerprint((RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey());
+                RSAPublicKey publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
+                byte[] fingerprint = CryptographyManager.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
-                    warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprintNew));
+                    warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
                 }
             }
 
