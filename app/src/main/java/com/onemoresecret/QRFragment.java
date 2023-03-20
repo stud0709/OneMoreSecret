@@ -56,10 +56,6 @@ public class QRFragment extends Fragment {
 
     private boolean consumeIntentIfAny = true;
 
-    private final String[] REQUIRED_PERMISSIONS = {
-            Manifest.permission.CAMERA
-    };
-
     private final QrMenuProvider menuProvider = new QrMenuProvider();
 
     private ClipboardManager clipboardManager;
@@ -105,16 +101,16 @@ public class QRFragment extends Fragment {
         }
 
         //enable camera
-        if (isAllPermissionsGranted()) {
-            onAllPermissionsGranted();
+        if (getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera();
         } else {
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                if (isAllPermissionsGranted()) {
-                    onAllPermissionsGranted();
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+                if (getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    startCamera();
                 } else {
                     Toast.makeText(getContext(), R.string.insufficient_permissions, Toast.LENGTH_LONG).show();
                 }
-            }).launch(REQUIRED_PERMISSIONS);
+            }).launch(Manifest.permission.CAMERA);
         }
 
     }
@@ -166,23 +162,6 @@ public class QRFragment extends Fragment {
             case BiometricManager.BIOMETRIC_SUCCESS:
                 break;
         }
-    }
-
-    private void onAllPermissionsGranted() {
-        startCamera();
-    }
-
-    private boolean isAllPermissionsGranted() {
-        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(requireContext(), p) == PackageManager.PERMISSION_GRANTED))
-            return true;
-
-        Log.d(TAG, "Granted permissions:");
-        Arrays.stream(REQUIRED_PERMISSIONS).forEach(p -> {
-            int check = ContextCompat.checkSelfPermission(requireContext(), p);
-            Log.d(TAG, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
-        });
-
-        return false;
     }
 
     private void startCamera() {
