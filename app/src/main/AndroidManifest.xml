@@ -29,10 +29,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Accepts URIs that begin with "https://github.com/stud0709/OneMoreSecret...” -->
+                <!-- Accepts URIs that begin with "https://oms-app-intent/...” -->
                 <data android:scheme="https"
-                    android:host="github.com"
-                    android:path="/stud0709/OneMoreSecret"/>
+                    android:host="oms-app-intent"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
