@@ -93,7 +93,7 @@ public class QRFragment extends Fragment {
             switch (intent.getAction()) {
                 case Intent.ACTION_VIEW:
                     Uri data = intent.getData();
-                    if (data != null && data.getQuery().startsWith("/" + MessageComposer.OMS_PREFIX)) {
+                    if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
                         onMessage(data.getPath().substring(1));
                     }
                     break;
