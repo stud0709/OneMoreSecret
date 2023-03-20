@@ -55,6 +55,11 @@ import java.util.stream.Collectors;
 
 public class OutputFragment extends Fragment {
     private static final String TAG = OutputFragment.class.getSimpleName();
+    private static final String PROP_BT_DISCOVERABLE_DURATION = "bt_discoverable_duration_s",
+            PROP_KEY_STROKE_DELAY_ON = "kbd_stroke_delay_on",
+            PROP_KEY_STROKE_DELAY_OFF = "kbd_stroke_delay_off",
+            PROP_LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout",
+            PROP_LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
     private BluetoothController bluetoothController;
     private ArrayAdapter<SpinnerItemDevice> arrayAdapterDevice;
     private final String[] REQUIRED_PERMISSIONS = {
@@ -67,13 +72,11 @@ public class OutputFragment extends Fragment {
     private FragmentOutputBinding binding;
     private BluetoothBroadcastReceiver bluetoothBroadcastReceiver;
 
-    private static final int DISCOVERABLE_DURATION_S = 60;
+    private static final int DEF_DISCOVERABLE_DURATION_S = 60;
     private SharedPreferences preferences;
     private final AtomicBoolean refreshingBtControls = new AtomicBoolean();
-    private static final long KEY_STROKE_DELAY_ON = 50, KEY_STROKE_DELAY_OFF = 10;
+    private static final long DEF_KEY_STROKE_DELAY_ON = 50, DEF_KEY_STROKE_DELAY_OFF = 10;
 
-    protected static final String LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout";
-    protected static final String LAST_SELECTED_BT_TARGET = "last_selected_bt_target";
 
     private ClipboardManager clipboardManager;
 
@@ -98,7 +101,6 @@ public class OutputFragment extends Fragment {
     /**
      * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
      * This is to notify the parent, that this is about to happen.
-     *
      */
     public void setBeforePause(Runnable onBtDiscover) {
         this.beforePause = onBtDiscover;
@@ -183,7 +185,7 @@ public class OutputFragment extends Fragment {
                 if (refreshingBtControls.get()) return;
 
                 SpinnerItemDevice selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                preferences.edit().putString(LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
+                preferences.edit().putString(PROP_LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
 
                 refreshBluetoothControls();
             }
@@ -215,7 +217,7 @@ public class OutputFragment extends Fragment {
         binding.spinnerKeyboardLayout.setAdapter(keyboardLayoutAdapter);
 
         //select last used keyboard layout
-        String lastSelectedKeyboardLayout = preferences.getString(LAST_SELECTED_KEYBOARD_LAYOUT, null);
+        String lastSelectedKeyboardLayout = preferences.getString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, null);
         for (int i = 0; i < keyboardLayoutAdapter.getCount(); i++) {
             if (keyboardLayoutAdapter.getItem(i).getClass().getName().equals(lastSelectedKeyboardLayout)) {
                 binding.spinnerKeyboardLayout.setSelection(i);
@@ -229,7 +231,7 @@ public class OutputFragment extends Fragment {
                 if (refreshingBtControls.get()) return;
 
                 KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-                preferences.edit().putString(LAST_SELECTED_KEYBOARD_LAYOUT, selectedLayout.getClass().getName()).apply();
+                preferences.edit().putString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, selectedLayout.getClass().getName()).apply();
 
                 refreshBluetoothControls();
             }
@@ -265,7 +267,7 @@ public class OutputFragment extends Fragment {
                 e -> {
                     if (beforePause != null) beforePause.run();
 
-                    bluetoothController.requestDiscoverable(DISCOVERABLE_DURATION_S);
+                    bluetoothController.requestDiscoverable(getDiscoverableDuration());
                 });
 
         refreshBluetoothControls();
@@ -334,7 +336,7 @@ public class OutputFragment extends Fragment {
                                 r.report);
 
                 try {
-                    Thread.sleep(binding.swDelayedStrokes.isChecked() ? Math.max(KEY_STROKE_DELAY_ON, KEY_STROKE_DELAY_OFF) : KEY_STROKE_DELAY_OFF);
+                    Thread.sleep(binding.swDelayedStrokes.isChecked() ? getKeyStrokeDelayOn() : getKeyStrokeDelayOff());
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -374,13 +376,15 @@ public class OutputFragment extends Fragment {
                 String status = getString(R.string.bt_not_available);
                 Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
-                binding.chipBtStatus.setChipIcon(drawable);
-                binding.chipBtStatus.setText(status);
+                getContext().getMainExecutor().execute(() -> {
+                    binding.chipBtStatus.setChipIcon(drawable);
+                    binding.chipBtStatus.setText(status);
 
-                binding.spinnerKeyboardLayout.setEnabled(false);
-                binding.spinnerBluetoothTarget.setEnabled(false);
-                binding.btnType.setEnabled(false);
-                binding.imgButtonDiscoverable.setEnabled(false);
+                    binding.spinnerKeyboardLayout.setEnabled(false);
+                    binding.spinnerBluetoothTarget.setEnabled(false);
+                    binding.btnType.setEnabled(false);
+                    binding.imgButtonDiscoverable.setEnabled(false);
+                });
 
                 return;
             }
@@ -437,7 +441,7 @@ public class OutputFragment extends Fragment {
                     {
                         SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
                         String selectedBtAddress = selectedBluetoothTarget == null ?
-                                preferences.getString(LAST_SELECTED_BT_TARGET, null) :
+                                preferences.getString(PROP_LAST_SELECTED_BT_TARGET, null) :
                                 selectedBluetoothTarget.getBluetoothDevice().getAddress();
 
                         //refreshing the list
@@ -621,5 +625,17 @@ public class OutputFragment extends Fragment {
 
             return true;
         }
+    }
+
+    private int getDiscoverableDuration() {
+        return preferences.getInt(PROP_BT_DISCOVERABLE_DURATION, DEF_DISCOVERABLE_DURATION_S);
+    }
+
+    private long getKeyStrokeDelayOn() {
+        return preferences.getLong(PROP_KEY_STROKE_DELAY_ON, DEF_KEY_STROKE_DELAY_ON);
+    }
+
+    private long getKeyStrokeDelayOff() {
+        return preferences.getLong(PROP_KEY_STROKE_DELAY_OFF, DEF_KEY_STROKE_DELAY_OFF);
     }
 }

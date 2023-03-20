@@ -133,20 +133,43 @@ public class MessageFragment extends Fragment {
 
             @Override
             public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
-                super.onAuthenticationError(errCode, errString);
-                MessageFragment.this.onAuthenticationError(errCode, errString);
+                Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
+                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+                });
             }
 
             @Override
             public void onAuthenticationFailed() {
-                super.onAuthenticationFailed();
-                MessageFragment.this.onAuthenticationFailed();
+                Log.d(TAG,
+                        "User biometrics rejected");
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
+                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+                });
             }
 
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                super.onAuthenticationSucceeded(result);
-                MessageFragment.this.onAuthenticationSucceeded(result);
+                Log.d(TAG,
+                        getString(R.string.auth_successful));
+
+                Cipher cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+                try {
+                    assert cipher != null;
+                    byte[] aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
+                    SecretKey aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                    byte[] bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
+
+                    onDecryptedData(bArr);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    requireContext().getMainExecutor().execute(() -> {
+                        Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                        NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+                    });
+                }
             }
         };
 
@@ -166,44 +189,6 @@ public class MessageFragment extends Fragment {
         biometricPrompt.authenticate(
                 promptInfo,
                 new BiometricPrompt.CryptoObject(cipher));
-    }
-
-    public void onAuthenticationError(int errCode, CharSequence errString) {
-        Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
-        requireContext().getMainExecutor().execute(() -> {
-            Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
-            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-        });
-    }
-
-    public void onAuthenticationFailed() {
-        Log.d(TAG,
-                "User biometrics rejected");
-        requireContext().getMainExecutor().execute(() -> {
-            Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
-            NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-        });
-    }
-
-    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-        Log.d(TAG,
-                getString(R.string.auth_successful));
-
-        Cipher cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
-        try {
-            assert cipher != null;
-            byte[] aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
-            SecretKey aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
-            byte[] bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
-
-            onDecryptedData(bArr);
-        } catch (Exception e) {
-            e.printStackTrace();
-            requireContext().getMainExecutor().execute(() -> {
-                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-                NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-            });
-        }
     }
 
     private void onDecryptedData(byte[] bArr) {
