@@ -57,7 +57,7 @@ The only way to restore your private key is the backup document together with th
 ### Login without a password
 ...yes, I know, there is [FIDO2](https://fidoalliance.org/). But hey, with OneMoreSecret, your users can share their public key with you - with just one click. Now you can generate a one-time verification code for the user, encrypt is with his key and show it as a QR sequence on your login page ([omsCompanion](https://github.com/stud0709/oms_companion) has already all the logic written in Java). 
 
-Login from a mobile device? No problem, OneMoreSecret will respond to browser links. Just add the encrypted message (`<a href="https://github.com/stud0709/OneMoreSecret?oms00_.....">Click here to log in from your phone</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
+Login from a mobile device? No problem, OneMoreSecret will respond to browser links. Just add the encrypted message (`<a href="https://oms-app-intent?oms00_.....">Click here to log in from your phone</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
 
 ## How It Works
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
