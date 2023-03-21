@@ -28,7 +28,6 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
@@ -41,8 +40,6 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.BitSet;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -217,6 +214,7 @@ public class QRFragment extends Fragment {
 
     /**
      * Try to process inbound message
+     *
      * @param message Message in OMS format
      * @see MessageComposer
      */

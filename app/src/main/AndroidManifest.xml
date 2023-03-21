@@ -17,25 +17,35 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OneMoreSecret">
         <activity
-            android:name="com.onemoresecret.MainActivity"
+            android:name=".CrashReportActivity"
+            android:exported="false"
+            android:label="@string/oms_crash_report"
+            android:theme="@style/Theme.OneMoreSecret.NoActionBar" />
+        <activity
+            android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.OneMoreSecret.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter android:label="@string/app_name">
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- Accepts URIs that begin with "https://oms-app-intent/...” -->
-                <data android:scheme="https"
-                    android:host="oms-app-intent"/>
+                <data
+                    android:host="oms-app-intent"
+                    android:scheme="https" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
@@ -43,15 +53,15 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
         <provider
+            android:name=".OmsFileProvider"
             android:authorities="com.onemoresecret.fileprovider"
-            android:name="com.onemoresecret.OmsFileProvider"
-            android:grantUriPermissions="true"
-            android:exported="false">
+            android:exported="false"
+            android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/filepaths"
-                />
+                android:resource="@xml/filepaths" />
         </provider>
     </application>
 

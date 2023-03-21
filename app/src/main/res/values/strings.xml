@@ -105,4 +105,5 @@
     <string name="repeat_transport_password">Repeat Transport Password</string>
     <string name="new_transport_password">New Transport Password</string>
     <string name="new_key_alias">New Key Alias</string>
+    <string name="oms_crash_report">OneMoreSecret Crash Report</string>
 </resources>
