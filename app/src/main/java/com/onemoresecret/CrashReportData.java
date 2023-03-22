@@ -20,16 +20,13 @@ public class CrashReportData implements Serializable {
         this.throwable = throwable;
 
         try {
-            String s = "logcat -d";
+            String s = "logcat -b all -d";
             Process p = Runtime.getRuntime().exec(s);
 
             try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                int cnt = 0;
                 String line;
                 while ((line = bais.readLine()) != null) {
-                    if (cnt++ < 100) {
-                        logcat.add(line);
-                    }
+                    logcat.add(line);
                 }
             }
         } catch (IOException e) {
@@ -38,23 +35,21 @@ public class CrashReportData implements Serializable {
         }
     }
 
-    public String toString(boolean includeDeviceData, boolean includeLogcat) {
+    public String toString(boolean includeLogcat) {
         try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
             pw.println("OneMoreSecret version: " + BuildConfig.VERSION_NAME);
             pw.println("\n----- STACK TRACE -----");
             throwable.printStackTrace(pw);
-            if (includeDeviceData) {
-                pw.println("\n----- DEVICE -----");
-                pw.println("Brand: " + Build.BRAND);
-                pw.println("Device: " + Build.DEVICE);
-                pw.println("Model: " + Build.MODEL);
-                pw.println("ID: " + Build.ID);
-                pw.println("Product: " + Build.PRODUCT);
-                pw.println("\n----- ANDROID OS -----");
-                pw.println("Android SDK: " + Build.VERSION.SDK_INT);
-                pw.println("Android release: " + Build.VERSION.RELEASE);
-                pw.println("Android incremental: " + Build.VERSION.INCREMENTAL);
-            }
+            pw.println("\n----- DEVICE -----");
+            pw.println("Brand: " + Build.BRAND);
+            pw.println("Device: " + Build.DEVICE);
+            pw.println("Model: " + Build.MODEL);
+            pw.println("ID: " + Build.ID);
+            pw.println("Product: " + Build.PRODUCT);
+            pw.println("\n----- ANDROID OS -----");
+            pw.println("Android SDK: " + Build.VERSION.SDK_INT);
+            pw.println("Android release: " + Build.VERSION.RELEASE);
+            pw.println("Android incremental: " + Build.VERSION.INCREMENTAL);
             if (includeLogcat) {
                 pw.println("\n----- LOGCAT -----");
                 logcat.stream().forEach(s -> pw.println(s));
