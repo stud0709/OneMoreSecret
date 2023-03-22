@@ -11,28 +11,27 @@
         android:id="@+id/textview_first"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="OneMoreSecret has detected an unexpected error and needs to close. To help us diagnose and fix the problem, you can send us a crash report. The report contains:" />
+        android:text="@string/disclaimer_crash_report" />
 
     <CheckBox
         android:id="@+id/checkBox2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:checked="true"
-        android:editable="true"
         android:enabled="false"
-        android:text="Stack trace (a list of the method calls that the application was in the middle of when an Exception was thrown)" />
+        android:text="@string/chk_stack_trace" />
 
     <CheckBox
         android:id="@+id/chkDeviceData"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Device information (device model, software version etc.)" />
+        android:text="@string/chk_device_info" />
 
     <CheckBox
         android:id="@+id/chkLogcat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="logcat output (a journal containing hints about the program execution)." />
+        android:text="@string/chk_logcat" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -60,21 +59,22 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:text="send"
-            tools:ignore="HardcodedText" />
-
-        <Button
             android:id="@+id/btn_dismiss"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:text="dismiss" />
+            android:text="@string/btn_dismiss"
+            style="?android:attr/buttonBarButtonStyle" />
+
+        <Button
+            android:id="@+id/btn_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:text="@string/btn_send" />
+
     </LinearLayout>
 
 </LinearLayout>

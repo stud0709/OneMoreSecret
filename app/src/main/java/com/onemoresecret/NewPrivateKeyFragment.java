@@ -149,20 +149,11 @@ public class NewPrivateKeyFragment extends Fragment {
 
             //share HTML file
             String html = getKeyBackupHtml(alias, fingerprint, message);
-
-            File backupDir = new File(requireContext().getCacheDir(), "pk_backup");
-            if (!backupDir.exists()) backupDir.mkdirs();
-
             String fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
-
-            if (privateKeyBackup != null && Files.exists(privateKeyBackup))
-                Files.delete(privateKeyBackup);
-
-            privateKeyBackup = backupDir.toPath().resolve("pk_" + fingerprintString + ".html");
-            privateKeyBackup.toFile().deleteOnExit();
-            Files.write(privateKeyBackup, html.getBytes(StandardCharsets.UTF_8));
-
-            Uri contentUri = OmsFileProvider.getUriForFile(requireContext(), "com.onemoresecret.fileprovider", privateKeyBackup.toFile());
+            Uri contentUri = Util.toStream(requireContext(),
+                    "pk_" + fingerprintString + ".html",
+                    html.getBytes(StandardCharsets.UTF_8),
+                    true);
 
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);

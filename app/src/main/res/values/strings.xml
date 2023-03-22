@@ -106,4 +106,10 @@
     <string name="new_transport_password">New Transport Password</string>
     <string name="new_key_alias">New Key Alias</string>
     <string name="oms_crash_report">OneMoreSecret Crash Report</string>
+    <string name="disclaimer_crash_report">OneMoreSecret has detected an unexpected error and needs to close. To help us diagnose and fix the problem, you can send us a crash report. The report contains:</string>
+    <string name="chk_stack_trace">Stack trace (a list of the method calls that the application was in the middle of when an Exception was thrown)</string>
+    <string name="chk_device_info">Device information (device model, software version etc.)</string>
+    <string name="chk_logcat">logcat output (a journal containing hints about the program execution).</string>
+    <string name="btn_dismiss">dismiss</string>
+    <string name="btn_send">send</string>
 </resources>

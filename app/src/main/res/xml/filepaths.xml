@@ -1,5 +1,5 @@
 <paths>
     <cache-path
-        name="pk_backup"
-        path="pk_backup/" />
+        name="tmp"
+        path="tmp/" />
 </paths>

@@ -110,6 +110,8 @@ public class QRFragment extends Fragment {
             }).launch(Manifest.permission.CAMERA);
         }
 
+        throw new RuntimeException("test");
+
     }
 
     @Override
