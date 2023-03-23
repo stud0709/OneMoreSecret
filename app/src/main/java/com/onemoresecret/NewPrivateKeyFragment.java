@@ -24,21 +24,17 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.google.zxing.WriterException;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
-import com.onemoresecret.crypto.AesKeyAlgorithm;
-import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.databinding.FragmentNewPrivateKeyBinding;
 import com.onemoresecret.qr.QRUtil;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.List;
@@ -98,7 +94,7 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            KeyPair keyPair = CryptographyManager.generatePrivateKeyMaterial(preferences);
+            KeyPair keyPair = CryptographyManager.generateKeyPair(preferences);
             RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
             byte[] fingerprint = CryptographyManager.getFingerprint(publicKey);
             IvParameterSpec iv = AESUtil.generateIv();

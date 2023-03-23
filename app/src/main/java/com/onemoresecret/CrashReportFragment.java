@@ -23,7 +23,7 @@ public class CrashReportFragment extends Fragment {
     private CrashReportData crashReportData;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentCrashReportBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -68,7 +68,7 @@ public class CrashReportFragment extends Fragment {
                     startActivity(intentSendTo);
                     endProcess();
                 } catch (ActivityNotFoundException exx) {
-                    getContext().getMainExecutor().execute(() -> {
+                    requireContext().getMainExecutor().execute(() -> {
                         Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show();
                         endProcess();
                     });
@@ -88,7 +88,7 @@ public class CrashReportFragment extends Fragment {
                     startActivity(intentSendTo);
                     endProcess();
                 } else {
-                    getContext().getMainExecutor().execute(() -> {
+                    requireContext().getMainExecutor().execute(() -> {
                         Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show();
                         endProcess();
                     });
@@ -111,7 +111,7 @@ public class CrashReportFragment extends Fragment {
     }
 
     private void endProcess() {
-        getActivity().finish();
+        requireActivity().finish();
 //            android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);
     }

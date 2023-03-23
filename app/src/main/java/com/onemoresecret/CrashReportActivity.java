@@ -2,17 +2,13 @@ package com.onemoresecret;
 
 import android.os.Bundle;
 
-import com.google.android.material.snackbar.Snackbar;
-import com.onemoresecret.databinding.ActivityCrashReportBinding;
-
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.view.View;
-
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+
+import com.onemoresecret.databinding.ActivityCrashReportBinding;
 
 
 public class CrashReportActivity extends AppCompatActivity {

@@ -23,8 +23,6 @@ public class OmsDataInputStream extends DataInputStream {
     /**
      * This is a workaround method for reading UTF-8 strings, as the native method <a href="https://docs.oracle.com/javase/7/docs/api/java/io/DataInput.html#modified-utf-8">modifies UTF-8</a>.
      * Here, native UTF-8 byte array is written, prepended with the array length.
-     *
-     * @return
      */
     public String readString() throws IOException {
         return new String(readByteArray());
@@ -36,13 +34,13 @@ public class OmsDataInputStream extends DataInputStream {
     public byte[] readByteArray() throws IOException {
         int size = readUnsignedShort();
         byte[] bArr = new byte[size];
-        read(bArr);
+        assert read(bArr) == size;
         return bArr;
     }
 
     /**
      * Reads a {@link BigInteger} from a byte array prepended by the array's length.
-     * @return
+     *
      */
     public BigInteger readBigInteger() throws IOException {
         return new BigInteger(readByteArray());

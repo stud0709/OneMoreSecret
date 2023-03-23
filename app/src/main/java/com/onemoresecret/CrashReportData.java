@@ -8,31 +8,33 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 public class CrashReportData implements Serializable {
 
     private final Throwable throwable;
-    private final List<String> logcat = new ArrayList<>();
+    private final String logcat;
 
     public CrashReportData(Throwable throwable) {
         this.throwable = throwable;
+        logcat = getLogcat();
+    }
 
+    public static String getLogcat() {
         try {
             String s = "logcat -b all -d";
             Process p = Runtime.getRuntime().exec(s);
 
-            try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream())); StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
                 String line;
                 while ((line = bais.readLine()) != null) {
-                    logcat.add(line);
+                    pw.println(line);
                 }
+                return sw.toString();
             }
         } catch (IOException e) {
             e.printStackTrace();
-            return;
         }
+        return null;
     }
 
     public String toString(boolean includeLogcat) {
@@ -52,7 +54,7 @@ public class CrashReportData implements Serializable {
             pw.println("Android incremental: " + Build.VERSION.INCREMENTAL);
             if (includeLogcat) {
                 pw.println("\n----- LOGCAT -----");
-                logcat.stream().forEach(s -> pw.println(s));
+                pw.println(logcat);
             }
             pw.println("----- END OF REPORT -----");
             return sw.toString();

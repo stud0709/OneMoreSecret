@@ -84,7 +84,6 @@ public class KeyStoreListFragment extends Fragment {
             }
             Collections.sort(aliasList);
         } catch (KeyStoreException e) {
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
 
@@ -154,7 +153,7 @@ public class KeyStoreListFragment extends Fragment {
                         Util.byteArrayToHex(
                                 CryptographyManager.getFingerprint(publicKey)));
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             binding.getRoot().setActivated(selectionTracker.isSelected(alias));
         }

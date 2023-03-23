@@ -47,8 +47,6 @@ public class OmsDataOutputStream extends DataOutputStream {
 
     /**
      * BigInteger's {@link BigInteger#toByteArray()} representation prepended by the array's length.
-     * @param bi
-     * @throws IOException
      */
     public void writeBigInteger(BigInteger bi) throws IOException {
         writeByteArray(bi.toByteArray());

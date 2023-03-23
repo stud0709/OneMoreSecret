@@ -73,9 +73,8 @@ public class KeyManagementFragment extends Fragment {
             byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
             return Base64.getEncoder().encodeToString(bArr);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
-        return null;
     }
 
     @Override
@@ -102,31 +101,27 @@ public class KeyManagementFragment extends Fragment {
 
             if (!keyStoreListFragment.getSelectionTracker().hasSelection()) return false;
 
-            try {
-                String alias = getSelectedAlias();
+            String alias = getSelectedAlias();
 
-                if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
-                    new AlertDialog.Builder(getContext())
-                            .setTitle(R.string.delete_private_key)
-                            .setMessage(String.format(getString(R.string.ok_to_delete), alias))
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                                try {
-                                    cryptographyManager.deleteKey(alias);
-                                    Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
-                                    keyStoreListFragment.onItemRemoved(alias);
-                                } catch (KeyStoreException e) {
-                                    e.printStackTrace();
-                                    Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-                                }
-                            }).setNegativeButton(android.R.string.cancel, null).show();
-                } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
-                    Util.openUrl(R.string.key_management_md_url, requireContext());
-                } else {
-                    return false;
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
+                new AlertDialog.Builder(getContext())
+                        .setTitle(R.string.delete_private_key)
+                        .setMessage(String.format(getString(R.string.ok_to_delete), alias))
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                            try {
+                                cryptographyManager.deleteKey(alias);
+                                Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
+                                keyStoreListFragment.onItemRemoved(alias);
+                            } catch (KeyStoreException e) {
+                                e.printStackTrace();
+                                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        }).setNegativeButton(android.R.string.cancel, null).show();
+            } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
+                Util.openUrl(R.string.key_management_md_url, requireContext());
+            } else {
+                return false;
             }
 
             return true;

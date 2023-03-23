@@ -122,8 +122,8 @@ public class MessageFragment extends Fragment {
             showBiometricPromptForDecryption(aliases.get(0));
         } catch (Exception ex) {
             ex.printStackTrace();
-            Toast.makeText(this.getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
-            binding.textViewMessage.setText(String.format(getString(R.string.error_message), ex.getMessage()));
+            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
+            NavHostFragment.findNavController(this).popBackStack();
         }
     }
 

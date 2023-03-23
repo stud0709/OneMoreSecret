@@ -44,13 +44,12 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPrivateKeySpec;
-import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Objects;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -79,7 +78,7 @@ public class CryptographyManager {
         try {
             keyStore.load(null); // Keystore must be loaded before it can be accessed
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
     }
 
@@ -89,25 +88,20 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             InvalidKeyException {
 
-        Cipher cipher = getCipher(rsaTransformation);
+        Cipher cipher = Cipher.getInstance(rsaTransformation);
         cipher.init(Cipher.ENCRYPT_MODE, keyStore.getCertificate(keyName).getPublicKey());
         return cipher;
     }
 
     public Cipher getInitializedCipherForDecryption(String keyName, String transformation) {
         try {
-            Cipher cipher = getCipher(transformation);
-            PrivateKey secretKey = getPrivateKey(keyName);
+            Cipher cipher = Cipher.getInstance(transformation);
+            PrivateKey secretKey = Objects.requireNonNull(getPrivateKey(keyName));
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return cipher;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException(ex);
         }
-        return null;
-    }
-
-    private static Cipher getCipher(String transformation) throws NoSuchPaddingException, NoSuchAlgorithmException {
-        return Cipher.getInstance(transformation);
     }
 
     /**
@@ -119,12 +113,7 @@ public class CryptographyManager {
             UnrecoverableKeyException {
 
         Key key = keyStore.getKey(keyName, null);
-
-        if (key != null) {
-            return (PrivateKey) key;
-        }
-
-        return null;
+        return key == null ? null : (PrivateKey) key;
     }
 
     public Certificate getCertificate(String keyName) throws KeyStoreException {
@@ -154,18 +143,23 @@ public class CryptographyManager {
     }
 
     /**
-     * Generate private key material by means of the BouncyCastle library.
-     *
-     * @return key material
+     * Generate key pair by means of the BouncyCastle library to have access to the key material.
      */
-    public static KeyPair generatePrivateKeyMaterial(SharedPreferences preferences) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static KeyPair generateKeyPair(SharedPreferences preferences)
+            throws IOException,
+            NoSuchAlgorithmException,
+            InvalidKeySpecException {
+
         int keyLength = RSAUtils.getKeyLength(preferences);
+
         RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
+        
         rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(
                 BigInteger.valueOf(0x10001),
                 new SecureRandom(),
                 keyLength,
                 PrimeCertaintyCalculator.getDefaultCertainty(keyLength)));
+
         AsymmetricCipherKeyPair asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
         PrivateKeyInfo privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
         byte[] privateKeyMaterial = privateKeyInfo.getEncoded();
@@ -255,7 +249,7 @@ public class CryptographyManager {
                     result.add(alias);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
 
