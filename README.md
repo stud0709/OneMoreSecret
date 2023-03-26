@@ -1,5 +1,5 @@
 # ![App Icon](/app/src/main/res/mipmap-xhdpi/ic_launcher.png) OneMoreSecret
-OneMoreSecret is a standalone security layer for your data (e.g. passwords, more to come). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://en.wikipedia.org/wiki/Hardware_security_module). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
+OneMoreSecret is a standalone security layer for your data (e.g. passwords, more to come). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
 
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
@@ -43,9 +43,7 @@ It's your ~~problem~~ choice how to store your credentials. You could use a text
 
 If your database is stolen, the guys will still end up with encrypted passwords. 
 
-Personally, I prefer to store my KeePass database in the cloud storage. The file is encrypted, synced between your devices and protected from data loss.
-
-⚠️ Whatever you are going to use, think of regular backups and the offline capability of the software. Cloud storage might be unavailable the very moment you need your passwords.
+⚠️ Whatever you are going to use, think of regular backups, versioning and the offline capability of the software. A pure web application might be unavailable the very moment you need your passwords whereas a cloud storage client can be set up to have also a local copy on your device ([here](https://support.google.com/drive/answer/2375012?co=GENIE.Platform%3DDesktop&oco=1)'s how you set it up for Google Drive). 
 
 ### No Private Key Exposure 
 The Android Keystore system does not "hand over" the key to the app. Once the key has been imported into the storage, you cannot extract it from the phone any more. 
@@ -63,7 +61,7 @@ Login from a mobile device? No problem, OneMoreSecret will respond to browser li
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
 
 ### On Your Smartphone
-You have all the toolbox to encrypt and decrypt passwords on your mobile phone, create and import private keys etc.
+You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords on your mobile phone, create and import private keys etc.
 
 The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and send it to the app via Android OS (OneMoreSecret will register as a recipient of text data).
 
@@ -78,7 +76,9 @@ If we need more than one code, there will be a fast changing sequence of codes i
 The App will then request the key from Android Keystore system. Android will ask you to scan your fingerprint, verify it and decrypt the message on behalf of the app ([here](https://developer.android.com/training/articles/keystore) are some technical details). Now you can either make your password visible on the phone or you just tell the app to *TYPE* the password back to your PC. 
 
 ## Setting Things Up
-You will need a smartphone with Android 12 (API 31) or higher, a fingerprint sensor and a HID Bluetooth Profile (there is an [app](https://play.google.com/store/apps/details?id=com.rdapps.bluetoothhidtester&hl=en&gl=US) to test that).
+You will need a smartphone with Android 12 (API 31) or higher, a fingerprint sensor and a HID Bluetooth Profile (there is an [app](https://play.google.com/store/apps/details?id=com.rdapps.bluetoothhidtester&hl=en&gl=US) to test that). 
+
+⚠️ As the whole thing relies on Android OS and hardware security mechanisms, and every manufacturer has his own hard- and software behind the key store implemntation, it's a good idea to choose a smartphone from a renowned manufacturer. We have also seen compatibility issues with older phones which received an Android OS upgrade, but seem to have the older key store under the hood. 
 
 On your Android smartphone, you will need to set up the fingerprint authentification from your system settings. 
 

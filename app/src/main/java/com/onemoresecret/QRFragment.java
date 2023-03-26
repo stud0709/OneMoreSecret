@@ -2,10 +2,12 @@ package com.onemoresecret;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
@@ -51,11 +53,12 @@ public class QRFragment extends Fragment {
     private ImageAnalysis imageAnalysis;
     private ProcessCameraProvider cameraProvider;
 
-    private boolean consumeIntentIfAny = true;
-
     private final QrMenuProvider menuProvider = new QrMenuProvider();
 
     private ClipboardManager clipboardManager;
+
+    private SharedPreferences preferences;
+
 
     @Override
     public View onCreateView(
@@ -70,6 +73,14 @@ public class QRFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+
+        if (!preferences.getBoolean(PermissionsFragment.PROP_PERMISSIONS_REQUESTED, false)) {
+            NavHostFragment.findNavController(QRFragment.this)
+                    .navigate(R.id.action_QRFragment_to_permissionsFragment);
+            return;
+        }
+
         clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         requireActivity().addMenuProvider(menuProvider);
@@ -78,7 +89,9 @@ public class QRFragment extends Fragment {
 
         Intent intent = requireActivity().getIntent();
 
-        if (intent != null && consumeIntentIfAny) {
+        if (intent != null) {
+            requireActivity().setIntent(null);
+
             String action = intent.getAction();
             String type = intent.getType();
             Log.d(TAG, "Action: " + action + ", type: " + type);
@@ -121,7 +134,6 @@ public class QRFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        consumeIntentIfAny = false;
     }
 
     private void checkBiometrics() {
@@ -307,6 +319,20 @@ public class QRFragment extends Fragment {
                 String text = (String) item.getText();
                 if (text != null) {
                     onMessage(text);
+                }
+            } else if (menuItem.getItemId() == R.id.menuItemFeedback) {
+                CrashReportData crashReportData = new CrashReportData(null);
+
+                try {
+                    Intent intentSendTo = new Intent(Intent.ACTION_SENDTO);
+                    intentSendTo.setData(Uri.parse("mailto:"));
+                    intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback");
+                    intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
+                    intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReportData.toString(false) + "\n" + getString(R.string.feedback_prompt));
+                    startActivity(intentSendTo);
+                } catch (ActivityNotFoundException ex) {
+                    requireContext().getMainExecutor().execute(
+                            () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
                 }
             } else {
                 return false;

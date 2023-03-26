@@ -40,8 +40,10 @@ public class CrashReportData implements Serializable {
     public String toString(boolean includeLogcat) {
         try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
             pw.println("OneMoreSecret version: " + BuildConfig.VERSION_NAME);
-            pw.println("\n----- STACK TRACE -----");
-            throwable.printStackTrace(pw);
+            if(throwable != null) {
+                pw.println("\n----- STACK TRACE -----");
+                throwable.printStackTrace(pw);
+            }
             pw.println("\n----- DEVICE -----");
             pw.println("Brand: " + Build.BRAND);
             pw.println("Device: " + Build.DEVICE);

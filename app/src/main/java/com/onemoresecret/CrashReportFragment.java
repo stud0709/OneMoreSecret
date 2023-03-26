@@ -12,10 +12,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+
 import com.onemoresecret.databinding.FragmentCrashReportBinding;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 
 public class CrashReportFragment extends Fragment {
 
@@ -39,6 +41,14 @@ public class CrashReportFragment extends Fragment {
     }
 
     private void sendEmail() {
+        final Function<String, Intent> intentFx = action -> {
+            Intent intent = new Intent(action);
+            intent.setData(Uri.parse("mailto:"));
+            intent.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret crash report");
+            intent.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
+            return intent;
+        };
+
         try {
             String crashReport = crashReportData.toString(binding.chkLogcat.isChecked());
             Uri attachment = Util.toStream(requireContext(),
@@ -46,10 +56,7 @@ public class CrashReportFragment extends Fragment {
                     crashReport.getBytes(StandardCharsets.UTF_8),
                     false
             );
-            Intent intentSend = new Intent(Intent.ACTION_SEND);
-            intentSend.setData(Uri.parse("mailto:"));
-            intentSend.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret crash report");
-//            intent.putExtra(Intent.EXTRA_EMAIL, new String[]{"TODO"});
+            Intent intentSend = intentFx.apply(Intent.ACTION_SEND);
             intentSend.putExtra(Intent.EXTRA_STREAM, attachment);
             intentSend.putExtra(Intent.EXTRA_TEXT, "The report file has been attached. Please use this email to provide additional feedback (this is optional).");
 
@@ -60,10 +67,7 @@ public class CrashReportFragment extends Fragment {
             } catch (ActivityNotFoundException ex) {
                 try {
                     //email without attachment
-                    Intent intentSendTo = new Intent(Intent.ACTION_SENDTO);
-                    intentSendTo.setData(Uri.parse("mailto:"));
-                    intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret crash report");
-//                intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{"TODO"});
+                    Intent intentSendTo = intentFx.apply(Intent.ACTION_SENDTO);
                     intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReport);
                     startActivity(intentSendTo);
                     endProcess();
@@ -74,27 +78,6 @@ public class CrashReportFragment extends Fragment {
                     });
                 }
             }
-            if (intentSend.resolveActivity(requireActivity().getPackageManager()) != null) {
-                startActivity(intentSend);
-                endProcess();
-            } else {
-                //email without attachment
-                Intent intentSendTo = new Intent(Intent.ACTION_SENDTO);
-                intentSendTo.setData(Uri.parse("mailto:"));
-                intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret crash report");
-//                intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{"TODO"});
-                intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReport);
-                if (intentSendTo.resolveActivity(requireActivity().getPackageManager()) != null) {
-                    startActivity(intentSendTo);
-                    endProcess();
-                } else {
-                    requireContext().getMainExecutor().execute(() -> {
-                        Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show();
-                        endProcess();
-                    });
-                }
-            }
-
         } catch (IOException ex) {
             ex.printStackTrace();
         }

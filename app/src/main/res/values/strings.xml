@@ -112,4 +112,9 @@
     <string name="chk_logcat">logcat output (a journal containing hints about the program execution).</string>
     <string name="btn_dismiss">dismiss</string>
     <string name="btn_send">send</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="feedback">Feedback</string>
+    <string name="contact_email">stud0709.github@gmail.com</string>
+    <string name="feedback_prompt">Please provide your feedback...</string>
 </resources>

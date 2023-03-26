@@ -24,6 +24,9 @@
         <action
             android:id="@+id/action_QRFragment_to_passwordGeneratorFragment"
             app:destination="@id/passwordGeneratorFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_permissionsFragment"
+            app:destination="@id/permissionsFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -54,4 +57,9 @@
         android:name="com.onemoresecret.PasswordGeneratorFragment"
         android:label="Password Generator"
         tools:layout="@layout/fragment_password_generator" />
+    <fragment
+        android:id="@+id/permissionsFragment"
+        android:name="com.onemoresecret.PermissionsFragment"
+        android:label="App Permissions"
+        tools:layout="@layout/fragment_permissions" />
 </navigation>

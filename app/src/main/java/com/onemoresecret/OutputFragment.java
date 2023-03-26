@@ -64,8 +64,7 @@ public class OutputFragment extends Fragment {
     private ArrayAdapter<SpinnerItemDevice> arrayAdapterDevice;
     private final String[] REQUIRED_PERMISSIONS = {
             android.Manifest.permission.BLUETOOTH_CONNECT,
-            android.Manifest.permission.BLUETOOTH_ADVERTISE,
-            android.Manifest.permission.BLUETOOTH_SCAN
+            android.Manifest.permission.BLUETOOTH_ADVERTISE
     };
     private final Map<String, List<Stroke>> keyboardQueue = new ConcurrentHashMap<>();
 
@@ -135,17 +134,10 @@ public class OutputFragment extends Fragment {
 
         clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
-        if (isAllPermissionsGranted()) {
+        if (PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
             onAllPermissionsGranted();
         } else {
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                if (isAllPermissionsGranted()) {
-                    onAllPermissionsGranted();
-                } else {
-                    Toast.makeText(getContext(), getString(R.string.insufficient_permissions), Toast.LENGTH_SHORT).show();
-                    //todo
-                }
-            }).launch(REQUIRED_PERMISSIONS);
+            refreshBluetoothControls();
         }
 
         initSpinnerTargetDevice();
@@ -274,19 +266,6 @@ public class OutputFragment extends Fragment {
 
     }
 
-    private boolean isAllPermissionsGranted() {
-        if (Arrays.stream(REQUIRED_PERMISSIONS).allMatch(p -> ContextCompat.checkSelfPermission(requireContext(), p) == PackageManager.PERMISSION_GRANTED))
-            return true;
-
-        Log.d(TAG, "Granted permissions:");
-        Arrays.stream(REQUIRED_PERMISSIONS).forEach(p -> {
-            int check = ContextCompat.checkSelfPermission(requireContext(), p);
-            Log.d(TAG, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
-        });
-
-        return false;
-    }
-
     protected void type(List<Stroke> list) {
         SpinnerItemDevice selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
@@ -371,7 +350,9 @@ public class OutputFragment extends Fragment {
         if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {
-            if (!bluetoothController.isBluetoothAvailable() || !isAllPermissionsGranted()) {
+            if (!bluetoothController.isBluetoothAvailable() ||
+                    !PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
+
                 //disable all bluetooth functionality
                 String status = getString(R.string.bt_not_available);
                 Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
@@ -384,6 +365,7 @@ public class OutputFragment extends Fragment {
                     binding.spinnerBluetoothTarget.setEnabled(false);
                     binding.btnType.setEnabled(false);
                     binding.imgButtonDiscoverable.setEnabled(false);
+                    binding.swDelayedStrokes.setEnabled(false);
                 });
 
                 return;

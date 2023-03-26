@@ -20,4 +20,7 @@
     <item
         android:id="@+id/menuItemHomePage"
         android:title="@string/project_home_page" />
+    <item
+        android:id="@+id/menuItemFeedback"
+        android:title="@string/feedback" />
 </menu>
