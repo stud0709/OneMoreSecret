@@ -1,6 +1,6 @@
 # The Hello World Tutorial
 
-**WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
+⚠️ **WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
 
 In this tutorial you will get familiar with the core functionality of the oneMoreSecret app. 
 
@@ -29,7 +29,8 @@ Here it is:
 ![Sample message](readme_images/hello_world_test.gif)
 
 - The app will ask for your fingerprint and decrypt the message. 
-- You can reveal the message with the swith on top of the screen.
+- You can reveal the message with the switch on top of the screen.
+- In case you want to type the message to your PC, please refer to the [autotype](./autotype.md) section.
 
 ## Step 5. Mobile Phone Integration.
 
@@ -47,4 +48,19 @@ Just select this text on your phone and send it to OneMoreSecret.
 
 Congratulations, you have successfully decrypted your first message! 🎉
 
-If you now want to delete the test key or create your own, go from the [QR scanner](qr_scanner.md) screen to [Private Keys](key_management.md).
+## Setp 6. Generate and Encrypt a New Password
+Now it's time to generate a new password.
+
+Go back to the [QR scanner](qr_scanner.md) screen and choose [Password Generator](./password_generator.md) from the menu. 
+
+![password generator](./readme_images/password_generator.png)
+
+You can activate or disable different character classes, adjust length, generate other suggestions with 🪄 or edit the password manually. Once done, press and hold the key entry under *Encrypt With* - this will put your password into an encryption envelope. 
+
+Whether encrypted or not, you can copy it to the clipboard, send it to another Android app or type via Bluetooth.
+
+##Step 7. Cleanup
+
+⚠️ Feel free to play around with the test key, just remember not to use it for your real passwords. 
+
+If you now want to delete the test key or create your own, please follow from the [QR scanner](qr_scanner.md) screen to [Private Keys](key_management.md).

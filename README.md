@@ -7,7 +7,7 @@ This is a very early version of the software. Use it at your own risk. We'll do 
 ### For the impatient one
 TLDR? See it in action! Try our ["Hello, World!" Tutorial](hello_world.md).
 
-**WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
+⚠️ **WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
 
 ## What's wrong with password managers?
 In the early days, the computers were not password protected. The first password [dates back](https://www.smh.com.au/national/scientist-who-introduced-the-computer-password-20190717-p527zf.html) to 1961. As things got worse, [password policies](https://en.wikipedia.org/wiki/Password_policy) were born, together with the recommendation to have separate passwords for every application. This is how the [password manager](https://en.wikipedia.org/wiki/Password_manager) came into being - as a workaround for the password policy. You *kind of* have different passwords for every service, and still, there is only one password.
@@ -19,7 +19,7 @@ Don't get me wrong, [KeePass](https://keepass.info/download.html) and others hav
 3. Even if there are some additional security measures to protect the password database (e.g. entering your password using Windows secure screen or protecting the database with the password and a key provider or a secret file), they are often not active in the default configuration of your tool. 
 4. If you have gained access to a cloud password storage, you can collect literally millions of password **databases**!
 
-My personal nightmare is a hidden code change in a password manager making it send the data to a third party. And yes, code changes to a cloud software apply for all customers in the same minute they are deployed... 💣
+My personal nightmare is a hidden code change in a password manager making it send the data to a third party. And yes, code changes to a cloud software apply for all customers the same minute they are deployed... 💣
 
 ## Why OneMoreSecret?
 ...well, I am probably not the only one wondering if we are really better off with password managers or just storing all our credentials in one place for someone to come and collect them all at once. Maybe not today, but tomorrow...
@@ -28,13 +28,13 @@ If there is a vulnerability, there will be also an exploit for it. And it will w
 
 ...and I am fed up of typing my master password 40 times a day! 🤬 If you enter your master password on multiple machines and different platforms many times per day - is it still something you call secure?
 
-So here is the wish list I wanted to implement with oneMoreSecret:
+So here is the wish list I wanted to implement with OneMoreSecret:
 
 ### No Master Password
-The encryption used in oneMoreSecret is based on keys, not a password phrase. Yes, it's the old good [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) wrapped into a handy tool. 
+The encryption used in OneMoreSecret is based on keys, not a password phrase. Yes, it's the old good [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) wrapped into a handy tool. 
 
 ### No Context
-Every password is stored separately in its own encryption envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals a password, he will still have to figure out, what it is good for. 
+Every password is stored separately in its own encryption envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals a password from your phone, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
 It's your ~~problem~~ choice how to store your credentials. You could use a text file, Excel, [Google Sheets](https://docs.google.com/spreadsheets), [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using [KeePass](https://keepass.info) (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
@@ -57,6 +57,8 @@ The only way to restore your private key is the backup document together with th
 
 Login from a mobile device? No problem, OneMoreSecret will respond to browser links. Just add the encrypted message (`<a href="https://oms-app-intent/oms00_.....">Click here to log in from your phone</a>`). You will find a sample link in our ["Hello, World!" Tutorial](hello_world.md#step-5-mobile-phone-integration).
 
+(As `oms-app-intent` is not a valid domain, this is not working smoothly on all phones right now, sometimes displaying "Page not found" error in the browser.)
+
 ## How It Works
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
 
@@ -78,22 +80,22 @@ The App will then request the key from Android Keystore system. Android will ask
 ## Setting Things Up
 You will need a smartphone with Android 12 (API 31) or higher, a fingerprint sensor and a HID Bluetooth Profile (there is an [app](https://play.google.com/store/apps/details?id=com.rdapps.bluetoothhidtester&hl=en&gl=US) to test that). 
 
-⚠️ As the whole thing relies on Android OS and hardware security mechanisms, and every manufacturer has his own hard- and software behind the key store implemntation, it's a good idea to choose a smartphone from a renowned manufacturer. We have also seen compatibility issues with older phones which received an Android OS upgrade, but seem to have the older key store under the hood. 
+⚠️ As the whole thing relies on Android OS and hardware security mechanisms, and every manufacturer has his own hard- and software behind the key store implementation, it's a good idea to choose a smartphone from a renowned manufacturer. We have also seen compatibility issues with older phones which received an Android OS upgrade, but seem to have the older key store under the hood. 
 
 On your Android smartphone, you will need to set up the fingerprint authentification from your system settings. 
 
-If your password database is on your decktop PC, you will also need [omsCompanion](https://github.com/stud0709/oms_companion). omsCompanion will transfer your encrypted data to your phone. You can also use it to encrypt your secrets with the public key. 
+If your password database is on your decktop PC, you will also need [omsCompanion](https://github.com/stud0709/oms_companion). omsCompanion will generate QR codes from your encrypted data, making it readable for your phone. You can also use it to encrypt your secrets with the public key. 
 
-Once the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See auto-type help page in the app for more details.
+Once the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See [auto-type](./autotype.md) help page in the app for more details.
 
 ## Roadmap and Bugs
-For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
+For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). You can also send me a feedback mail from the app menu. 
 
 ## Credits
 Images:
 - [android png from pngtree.com](https://pngtree.com/so/android)
 
-Many thanks to the folks whose projects helped me to find my way through HID and encryption challenges:
+Many thanks to the folks whose projects helped me to find my way through HID, encryption and other challenges:
 - [Aleksander-Drewnicki](https://github.com/Aleksander-Drewnicki/BLE_HID_EXAMPLE)
 - [Eleccelerator](https://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/)
 - [misterpki](https://github.com/misterpki/selfsignedcert)
