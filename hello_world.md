@@ -59,7 +59,7 @@ You can activate or disable different character classes, adjust length, generate
 
 Whether encrypted or not, you can copy it to the clipboard, send it to another Android app or type via Bluetooth.
 
-##Step 7. Cleanup
+## Step 7. Cleanup
 
 ⚠️ Feel free to play around with the test key, just remember not to use it for your real passwords. 
 
