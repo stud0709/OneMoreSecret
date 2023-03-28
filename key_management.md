@@ -4,7 +4,7 @@
 
 This view allows you do delete private keys or share **public keys** by copying them to clipboard, sending to another app or [auto-typing](autotype.md).
 
-If you generated your private key in the app or restored it and you are using [omsCompanion](https://github.com/stud0709/oms_companion), you will need to share the private key with it, if you want to encrypt passwords on your desktop PC directly.
+If you generated your private key in the app or restored it, and you are using [omsCompanion](https://github.com/stud0709/oms_companion), you will need to share the private key with the latter, if you want to encrypt passwords on your desktop PC directly.
 
 ## Public Keys
 In contrast to private keys, public keys are safe to be shared with others. For a private key, there is always a corresponding public key. 

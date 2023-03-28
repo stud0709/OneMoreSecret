@@ -4,6 +4,8 @@ OneMoreSecret is a standalone security layer for your data (e.g. passwords, more
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
 
+The app is currently available from Google Play as an internal test. Send me a message if you want to participate, and you will receive an invitation. 
+
 ### For the impatient one
 TLDR? See it in action! Try our ["Hello, World!" Tutorial](hello_world.md).
 
