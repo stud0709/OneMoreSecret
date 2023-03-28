@@ -335,8 +335,10 @@ public class OutputFragment extends Fragment {
         if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        bluetoothController.getBluetoothHidDevice().getConnectedDevices().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
-        bluetoothController.getBluetoothHidDevice().unregisterApp();
+        if (bluetoothController != null) {
+            bluetoothController.getBluetoothHidDevice().getConnectedDevices().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
+            bluetoothController.getBluetoothHidDevice().unregisterApp();
+        }
 
         binding.btnType.setOnClickListener(null);
         requireActivity().removeMenuProvider(menuProvider);
