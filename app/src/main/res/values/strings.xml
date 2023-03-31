@@ -77,11 +77,11 @@
     <string name="password">Password</string>
     <string name="password_generator">Password Generator</string>
     <string name="generate">Generate</string>
-    <string name="upper_case">Upper Case...</string>
-    <string name="lower_case">Lower Case...</string>
-    <string name="digits">Digits...</string>
-    <string name="specials">Specials...</string>
-    <string name="similar">Similar...</string>
+    <string name="upper_case">Upper Case…</string>
+    <string name="lower_case">Lower Case…</string>
+    <string name="digits">Digits…</string>
+    <string name="specials">Specials…</string>
+    <string name="similar">Similar…</string>
     <string name="encrypt_with">Encrypt With:</string>
     <string name="share">Share</string>
     <string name="oms_secret_message">OneMoreSecret Secret Message</string>
@@ -93,6 +93,7 @@
     <string name="project_home_page">Project Home Page</string>
     <string name="qr_scanner_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/qr_scanner.md</string>
     <string name="pwd_generator_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/password_generator.md</string>
+    <string name="encrypt_text_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/encrypt_text.md</string>
     <string name="autotype_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/autotype.md</string>
     <string name="key_management_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_management.md</string>
     <string name="decrypted_message_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/decrypted_message.md</string>
@@ -112,8 +113,6 @@
     <string name="chk_logcat">logcat output (a journal containing hints about the program execution).</string>
     <string name="btn_dismiss">dismiss</string>
     <string name="btn_send">send</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="feedback">Feedback</string>
     <string name="contact_email">stud0709.github@gmail.com</string>
     <string name="feedback_prompt">Please provide your feedback...</string>

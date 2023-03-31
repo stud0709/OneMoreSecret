@@ -8,3 +8,4 @@ If you are restoring your private key from the backup file, pay attention to the
 ## Toolbar Options
 - [Private Key Management](key_management.md)
 - [Password Generator](password_generator.md)
+- [Encrypt Text](encrypt_text.md)

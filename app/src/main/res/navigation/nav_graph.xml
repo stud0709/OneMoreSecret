@@ -27,6 +27,9 @@
         <action
             android:id="@+id/action_QRFragment_to_permissionsFragment"
             app:destination="@id/permissionsFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_encryptTextFragment"
+            app:destination="@id/encryptTextFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -62,4 +65,9 @@
         android:name="com.onemoresecret.PermissionsFragment"
         android:label="App Permissions"
         tools:layout="@layout/fragment_permissions" />
+    <fragment
+        android:id="@+id/encryptTextFragment"
+        android:name="com.onemoresecret.EncryptTextFragment"
+        android:label="Encrypt Text"
+        tools:layout="@layout/fragment_encrypt_text" />
 </navigation>

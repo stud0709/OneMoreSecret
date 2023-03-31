@@ -334,6 +334,9 @@ public class QRFragment extends Fragment {
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
                 }
+            } else if(menuItem.getItemId() == R.id.menuItemEncryptText){
+                NavHostFragment.findNavController(QRFragment.this)
+                        .navigate(R.id.action_QRFragment_to_encryptTextFragment);
             } else {
                 return false;
             }

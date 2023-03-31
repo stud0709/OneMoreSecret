@@ -134,6 +134,9 @@ public class PasswordGeneratorFragment extends Fragment {
 
         preferences.registerOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
 
+        setPwd = getSetPwd("");
+        encryptPwd = getEncryptPwd("");
+
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
                         .getSelectionTracker()
@@ -142,7 +145,8 @@ public class PasswordGeneratorFragment extends Fragment {
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    onKeySelected();
+                                    String selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+                                    encryptPwd.accept(selectedAlias);
                                 } else {
                                     setPwd.run();
                                 }
@@ -176,10 +180,6 @@ public class PasswordGeneratorFragment extends Fragment {
         newPassword();
     }
 
-    private void onKeySelected() {
-        String selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-        encryptPwd.accept(selectedAlias);
-    }
 
     private void changePwdLen() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -338,7 +338,7 @@ public class PasswordGeneratorFragment extends Fragment {
         //ensure minimal occurrence
         List<String> list = new ArrayList<>();
         for (int i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
-                list.addAll(charClasses);
+            list.addAll(charClasses);
         }
 
         SecureRandom rnd = new SecureRandom();
@@ -455,7 +455,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 changeCharList(PROP_SPECIALS_LIST);
             } else if (menuItem.getItemId() == R.id.menuItemSimilar) {
                 changeCharList(PROP_SIMILAR_LIST);
-            } else if(menuItem.getItemId() == R.id.enuItemPwGenHelp) {
+            } else if (menuItem.getItemId() == R.id.menuItemPwGenHelp) {
                 Util.openUrl(R.string.pwd_generator_md_url, requireContext());
             } else {
                 return false;

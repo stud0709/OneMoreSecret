@@ -11,6 +11,9 @@
         android:id="@+id/menuItemPwdGenerator"
         android:title="@string/password_generator" />
     <item
+        android:id="@+id/menuItemEncryptText"
+        android:title="Encrypt Text" />
+    <item
         android:id="@+id/menuItemQrPrivateKeys"
         android:title="@string/action_private_keys"
         app:showAsAction="never" />
