@@ -16,16 +16,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-
 import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -37,6 +27,13 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.bt.layout.KeyboardLayout;
@@ -335,7 +332,7 @@ public class OutputFragment extends Fragment {
         if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        if (bluetoothController != null) {
+        if (bluetoothController != null && bluetoothController.getBluetoothHidDevice() != null) {
             bluetoothController.getBluetoothHidDevice().getConnectedDevices().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
             bluetoothController.getBluetoothHidDevice().unregisterApp();
         }
@@ -356,12 +353,10 @@ public class OutputFragment extends Fragment {
                     !PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
 
                 //disable all bluetooth functionality
-                String status = getString(R.string.bt_not_available);
-                Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
-
-                getContext().getMainExecutor().execute(() -> {
+                requireContext().getMainExecutor().execute(() -> {
+                    Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
                     binding.chipBtStatus.setChipIcon(drawable);
-                    binding.chipBtStatus.setText(status);
+                    binding.chipBtStatus.setText(getString(R.string.bt_not_available));
 
                     binding.spinnerKeyboardLayout.setEnabled(false);
                     binding.spinnerBluetoothTarget.setEnabled(false);
@@ -369,7 +364,6 @@ public class OutputFragment extends Fragment {
                     binding.imgButtonDiscoverable.setEnabled(false);
                     binding.swDelayedStrokes.setEnabled(false);
                 });
-
                 return;
             }
 
@@ -377,7 +371,7 @@ public class OutputFragment extends Fragment {
 
             boolean bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
 
-            if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
             boolean discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
@@ -399,7 +393,7 @@ public class OutputFragment extends Fragment {
                     })
                     .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
 
-            getContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() -> {
                 Log.d(TAG, "Refreshing controls");
                 refreshingBtControls.set(true);
 

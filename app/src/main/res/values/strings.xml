@@ -116,4 +116,5 @@
     <string name="feedback">Feedback</string>
     <string name="contact_email">stud0709.github@gmail.com</string>
     <string name="feedback_prompt">Please provide your feedback...</string>
+    <string name="malformed_intent">Malformed intent</string>
 </resources>

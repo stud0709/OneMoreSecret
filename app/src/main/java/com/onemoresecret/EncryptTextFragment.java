@@ -55,8 +55,13 @@ public class EncryptTextFragment extends Fragment {
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
         requireActivity().addMenuProvider(menuProvider);
 
-        setPhrase = getSetPhrase("");
-        encryptPhrase = getEncryptPhrase("");
+        String text = requireArguments().getString("TEXT");
+        if (text == null) text = "";
+
+        binding.editTextPhrase.setText(text);
+
+        setPhrase = getSetPhrase(text);
+        encryptPhrase = getEncryptPhrase(text);
 
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -109,11 +114,11 @@ public class EncryptTextFragment extends Fragment {
         };
     }
 
-    private Consumer<String> getEncryptPhrase(String pwd) {
+    private Consumer<String> getEncryptPhrase(String phrase) {
         return alias -> {
             try {
                 String encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedMessageTransfer(pwd.getBytes(StandardCharsets.UTF_8),
+                        new EncryptedMessageTransfer(phrase.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),

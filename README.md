@@ -67,7 +67,7 @@ This is a brief overview of the functionality. For every screen, you can find a 
 ### On Your Smartphone
 You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords on your mobile phone, create and import private keys etc.
 
-The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and send it to the app via Android OS (OneMoreSecret will register as a recipient of text data).
+The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with OneMoreSecret (OneMoreSecret will register as a recipient of text data).
 
 ### On Your Desktop Computer
 If you store your passwords on your desktop computer, [omsCompanion](https://github.com/stud0709/oms_companion) will convert your encrypted data into a QR code sequence as soon as you copy it to your clipboard. So on your desktop, a window will pop up:

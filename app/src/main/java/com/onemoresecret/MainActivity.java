@@ -1,7 +1,9 @@
 package com.onemoresecret;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -13,6 +15,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.onemoresecret.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private AppBarConfiguration appBarConfiguration;
 
@@ -38,5 +41,18 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    /**
+     * Entry point for the intent is {@link QRFragment}. When a new intent arrives, the app state is unclear.
+     * Therefore we just restart the app.
+     *
+     * @param intent The new intent that was started for the activity.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        finish();
+        startActivity(intent);
     }
 }

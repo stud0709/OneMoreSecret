@@ -88,26 +88,9 @@ public class QRFragment extends Fragment {
         binding.txtAppVersion.setText(BuildConfig.VERSION_NAME);
 
         Intent intent = requireActivity().getIntent();
-
         if (intent != null) {
             requireActivity().setIntent(null);
-
-            String action = intent.getAction();
-            String type = intent.getType();
-            Log.d(TAG, "Action: " + action + ", type: " + type);
-
-            switch (intent.getAction()) {
-                case Intent.ACTION_VIEW:
-                    Uri data = intent.getData();
-                    if (data != null && data.getPath().startsWith("/" + MessageComposer.OMS_PREFIX)) {
-                        onMessage(data.getPath().substring(1));
-                    }
-                    break;
-                case Intent.ACTION_SEND:
-                    String text = intent.getStringExtra(Intent.EXTRA_TEXT);
-                    onMessage(text);
-                    break;
-            }
+            if (processIntent(intent)) return;
         }
 
         //enable camera
@@ -134,6 +117,44 @@ public class QRFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+    }
+
+    private boolean processIntent(Intent intent) {
+
+        Log.d(TAG, "found intent: " + intent);
+
+        if (intent != null) {
+            String action = intent.getAction();
+            String type = intent.getType();
+            Log.d(TAG, "Action: " + action + ", type: " + type);
+
+            switch (intent.getAction()) {
+                case Intent.ACTION_VIEW:
+                    Uri data = intent.getData();
+                    if (data != null) {
+                        onMessage(data.getPath().substring(1));
+                        return true;
+                    } else {
+                        Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
+                    }
+                    break;
+                case Intent.ACTION_SEND:
+                    //a piece of text has been sent to the app using Android "send to" functionality
+                    String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+                    if (MessageComposer.decode(text) == null) {
+                        //this is not an OMS message, forward it to the text encryption fragment
+                        Bundle bundle = new Bundle();
+                        bundle.putString("TEXT", text);
+
+                        NavHostFragment.findNavController(QRFragment.this)
+                                .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
+                    } else {
+                        onMessage(text);
+                    }
+                    return true;
+            }
+        }
+        return false;
     }
 
     private void checkBiometrics() {
@@ -334,7 +355,7 @@ public class QRFragment extends Fragment {
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
                 }
-            } else if(menuItem.getItemId() == R.id.menuItemEncryptText){
+            } else if (menuItem.getItemId() == R.id.menuItemEncryptText) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_encryptTextFragment);
             } else {

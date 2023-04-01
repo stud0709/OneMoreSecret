@@ -44,7 +44,7 @@ Your private password database will be text based though. The text representatio
 
 `oms00_AAEAAAAg21N0EVMYnl7uMSeQGZwFfGf43ysMvANVTWWN7OJ/pzkAAAAQ87NChX7bQv1P35zZlTBICAEABmwOQYvROKWcWUI32CtAttm9m7EmghJRERlcnjOc8PhArnkGtGYq9M2sS0ZSNnsZuH7w6hD/LcAEUnWRQ34ynGy/jsiv4B4iwA3y0i6cFBmrh2jJEpZxL3gNPRGNfcep6eey22RUNE+CJflf91ttUTJKW3FyKTB9Yed7hqSy5xeYbFuL1h6mWLo3ZHtth+A0HGZXG0V18uwdr/fv7QkmXLT65KOzlv8a5+vjnTKF/S8u9IjC8/D9XixbScB9NuaCFK2Qq0eJ1Hu9bVEFYaGhdgWqhRB/9y6g776ghRkRzXlu8Z/oExVZ9aN5DUg4awGzs0YamMBKP6fkYFXHuyBE6QAgYc2BkuxKjYyNM9EHcai+tE27uS3qKRYoRW1/xpbOPdg=`
 
-Just select this text on your phone and send it to OneMoreSecret.
+Just select this text on your phone and share it with OneMoreSecret (alternatively, you can use the clipboard of your smartphone).
 
 Congratulations, you have successfully decrypted your first message! 🎉
 

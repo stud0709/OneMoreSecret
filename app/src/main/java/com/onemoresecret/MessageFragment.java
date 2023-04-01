@@ -76,9 +76,7 @@ public class MessageFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
         ((OutputFragment) binding.messageOutputFragment.getFragment()).setBeforePause(() -> navBackIfPaused = false);
 
-        assert getArguments() != null;
-
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(getArguments().getByteArray("MESSAGE"));
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray("MESSAGE"));
              OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
 
             //(1) Application ID
