@@ -120,13 +120,10 @@ public class QRFragment extends Fragment {
     }
 
     private boolean processIntent(Intent intent) {
-
-        Log.d(TAG, "found intent: " + intent);
-
         if (intent != null) {
             String action = intent.getAction();
             String type = intent.getType();
-            Log.d(TAG, "Action: " + action + ", type: " + type);
+            Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
             switch (intent.getAction()) {
                 case Intent.ACTION_VIEW:
