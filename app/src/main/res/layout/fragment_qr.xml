@@ -55,7 +55,7 @@
             android:id="@+id/txtAppVersion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="app-version" />
+            android:text="@string/app_version" />
 
     </LinearLayout>
 

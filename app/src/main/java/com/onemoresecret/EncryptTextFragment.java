@@ -55,7 +55,9 @@ public class EncryptTextFragment extends Fragment {
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
         requireActivity().addMenuProvider(menuProvider);
 
-        String text = requireArguments().getString("TEXT");
+        //based on pre-launch test
+        //java.lang.IllegalStateException: Fragment EncryptTextFragment does not have any arguments.
+        String text = getArguments() == null ? null : getArguments().getString("TEXT");
         if (text == null) text = "";
 
         binding.editTextPhrase.setText(text);

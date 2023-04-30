@@ -333,10 +333,15 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemHomePage) {
                 Util.openUrl(R.string.readme_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemPaste) {
-                ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-                String text = (String) item.getText();
-                if (text != null) {
-                    onMessage(text);
+                //based on pre-launch test
+                //Exception java.lang.NullPointerException: Attempt to invoke virtual method 'android.content.ClipData$Item android.content.ClipData.getItemAt(int)' on a null object reference
+                ClipData clipData = clipboardManager.getPrimaryClip();
+                if (clipData != null) {
+                    ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
+                    String text = (String) item.getText();
+                    if (text != null) {
+                        onMessage(text);
+                    }
                 }
             } else if (menuItem.getItemId() == R.id.menuItemFeedback) {
                 CrashReportData crashReportData = new CrashReportData(null);

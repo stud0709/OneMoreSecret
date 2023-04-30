@@ -117,4 +117,11 @@
     <string name="contact_email">stud0709.github@gmail.com</string>
     <string name="feedback_prompt">Please provide your feedback...</string>
     <string name="malformed_intent">Malformed intent</string>
+    <string name="app_version">app-version</string>
+    <string name="permissions1">To be fully functional, OneMoreSecret will request the following permissions from your device:</string>
+    <string name="permission_text_camera_access">Access the camera to read QR codes</string>
+    <string name="permission_text_discoverable_BT">Make your device discoverable to other Bluetooth devices (This will allow you to pair your phone as a virtual keyboard with your PC)</string>
+    <string name="permission_text_communicate_BT">Communicate with already paired Bluetooth devices (for the virtual keyboard to work)</string>
+    <string name="permissions2">With incomplete permissions, OneMoreSecret will only have limited functionality. You can adjust pemissions at any time from the App settings of your device.</string>
+    <string name="proceed">Proceed</string>
 </resources>
