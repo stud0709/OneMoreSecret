@@ -12,7 +12,7 @@
         android:title="@string/password_generator" />
     <item
         android:id="@+id/menuItemEncryptText"
-        android:title="Encrypt Text" />
+        android:title="@string/encrypt_text" />
     <item
         android:id="@+id/menuItemQrPrivateKeys"
         android:title="@string/action_private_keys"
@@ -25,5 +25,14 @@
         android:title="@string/project_home_page" />
     <item
         android:id="@+id/menuItemFeedback"
-        android:title="@string/feedback" />
+        android:title="@string/feedback" >
+        <menu >
+            <item
+                android:id="@+id/menuItemFeedbackEmail"
+                android:title="@string/email" />
+            <item
+                android:id="@+id/menuItemFeedbackDiscord"
+                android:title="@string/discord" />
+        </menu>
+    </item>
 </menu>

@@ -124,4 +124,8 @@
     <string name="permission_text_communicate_BT">Communicate with already paired Bluetooth devices (for the virtual keyboard to work)</string>
     <string name="permissions2">With incomplete permissions, OneMoreSecret will only have limited functionality. You can adjust pemissions at any time from the App settings of your device.</string>
     <string name="proceed">Proceed</string>
+    <string name="encrypt_text">Encrypt Text</string>
+    <string name="discord_url">https://discord.gg/eBH6U6XqMC</string>
+    <string name="email">Email</string>
+    <string name="discord">Discord</string>
 </resources>

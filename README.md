@@ -90,8 +90,10 @@ If your password database is on your decktop PC, you will also need [omsCompanio
 
 Once the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See [auto-type](./autotype.md) help page in the app for more details.
 
-## Roadmap and Bugs
-For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). You can also send me a feedback mail from the app menu. 
+## Roadmap and Feedback
+For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
+
+You can also send me an e-mail from the app *Feedback* menu or use our [Discord channel](https://discord.gg/eBH6U6XqMC).
 
 ## Credits
 Images:

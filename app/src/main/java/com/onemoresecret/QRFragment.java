@@ -343,7 +343,7 @@ public class QRFragment extends Fragment {
                         onMessage(text);
                     }
                 }
-            } else if (menuItem.getItemId() == R.id.menuItemFeedback) {
+            } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
                 CrashReportData crashReportData = new CrashReportData(null);
 
                 try {
@@ -357,6 +357,8 @@ public class QRFragment extends Fragment {
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
                 }
+            } else if (menuItem.getItemId() == R.id.menuItemFeedbackDiscord) {
+                Util.openUrl(R.string.discord_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemEncryptText) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_encryptTextFragment);
