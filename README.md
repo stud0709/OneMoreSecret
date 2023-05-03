@@ -4,12 +4,15 @@ OneMoreSecret is a standalone security layer for your data (e.g. passwords, more
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
 
-The app is currently available from Google Play as an internal test. Send me a message if you want to participate, and you will receive an invitation. 
 
-### For the impatient one
-TLDR? See it in action! Try our ["Hello, World!" Tutorial](hello_world.md).
+## For the impatient one (TLDR)
+<a href='https://play.google.com/store/apps/details?id=com.onemoresecret&gl=DE&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img  style="width:200px;height:auto;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a> 
 
-⚠️ **WARNING**: The images in this tutorial may potentially trigger seizures for people with photosensitive epilepsy. Viewer discretion is advised.
+Try our ["Hello, World!" Tutorial](hello_world.md).
+
+For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
+
+You can also send me an e-mail from the app *Feedback* menu or use our [Discord channel](https://discord.gg/eBH6U6XqMC).
 
 ## What's wrong with password managers?
 In the early days, the computers were not password protected. The first password [dates back](https://www.smh.com.au/national/scientist-who-introduced-the-computer-password-20190717-p527zf.html) to 1961. As things got worse, [password policies](https://en.wikipedia.org/wiki/Password_policy) were born, together with the recommendation to have separate passwords for every application. This is how the [password manager](https://en.wikipedia.org/wiki/Password_manager) came into being - as a workaround for the password policy. You *kind of* have different passwords for every service, and still, there is only one password.
@@ -90,12 +93,9 @@ If your password database is on your decktop PC, you will also need [omsCompanio
 
 Once the password has been decrypted, you can auto-type it back to your PC. For this to work, OneMoreSecret acts as a bluetooth keyboard. See [auto-type](./autotype.md) help page in the app for more details.
 
-## Roadmap and Feedback
-For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
+## Credits and Legal Attribution
+Google Play and the Google Play logo are trademarks of Google LLC.
 
-You can also send me an e-mail from the app *Feedback* menu or use our [Discord channel](https://discord.gg/eBH6U6XqMC).
-
-## Credits
 Images:
 - [android png from pngtree.com](https://pngtree.com/so/android)
 

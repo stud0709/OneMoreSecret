@@ -8,7 +8,7 @@ In this tutorial you will get familiar with the core functionality of the oneMor
 Please make sure that you have turned on biometrics in your Android device. Go to your phone settings, search for *fingerprint* and set your biometric preferences to fingerprint. 
 
 ## Step 2. Install OneMoreSecret app
-Get the app from Google PlayStore.
+<a href='https://play.google.com/store/apps/details?id=com.onemoresecret&gl=DE&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img  style="width:200px;height:auto;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a> 
 
 For desktop version, continue with [Step 3](#setp-3-import-private-key). For mobile version, continue with [Step 5](#step-5-mobile-phone-integration).
 
