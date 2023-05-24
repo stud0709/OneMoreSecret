@@ -2,7 +2,7 @@ package com.onemoresecret.qr;
 
 import android.util.Log;
 
-import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.OneTimePassword;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -17,6 +17,17 @@ public abstract class MessageParser {
     protected final AtomicBoolean eventFired = new AtomicBoolean(false);
 
     public void consume(String qrCode) {
+        //check other supported formats
+        if (new OneTimePassword(qrCode).looksValid()) {
+            Log.d(TAG, "Looks like a valid TOTP");
+            transactionId = null;
+            if (!eventFired.get()) {
+                onMessage(qrCode);
+                eventFired.set(true);
+            }
+            return;
+        }
+
         String[] sArr = qrCode.split("\\t", 5);
         String tId = sArr[0];
         int chunkNo = Integer.parseInt(sArr[1]);

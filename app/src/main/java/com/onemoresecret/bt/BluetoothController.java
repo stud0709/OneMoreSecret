@@ -37,7 +37,10 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
     private final BluetoothHidDevice.Callback callback;
     private BluetoothHidDevice bluetoothHidDevice = null;
 
-    public BluetoothController(Fragment fragment, ActivityResultCallback<ActivityResult> onActivityResult, BluetoothHidDevice.Callback callback) {
+    public BluetoothController(Fragment fragment,
+                               ActivityResultCallback<ActivityResult> onActivityResult,
+                               BluetoothHidDevice.Callback callback) {
+
         this.fragment = fragment;
         this.callback = callback;
         this.bluetoothManager = (BluetoothManager) fragment.requireContext().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -50,7 +53,9 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         Log.i(TAG, "getProfileProxy: " + b);
 
         //prepare intent "request discoverable"
-        activityResultLauncher = fragment.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), onActivityResult);
+        activityResultLauncher = fragment.registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                onActivityResult);
     }
 
     public boolean isBluetoothAvailable() {
@@ -82,7 +87,9 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             return;
         }
 
-        if (ActivityCompat.checkSelfPermission(fragment.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                fragment.requireContext(),
+                Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
@@ -92,13 +99,20 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
     }
 
     public boolean registerApp() {
-        if (ActivityCompat.checkSelfPermission(fragment.requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(
+                fragment.requireContext(),
+                Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return false;
         }
 
         if (bluetoothHidDevice == null) return false;
 
-        return bluetoothHidDevice.registerApp(sdpRecord, null, null, fragment.requireContext().getMainExecutor(), callback);
+        return bluetoothHidDevice.registerApp(
+                sdpRecord,
+                null,
+                null,
+                fragment.requireContext().getMainExecutor(),
+                callback);
     }
 
     @Override

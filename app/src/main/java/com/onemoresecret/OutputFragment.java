@@ -126,7 +126,7 @@ public class OutputFragment extends Fragment {
         bluetoothController = new BluetoothController(this,
                 result -> {
                 },
-                new OutputFragment.BluetoothHidDeviceCallback()
+                new BluetoothHidDeviceCallback()
         );
 
         clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);

@@ -32,11 +32,13 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
@@ -259,22 +261,28 @@ public class QRFragment extends Fragment {
             try (ByteArrayInputStream bais = new ByteArrayInputStream(bArr);
                  OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
 
+                Bundle bundle = new Bundle();
+                bundle.putByteArray("MESSAGE", bArr);
+                NavController navController = NavHostFragment.findNavController(QRFragment.this);
+
+                //other supported formats?
+                if (new OneTimePassword(message).looksValid()) {
+                    //time based OTP
+                    navController.navigate(R.id.action_QRFragment_to_TOTPFragment, bundle);
+                    return;
+                }
+
                 //(1) application ID
                 int applicationId = dataInputStream.readUnsignedShort();
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
-                Bundle bundle = new Bundle();
-                bundle.putByteArray("MESSAGE", bArr);
-
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER:
-                        NavHostFragment.findNavController(QRFragment.this)
-                                .navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
+                        navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                         break;
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
                         Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                        NavHostFragment.findNavController(QRFragment.this)
-                                .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         break;
                     default:
                         Log.d(TAG,

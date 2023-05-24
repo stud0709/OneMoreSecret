@@ -36,8 +36,15 @@ public abstract class MessageComposer {
     public static byte[] decode(String omsText) {
         Matcher m = OMS_PATTERN.matcher(omsText);
 
-        if (!m.find()) // not a valid OMS message
+        if (!m.find()) {
+            //TOT?
+            if (new OneTimePassword(omsText).looksValid()) {
+                //this is a time based OTP, pass unchanged
+                return omsText.getBytes();
+            }
+            // not a valid OMS message
             return null;
+        }
 
         byte[] result;
 
