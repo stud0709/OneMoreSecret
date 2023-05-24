@@ -18,7 +18,7 @@ public abstract class MessageParser {
 
     public void consume(String qrCode) {
         //check other supported formats
-        if (new OneTimePassword(qrCode).looksValid()) {
+        if (new OneTimePassword(qrCode).isValid()) {
             Log.d(TAG, "Looks like a valid TOTP");
             transactionId = null;
             if (!eventFired.get()) {

@@ -5,19 +5,17 @@
     android:id="@+id/layout_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context=".MessageFragment">
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/textViewMessage"
-        android:layout_width="match_parent"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentMessageView"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:text="@string/hidden_text"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintBottom_toTopOf="@+id/messageOutputFragment"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout="@layout/fragment_hidden_text" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/messageOutputFragment"

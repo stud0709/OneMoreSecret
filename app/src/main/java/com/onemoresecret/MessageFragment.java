@@ -21,6 +21,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
@@ -29,6 +30,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -45,6 +48,7 @@ public class MessageFragment extends Fragment {
     private Runnable revealHandler = null;
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
+    private Fragment messageView = null;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -81,8 +85,18 @@ public class MessageFragment extends Fragment {
 
             //(1) Application ID
             int applicationId = dataInputStream.readUnsignedShort();
-            if (applicationId != MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER)
-                throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
+            switch (applicationId) {
+                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                    messageView = new HiddenTextFragment();
+                    getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, messageView).commit();
+                    break;
+                case MessageComposer.APPLICATION_TOTP_URI_TRANSFER:
+                    messageView = new TotpFragment();
+                    getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, messageView).commit();
+                    break;
+                default:
+                    throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
+            }
 
             //(2) RSA transformation index
             rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
@@ -192,19 +206,29 @@ public class MessageFragment extends Fragment {
     private void onDecryptedData(byte[] bArr) {
         String message = new String(bArr);
 
-        revealHandler = () -> binding.textViewMessage.setText(reveal ? message : getString(R.string.hidden_text));
+        if (messageView instanceof HiddenTextFragment) {
+            String shareTitle = getString(R.string.oms_secret_message);
+            revealHandler = () -> ((HiddenTextFragment) messageView).setText(reveal ? message : getString(R.string.hidden_text));
+            OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+            outputFragment.setMessage(message, shareTitle);
+        }
+        if (messageView instanceof TotpFragment) {
+            revealHandler = () -> ((TotpFragment) messageView).refresh();
+            String shareTitle = getString(R.string.one_time_password);
+            ((TotpFragment) messageView).init(new OneTimePassword(message), () -> reveal ? null : "●●●●●●", code -> {
+                OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+                outputFragment.setMessage(code, shareTitle);
+            });
+            ((TotpFragment) messageView).refresh();
+        }
         requireActivity().invalidateOptionsMenu();
-
-        OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
-        assert outputFragment != null;
-        outputFragment.setMessage(message, getString(R.string.oms_secret_message));
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
-        binding.textViewMessage.setText(getString(R.string.hidden_text));
+        ((HiddenTextFragment) messageView).setText(getString(R.string.hidden_text));
         binding = null;
     }
 

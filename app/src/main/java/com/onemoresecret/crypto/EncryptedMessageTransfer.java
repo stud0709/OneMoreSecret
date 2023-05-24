@@ -41,7 +41,7 @@ public class EncryptedMessageTransfer extends MessageComposer {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
 
             // (1) application-ID
-            dataOutputStream.writeUnsignedShort(APPLICATION_ENCRYPTED_MESSAGE_TRANSFER);
+            dataOutputStream.writeUnsignedShort(getApplicationId());
 
             // (2) RSA transformation index
             dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
@@ -66,6 +66,10 @@ public class EncryptedMessageTransfer extends MessageComposer {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    protected int getApplicationId() {
+        return APPLICATION_ENCRYPTED_MESSAGE_TRANSFER;
     }
 
     @Override

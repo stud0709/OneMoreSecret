@@ -1,7 +1,6 @@
 package com.onemoresecret.crypto;
 
 import android.net.Uri;
-import android.util.Log;
 
 import org.bouncycastle.util.encoders.Base32;
 
@@ -43,9 +42,21 @@ public class OneTimePassword {
         return uri;
     }
 
-    public boolean looksValid() {
-        return OneTimePassword.OTP_SCHEME.equals(uri.getScheme())
-                && OneTimePassword.TOTP.equals(uri.getAuthority());
+    public boolean isValid() {
+        if (OneTimePassword.OTP_SCHEME.equals(uri.getScheme())
+                && OneTimePassword.TOTP.equals(uri.getAuthority())
+                && getName() != null
+                && !getName().isEmpty()) {
+            try {
+                getDigits();
+                getAlgorithm();
+                generateResponseCode(0);
+                return true;
+            } catch (Exception ex) {
+
+            }
+        }
+        return false;
     }
 
     public String getName() {

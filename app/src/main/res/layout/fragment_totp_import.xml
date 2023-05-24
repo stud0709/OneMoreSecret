@@ -5,7 +5,7 @@
     android:id="@+id/linearLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PasswordGeneratorFragment">
+    tools:context=".TotpImportFragment">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragmentContainerView"
@@ -26,37 +26,17 @@
         android:layout_height="wrap_content"
         android:text="@string/encrypt_with"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewRemaining" />
+        app:layout_constraintTop_toBottomOf="@+id/fragmentTotp" />
 
-    <TextView
-        android:id="@+id/textViewNameIssuer"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentTotp"
+        android:name="com.onemoresecret.TotpFragment"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="(Sample Configuration) by (Issuer)"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/textViewValue"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="01234567"
-        android:textAppearance="@style/TextAppearance.AppCompat.Display3"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewNameIssuer" />
-
-    <TextView
-        android:id="@+id/textViewRemaining"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:gravity="right"
-        android:text="...5s"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewValue" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout="@layout/fragment_totp"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

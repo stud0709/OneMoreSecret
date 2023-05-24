@@ -128,6 +128,5 @@
     <string name="discord_url">https://discord.gg/eBH6U6XqMC</string>
     <string name="email">Email</string>
     <string name="discord">Discord</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="one_time_password">One-Time Password</string>
 </resources>

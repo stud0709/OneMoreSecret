@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 public abstract class MessageComposer {
     public static final int
             APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER = 0,
-            APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1;
+            APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1,
+            APPLICATION_TOTP_URI_TRANSFER = 2;
 
     /**
      * Prefix of a text encoded message.
@@ -38,7 +39,7 @@ public abstract class MessageComposer {
 
         if (!m.find()) {
             //TOT?
-            if (new OneTimePassword(omsText).looksValid()) {
+            if (new OneTimePassword(omsText).isValid()) {
                 //this is a time based OTP, pass unchanged
                 return omsText.getBytes();
             }

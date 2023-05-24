@@ -31,7 +31,7 @@
             android:id="@+id/action_QRFragment_to_encryptTextFragment"
             app:destination="@id/encryptTextFragment" />
         <action
-            android:id="@+id/action_QRFragment_to_TOTPFragment"
+            android:id="@+id/action_QRFragment_to_TotpImportFragment"
             app:destination="@id/timeOTPFragment" />
     </fragment>
     <fragment
@@ -75,7 +75,7 @@
         tools:layout="@layout/fragment_encrypt_text" />
     <fragment
         android:id="@+id/timeOTPFragment"
-        android:name="com.onemoresecret.TOTPImportFragment"
+        android:name="com.onemoresecret.TotpImportFragment"
         android:label="TOTP Import"
         tools:layout="@layout/fragment_totp_import" />
 </navigation>

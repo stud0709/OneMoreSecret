@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,25 +21,22 @@ import android.widget.Toast;
 
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedMessageTransfer;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.TotpUriTransfer;
 import com.onemoresecret.databinding.FragmentTotpImportBinding;
 
 import java.security.interfaces.RSAPublicKey;
-import java.util.Timer;
-import java.util.TimerTask;
 
-public class TOTPImportFragment extends Fragment {
-    private static final String TAG = TOTPImportFragment.class.getSimpleName();
+public class TotpImportFragment extends Fragment {
+    private static final String TAG = TotpImportFragment.class.getSimpleName();
     private FragmentTotpImportBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
     private final OtpMenuProvider menuProvider = new OtpMenuProvider();
-    private final Timer timer = new Timer();
-    private long lastState = -1L;
     private SharedPreferences preferences;
+    private TotpFragment totpFragment;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -56,6 +52,7 @@ public class TOTPImportFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        totpFragment = binding.fragmentTotp.getFragment();
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         byte[] message = requireArguments().getByteArray("MESSAGE");
@@ -63,27 +60,17 @@ public class TOTPImportFragment extends Fragment {
         OneTimePassword otp = new OneTimePassword(new String(message));
 
         try {
-            if (!otp.looksValid()) {
+            if (!otp.isValid()) {
                 throw new IllegalArgumentException("Invalid scheme or authority");
             }
 
-            String name = otp.getName();
-            if (name == null || name.isEmpty()) {
-                throw new IllegalArgumentException("missing name in URI");
-            }
+            totpFragment.init(otp,
+                    () -> keyStoreListFragment.getSelectionTracker().hasSelection() ? MessageComposer.OMS_PREFIX + "..." : null,
+                    code -> {
+                        if (!keyStoreListFragment.getSelectionTracker().hasSelection())
+                            keyStoreListFragment.getOutputFragment().setMessage(code, "One-Time Password");
+                    });
 
-            String issuer = otp.getIssuer();
-            if (issuer == null || issuer.isEmpty()) {
-                binding.textViewNameIssuer.setText(name);
-            } else {
-                binding.textViewNameIssuer.setText(String.format("%s by %s", name, issuer));
-            }
-
-            String secret = otp.getSecret();
-
-            if (secret == null || secret.isEmpty()) {
-                throw new IllegalArgumentException("invalid secret key");
-            }
 
             keyStoreListFragment.setRunOnStart(
                     fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -97,12 +84,9 @@ public class TOTPImportFragment extends Fragment {
                                         String encrypted = encrypt(selectedAlias, message);
                                         keyStoreListFragment.getOutputFragment().setMessage(encrypted, "Encrypted OTP Configuration");
                                     }
+                                    totpFragment.refresh();
                                 }
                             }));
-
-            binding.textViewValue.setText("");
-
-            timer.schedule(getTimerTask(otp), 1000);
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -114,7 +98,7 @@ public class TOTPImportFragment extends Fragment {
     private String encrypt(String alias, byte[] message) {
         try {
             return MessageComposer.encodeAsOmsText(
-                    new EncryptedMessageTransfer(message,
+                    new TotpUriTransfer(message,
                             (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
@@ -123,54 +107,6 @@ public class TOTPImportFragment extends Fragment {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private TimerTask getTimerTask(OneTimePassword otp) {
-        return new TimerTask() {
-            @Override
-            public void run() {
-                if (generateResponseCode(otp)) {
-                    timer.schedule(getTimerTask(otp), 1000);
-                }
-            }
-        };
-    }
-
-    private boolean generateResponseCode(OneTimePassword otp) {
-        if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-            //dummy output
-            requireActivity().getMainExecutor().execute(() -> {
-                binding.textViewRemaining.setText("");
-                binding.textViewValue.setText(MessageComposer.OMS_PREFIX + "...");
-                lastState = -1;
-            });
-            return true;
-        }
-        try {
-            long[] state = otp.getState();
-            String code = otp.generateResponseCode(state[0]);
-            requireActivity().getMainExecutor().execute(() -> {
-                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state[1]));
-                binding.textViewValue.setText(code);
-                if (lastState != state[0]) {
-                    //new State = new code; update output fragment
-                    keyStoreListFragment.getOutputFragment().setMessage(code, "One-Time Password");
-                    lastState = state[0];
-                }
-            });
-        } catch (Exception e) {
-            Log.wtf(TAG, e);
-            requireActivity().getMainExecutor().execute(() ->
-                    Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_LONG).show());
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        timer.cancel();
     }
 
     private class OtpMenuProvider implements MenuProvider {

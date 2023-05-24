@@ -266,9 +266,10 @@ public class QRFragment extends Fragment {
                 NavController navController = NavHostFragment.findNavController(QRFragment.this);
 
                 //other supported formats?
-                if (new OneTimePassword(message).looksValid()) {
+                if (new OneTimePassword(message).isValid()) {
                     //time based OTP
-                    navController.navigate(R.id.action_QRFragment_to_TOTPFragment, bundle);
+                    Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
+                    navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
                     return;
                 }
 
@@ -278,9 +279,11 @@ public class QRFragment extends Fragment {
 
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER:
+                        Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                         break;
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                    case MessageComposer.APPLICATION_TOTP_URI_TRANSFER:
                         Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         break;
