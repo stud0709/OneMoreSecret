@@ -93,6 +93,7 @@
     <string name="project_home_page">Project Home Page</string>
     <string name="qr_scanner_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/qr_scanner.md</string>
     <string name="pwd_generator_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/password_generator.md</string>
+    <string name="totp_import_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/totp_import.md</string>
     <string name="encrypt_text_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/encrypt_text.md</string>
     <string name="autotype_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/autotype.md</string>
     <string name="key_management_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_management.md</string>

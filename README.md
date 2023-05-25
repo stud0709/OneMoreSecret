@@ -20,7 +20,7 @@ In the early days, the computers were not password protected. The first password
 Don't get me wrong, [KeePass](https://keepass.info/download.html) and others have been doing a great job. But here are some concerns:
 
 1. A security software with millions of installations is very attractive to hackers.
-2. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you will also store your [One Time Tokens](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
+2. If you know the master password, you have access to the entire database. Not only you get a list of passwords, you also know where to log in - a typical password manager stores everything in one place. If you are extraordinary "smart", you will also store your [One-Time Password](https://en.wikipedia.org/wiki/One-time_password) configuration in your password manager, thus bypassing the very idea of the [Multi-Factor Authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication).
 3. Even if there are some additional security measures to protect the password database (e.g. entering your password using Windows secure screen or protecting the database with the password and a key provider or a secret file), they are often not active in the default configuration of your tool. 
 4. If you have gained access to a cloud password storage, you can collect literally millions of password **databases**!
 
@@ -68,7 +68,7 @@ Login from a mobile device? No problem, OneMoreSecret will respond to browser li
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
 
 ### On Your Smartphone
-You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords on your mobile phone, create and import private keys etc.
+You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords or [time-based OTPs](./totp_import.md) on your mobile phone, create and import private keys etc.
 
 The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with OneMoreSecret (OneMoreSecret will register as a recipient of text data).
 
