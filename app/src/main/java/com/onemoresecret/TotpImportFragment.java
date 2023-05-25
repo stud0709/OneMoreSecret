@@ -55,9 +55,9 @@ public class TotpImportFragment extends Fragment {
         totpFragment = binding.fragmentTotp.getFragment();
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
-        byte[] message = requireArguments().getByteArray("MESSAGE");
+        var message = requireArguments().getByteArray("MESSAGE");
 
-        OneTimePassword otp = new OneTimePassword(new String(message));
+        var otp = new OneTimePassword(new String(message));
 
         try {
             if (!otp.isValid()) {
@@ -80,8 +80,8 @@ public class TotpImportFragment extends Fragment {
                                 public void onSelectionChanged() {
                                     super.onSelectionChanged();
                                     if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                        String selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-                                        String encrypted = encrypt(selectedAlias, message);
+                                        var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+                                        var encrypted = encrypt(selectedAlias, message);
                                         keyStoreListFragment.getOutputFragment().setMessage(encrypted, "Encrypted OTP Configuration");
                                     }
                                     totpFragment.refresh();
@@ -123,13 +123,20 @@ public class TotpImportFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemPwGenHelp) {
-                Util.openUrl(R.string.pwd_generator_md_url, requireContext());
+            if (menuItem.getItemId() == R.id.menuItemOtpImportHelp) {
+                Util.openUrl(R.string.totp_import_md_url, requireContext());
             } else {
                 return false;
             }
 
             return true;
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
+        binding = null;
     }
 }

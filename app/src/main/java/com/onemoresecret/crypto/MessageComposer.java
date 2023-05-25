@@ -2,7 +2,6 @@ package com.onemoresecret.crypto;
 
 import java.util.Base64;
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class MessageComposer {
@@ -35,7 +34,7 @@ public abstract class MessageComposer {
     }
 
     public static byte[] decode(String omsText) {
-        Matcher m = OMS_PATTERN.matcher(omsText);
+        var m = OMS_PATTERN.matcher(omsText);
 
         if (!m.find()) {
             //TOT?
@@ -49,7 +48,7 @@ public abstract class MessageComposer {
 
         byte[] result;
 
-        int version = Integer.parseInt(Objects.requireNonNull(m.group(1)));
+        var version = Integer.parseInt(Objects.requireNonNull(m.group(1)));
 
         // (1) remove prefix and line breaks
         omsText = omsText.substring(m.group().length());

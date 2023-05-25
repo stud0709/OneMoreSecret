@@ -10,8 +10,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
 import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
 import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
@@ -24,7 +22,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -47,7 +44,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Objects;
 
@@ -88,15 +84,15 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             InvalidKeyException {
 
-        Cipher cipher = Cipher.getInstance(rsaTransformation);
+        var cipher = Cipher.getInstance(rsaTransformation);
         cipher.init(Cipher.ENCRYPT_MODE, keyStore.getCertificate(keyName).getPublicKey());
         return cipher;
     }
 
     public Cipher getInitializedCipherForDecryption(String keyName, String transformation) {
         try {
-            Cipher cipher = Cipher.getInstance(transformation);
-            PrivateKey secretKey = Objects.requireNonNull(getPrivateKey(keyName));
+            var cipher = Cipher.getInstance(transformation);
+            var secretKey = Objects.requireNonNull(getPrivateKey(keyName));
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return cipher;
         } catch (Exception ex) {
@@ -112,7 +108,7 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             UnrecoverableKeyException {
 
-        Key key = keyStore.getKey(keyName, null);
+        var key = keyStore.getKey(keyName, null);
         return key == null ? null : (PrivateKey) key;
     }
 
@@ -132,7 +128,7 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             NoSuchProviderException {
 
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.
+        var keyPairGenerator = KeyPairGenerator.
                 getInstance(
                         KeyProperties.KEY_ALGORITHM_RSA,
                         ANDROID_KEYSTORE
@@ -150,9 +146,9 @@ public class CryptographyManager {
             NoSuchAlgorithmException,
             InvalidKeySpecException {
 
-        int keyLength = RSAUtils.getKeyLength(preferences);
+        var keyLength = RSAUtils.getKeyLength(preferences);
 
-        RSAKeyPairGenerator rsaKeyPairGenerator = new RSAKeyPairGenerator();
+        var rsaKeyPairGenerator = new RSAKeyPairGenerator();
         
         rsaKeyPairGenerator.init(new RSAKeyGenerationParameters(
                 BigInteger.valueOf(0x10001),
@@ -160,10 +156,10 @@ public class CryptographyManager {
                 keyLength,
                 PrimeCertaintyCalculator.getDefaultCertainty(keyLength)));
 
-        AsymmetricCipherKeyPair asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
-        PrivateKeyInfo privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
-        byte[] privateKeyMaterial = privateKeyInfo.getEncoded();
-        byte[] publicKeyMaterial = SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(asymmetricCipherKeyPair.getPublic()).getEncoded();
+        var asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair();
+        var privateKeyInfo = PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.getPrivate());
+        var privateKeyMaterial = privateKeyInfo.getEncoded();
+        var publicKeyMaterial = SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(asymmetricCipherKeyPair.getPublic()).getEncoded();
         return restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
     }
 
@@ -177,18 +173,18 @@ public class CryptographyManager {
 
     public static X509Certificate restoreCertificate(byte[] certificateData) throws
             CertificateException {
-        CertificateFactory cf = CertificateFactory.getInstance("X509");
+        var cf = CertificateFactory.getInstance("X509");
         return (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certificateData));
     }
 
     public static KeyPair restoreKeyPair(byte[] privateKeyMaterial, byte[] publicKeyMaterial) throws
             NoSuchAlgorithmException,
             InvalidKeySpecException {
-        KeyFactory keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyMaterial);
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+        var keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
+        var keySpec = new PKCS8EncodedKeySpec(privateKeyMaterial);
+        var privateKey = keyFactory.generatePrivate(keySpec);
+        var publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
+        var publicKey = keyFactory.generatePublic(publicKeySpec);
         return new KeyPair(publicKey, privateKey);
     }
 
@@ -202,7 +198,7 @@ public class CryptographyManager {
             OperatorCreationException {
 
         //create self-signed certificate with the specified end validity
-        X509Certificate certificate = SelfSignedCertGenerator.generate(keyPair,
+        var certificate = SelfSignedCertGenerator.generate(keyPair,
                 "SHA256withRSA",
                 "OneMoreSecret",
                 DEFAULT_DAYS_VALID);
@@ -210,7 +206,7 @@ public class CryptographyManager {
 
         KeyStore.PrivateKeyEntry privateKeyEntry = new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[]{certificate});
 
-        KeyProtection keyProtection = new KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+        var keyProtection = new KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setUserAuthenticationRequired(true)
                 .setEncryptionPaddings(ENCRYPTION_PADDINGS)
                 .setIsStrongBoxBacked(ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE))
@@ -236,14 +232,14 @@ public class CryptographyManager {
             KeyStoreException {
         List<String> result = new ArrayList<>();
 
-        Enumeration<String> aliases = keyStore.aliases();
+        var aliases = keyStore.aliases();
         while (aliases.hasMoreElements()) {
-            String alias = aliases.nextElement();
+            var alias = aliases.nextElement();
 
             try {
-                X509Certificate cert = (X509Certificate) getCertificate(alias);
-                RSAPublicKey publicKey = (RSAPublicKey) cert.getPublicKey();
-                byte[] _fingerprint = getFingerprint(publicKey);
+                var cert = (X509Certificate) getCertificate(alias);
+                var publicKey = (RSAPublicKey) cert.getPublicKey();
+                var _fingerprint = getFingerprint(publicKey);
 
                 if (Arrays.equals(fingerprint, _fingerprint)) {
                     result.add(alias);
@@ -257,7 +253,7 @@ public class CryptographyManager {
     }
 
     public static byte[] getFingerprint(RSAPublicKey publicKey) throws NoSuchAlgorithmException {
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        var sha256 = MessageDigest.getInstance("SHA-256");
         sha256.update(publicKey.getModulus().toByteArray());
         return sha256.digest(publicKey.getPublicExponent().toByteArray());
     }

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.LayoutInflater;
@@ -34,14 +33,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyPair;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
-import java.util.List;
 import java.util.Objects;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 public class NewPrivateKeyFragment extends Fragment {
     public static final int BASE64_LINE_LENGTH = 75;
@@ -49,8 +43,6 @@ public class NewPrivateKeyFragment extends Fragment {
     private CryptographyManager cryptographyManager = new CryptographyManager();
 
     private SharedPreferences preferences;
-
-    private Path privateKeyBackup = null;
 
     private final PrivateKeyMenuProvider menuProvider = new PrivateKeyMenuProvider();
 
@@ -74,13 +66,13 @@ public class NewPrivateKeyFragment extends Fragment {
 
     private void createPrivateKey() {
         try {
-            SharedPreferences preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+            var preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
             if (Objects.requireNonNull(binding.txtNewKeyAlias.getText()).length() == 0) {
                 throw new IllegalArgumentException(getString(R.string.key_alias_may_not_be_empty));
             }
 
-            String alias = binding.txtNewKeyAlias.getText().toString();
+            var alias = binding.txtNewKeyAlias.getText().toString();
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
                 throw new IllegalArgumentException(getString(R.string.key_alias_already_exists));
@@ -94,23 +86,23 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            KeyPair keyPair = CryptographyManager.generateKeyPair(preferences);
-            RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-            byte[] fingerprint = CryptographyManager.getFingerprint(publicKey);
-            IvParameterSpec iv = AESUtil.generateIv();
-            byte[] salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
-            int aesKeyLength = AESUtil.getKeyLength(preferences);
-            int aesKeyspecIterations = AESUtil.getKeyspecIterations(preferences);
-            String aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
+            var keyPair = CryptographyManager.generateKeyPair(preferences);
+            var publicKey = (RSAPublicKey) keyPair.getPublic();
+            var fingerprint = CryptographyManager.getFingerprint(publicKey);
+            var iv = AESUtil.generateIv();
+            var salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
+            var aesKeyLength = AESUtil.getKeyLength(preferences);
+            var aesKeyspecIterations = AESUtil.getKeyspecIterations(preferences);
+            var aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
 
-            SecretKey aesSecretKey = AESUtil.getKeyFromPassword(
+            var aesSecretKey = AESUtil.getKeyFromPassword(
                     binding.txtNewTransportPassword.getText().toString().toCharArray(),
                     salt,
                     aesKeyAlgorithm,
                     aesKeyLength,
                     aesKeyspecIterations);
 
-            byte[] message = new AesEncryptedPrivateKeyTransfer(alias,
+            var message = new AesEncryptedPrivateKeyTransfer(alias,
                     keyPair,
                     aesSecretKey,
                     iv,
@@ -144,14 +136,14 @@ public class NewPrivateKeyFragment extends Fragment {
             });
 
             //share HTML file
-            String html = getKeyBackupHtml(alias, fingerprint, message);
-            String fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
-            Uri contentUri = Util.toStream(requireContext(),
+            var html = getKeyBackupHtml(alias, fingerprint, message);
+            var fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
+            var contentUri = Util.toStream(requireContext(),
                     "pk_" + fingerprintString + ".html",
                     html.getBytes(StandardCharsets.UTF_8),
                     true);
 
-            Intent intent = new Intent();
+            var intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
             intent.putExtra(Intent.EXTRA_STREAM, contentUri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -165,9 +157,9 @@ public class NewPrivateKeyFragment extends Fragment {
     }
 
     private String getKeyBackupHtml(String alias, byte[] fingerprint, byte[] message) throws WriterException, IOException {
-        StringBuilder stringBuilder = new StringBuilder();
+        var stringBuilder = new StringBuilder();
 
-        List<Bitmap> list = QRUtil.getQrSequence(MessageComposer.encodeAsOmsText(message), QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
+        var list = QRUtil.getQrSequence(MessageComposer.encodeAsOmsText(message), QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
 
         stringBuilder
                 .append("<html><body><h1>")
@@ -198,7 +190,7 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append("</p><p>");
 
         for (int i = 0; i < list.size(); i++) {
-            Bitmap bitmap = list.get(i);
+            var bitmap = list.get(i);
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
                 baos.flush();
@@ -217,11 +209,11 @@ public class NewPrivateKeyFragment extends Fragment {
                 .append("&nbsp;")
                 .append("</p><p style=\"font-family:monospace;\">");
 
-        String messageAsUrl = MessageComposer.encodeAsOmsText(message);
-        int offset = 0;
+        var messageAsUrl = MessageComposer.encodeAsOmsText(message);
+        var offset = 0;
 
         while (offset < messageAsUrl.length()) {
-            String s = messageAsUrl.substring(offset, Math.min(offset + BASE64_LINE_LENGTH, messageAsUrl.length()));
+            var s = messageAsUrl.substring(offset, Math.min(offset + BASE64_LINE_LENGTH, messageAsUrl.length()));
             stringBuilder.append(s).append("<br>");
             offset += BASE64_LINE_LENGTH;
         }
@@ -240,12 +232,6 @@ public class NewPrivateKeyFragment extends Fragment {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
         binding = null;
-        try {
-            if (privateKeyBackup != null && Files.exists(privateKeyBackup))
-                Files.delete(privateKeyBackup);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private class PrivateKeyMenuProvider implements MenuProvider {

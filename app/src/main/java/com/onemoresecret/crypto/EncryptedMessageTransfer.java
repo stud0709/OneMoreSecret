@@ -13,8 +13,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 public class EncryptedMessageTransfer extends MessageComposer {
     private final byte[] message;
@@ -29,14 +27,14 @@ public class EncryptedMessageTransfer extends MessageComposer {
         super();
 
         // init AES
-        IvParameterSpec iv = AESUtil.generateIv();
-        SecretKey secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
+        var iv = AESUtil.generateIv();
+        var secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
 
         // encrypt AES secret key with RSA
-        Cipher cipher = Cipher.getInstance(RsaTransformation.values()[rsaTransformationIdx].transformation);
+        var cipher = Cipher.getInstance(RsaTransformation.values()[rsaTransformationIdx].transformation);
         cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
 
-        byte[] encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
+        var encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
 
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
 

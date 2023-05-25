@@ -60,12 +60,12 @@ public class OneTimePassword {
     }
 
     public String getName() {
-        String path = uri.getPath();
+        var path = uri.getPath();
         if (path == null || !path.startsWith("/")) {
             return null;
         }
         // path is "/name", so remove leading "/", and trailing white spaces
-        String name = path.substring(1).trim();
+        var name = path.substring(1).trim();
         if (name.length() == 0) {
             return null; // only white spaces.
         }
@@ -81,20 +81,20 @@ public class OneTimePassword {
     }
 
     public int getPeriod() {
-        String s = uri.getQueryParameter(PERIOD_PARAM);
+        var s = uri.getQueryParameter(PERIOD_PARAM);
         return (s == null || s.isEmpty()) ? DEFAULT_PERIOD : Integer.parseInt(s);
     }
 
     public int getDigits() {
-        String s = uri.getQueryParameter(DIGITS_PARAM);
-        int i = (s == null || s.isEmpty()) ? DEFAULT_DIGITS : Integer.parseInt(s);
+        var s = uri.getQueryParameter(DIGITS_PARAM);
+        var i = (s == null || s.isEmpty()) ? DEFAULT_DIGITS : Integer.parseInt(s);
         if (i > 8) throw new IllegalArgumentException("Too many digits (max. 8): " + i);
         return i;
     }
 
     public String getAlgorithm() {
-        String s = uri.getQueryParameter(ALGORITHM_PARAM);
-        String alg = (s == null || s.isEmpty()) ? DEFAULT_ALGORITHM : s;
+        var s = uri.getQueryParameter(ALGORITHM_PARAM);
+        var alg = (s == null || s.isEmpty()) ? DEFAULT_ALGORITHM : s;
         if (!alg.equals("SHA1") && !alg.equals("SHA256") && !alg.equals("SHA512")) {
             throw new IllegalArgumentException("invalid algorithm: " + alg);
         }
@@ -102,14 +102,14 @@ public class OneTimePassword {
     }
 
     public byte[] sign(byte[] data) throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac mac = Mac.getInstance("Hmac" + getAlgorithm());
+        var mac = Mac.getInstance("Hmac" + getAlgorithm());
         mac.init(new SecretKeySpec(Base32.decode(getSecret()), ""));
         return mac.doFinal(data);
     }
 
     public String generateResponseCode(long state)
             throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-        byte[] value = ByteBuffer.allocate(8).putLong(state).array();
+        var value = ByteBuffer.allocate(8).putLong(state).array();
         return generateResponseCode(value);
     }
 
@@ -119,7 +119,7 @@ public class OneTimePassword {
             return generateResponseCode(state);
         } else {
             // Allocate space for combination and store.
-            byte[] value = ByteBuffer.allocate(8 + challenge.length)
+            var value = ByteBuffer.allocate(8 + challenge.length)
                     .putLong(state) // Write out OTP state
                     .put(challenge, 0, challenge.length) // Concatenate with challenge.
                     .array();
@@ -129,14 +129,14 @@ public class OneTimePassword {
 
     public String generateResponseCode(byte[] challenge)
             throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-        byte[] hash = sign(challenge);
+        var hash = sign(challenge);
 
         // Dynamically truncate the hash
         // OffsetBits are the low order bits of the last byte of the hash
-        int offset = hash[hash.length - 1] & 0xF;
+        var offset = hash[hash.length - 1] & 0xF;
         // Grab a positive integer value starting at the given offset.
-        int truncatedHash = hashToInt(hash, offset) & 0x7FFFFFFF;
-        int pinValue = truncatedHash % BigDecimal.TEN.pow(getDigits()).intValue();
+        var truncatedHash = hashToInt(hash, offset) & 0x7FFFFFFF;
+        var pinValue = truncatedHash % BigDecimal.TEN.pow(getDigits()).intValue();
         return padOutput(pinValue);
     }
 
@@ -158,7 +158,7 @@ public class OneTimePassword {
     }
 
     private String padOutput(int value) {
-        String result = Integer.toString(value);
+        var result = Integer.toString(value);
         while (result.length() < getDigits()) {
             result = "0" + result;
         }
@@ -169,7 +169,7 @@ public class OneTimePassword {
      * @return {current state, remaining seconds until next state}
      */
     public long[] getState() {
-        long now_s = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+        var now_s = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         return new long[]{now_s / getPeriod(), now_s % getPeriod()};
     }
 }

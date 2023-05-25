@@ -20,7 +20,7 @@ public abstract class KeyboardLayout {
      * @return key strokes
      */
     public List<Stroke> forString(String s) {
-        char[] cArr = s.toCharArray();
+        var cArr = s.toCharArray();
         List<Stroke> list = new ArrayList<>();
         list.add(new Stroke()
                 .press(RIGHT_ALT) //work around Hyper-V

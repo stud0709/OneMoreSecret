@@ -85,8 +85,8 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
             InvalidKeyException {
 
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); OmsDataOutputStream dataOutputStreamCipher = new OmsDataOutputStream(baos)) {
-            RSAPublicKey publicKey = (RSAPublicKey) rsaKeyPair.getPublic();
-            RSAPrivateKey privateKey = (RSAPrivateKey) rsaKeyPair.getPrivate();
+            var publicKey = (RSAPublicKey) rsaKeyPair.getPublic();
+            var privateKey = (RSAPrivateKey) rsaKeyPair.getPrivate();
 
             // (9.1) - private key material
             dataOutputStreamCipher.writeByteArray(privateKey.getEncoded());

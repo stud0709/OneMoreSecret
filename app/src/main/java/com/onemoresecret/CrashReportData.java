@@ -21,8 +21,8 @@ public class CrashReportData implements Serializable {
 
     public static String getLogcat() {
         try {
-            String s = "logcat -b all -d";
-            Process p = Runtime.getRuntime().exec(s);
+            var s = "logcat -b all -d";
+            var p = Runtime.getRuntime().exec(s);
 
             try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream())); StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
                 String line;

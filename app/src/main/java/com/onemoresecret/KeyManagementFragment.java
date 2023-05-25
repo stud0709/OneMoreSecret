@@ -47,13 +47,13 @@ public class KeyManagementFragment extends Fragment {
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment.
                         getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<String>() {
+                        .addObserver(new SelectionTracker.SelectionObserver<>() {
                             @Override
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
                                 requireActivity().invalidateOptionsMenu();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    String alias = getSelectedAlias();
+                                    var alias = getSelectedAlias();
                                     keyStoreListFragment
                                             .getOutputFragment()
                                             .setMessage(getPublicKeyMessage(alias), String.format(getString(R.string.share_public_key_title), alias));
@@ -70,7 +70,7 @@ public class KeyManagementFragment extends Fragment {
 
     private String getPublicKeyMessage(String alias) {
         try {
-            byte[] bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
+            var bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
             return Base64.getEncoder().encodeToString(bArr);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -101,7 +101,7 @@ public class KeyManagementFragment extends Fragment {
 
             if (!keyStoreListFragment.getSelectionTracker().hasSelection()) return false;
 
-            String alias = getSelectedAlias();
+            var alias = getSelectedAlias();
 
             if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
                 new AlertDialog.Builder(getContext())

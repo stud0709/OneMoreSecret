@@ -15,8 +15,8 @@ public class OmsUncaughtExceptionHandler implements Thread.UncaughtExceptionHand
 
     @Override
     public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
-        CrashReportData crashReportData = new CrashReportData(e);
-        Intent intent = new Intent(activity, CrashReportActivity.class);
+        var crashReportData = new CrashReportData(e);
+        var intent = new Intent(activity, CrashReportActivity.class);
         intent.putExtra(EXTRA_CRASH_REPORT, crashReportData);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         activity.startActivity(intent);

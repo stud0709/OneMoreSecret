@@ -26,15 +26,9 @@ import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.ByteArrayInputStream;
-import java.util.Base64;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -81,21 +75,21 @@ public class MessageFragment extends Fragment {
         ((OutputFragment) binding.messageOutputFragment.getFragment()).setBeforePause(() -> navBackIfPaused = false);
 
         try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray("MESSAGE"));
-             OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
+             var dataInputStream = new OmsDataInputStream(bais)) {
 
             //(1) Application ID
-            int applicationId = dataInputStream.readUnsignedShort();
+            var applicationId = dataInputStream.readUnsignedShort();
             switch (applicationId) {
-                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
+                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER -> {
                     messageView = new HiddenTextFragment();
                     getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, messageView).commit();
-                    break;
-                case MessageComposer.APPLICATION_TOTP_URI_TRANSFER:
+                }
+                case MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
                     messageView = new TotpFragment();
                     getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, messageView).commit();
-                    break;
-                default:
-                    throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
+                }
+                default ->
+                        throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
             }
 
             //(2) RSA transformation index
@@ -103,7 +97,7 @@ public class MessageFragment extends Fragment {
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
-            byte[] fingerprint = dataInputStream.readByteArray();
+            var fingerprint = dataInputStream.readByteArray();
             Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
 
             // (4) AES transformation index
@@ -122,8 +116,8 @@ public class MessageFragment extends Fragment {
 
             //******* decrypting ********
 
-            CryptographyManager cryptographyManager = new CryptographyManager();
-            List<String> aliases = cryptographyManager.getByFingerprint(fingerprint);
+            var cryptographyManager = new CryptographyManager();
+            var aliases = cryptographyManager.getByFingerprint(fingerprint);
 
             if (aliases.isEmpty())
                 throw new NoSuchElementException(String.format(getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
@@ -167,12 +161,12 @@ public class MessageFragment extends Fragment {
                 Log.d(TAG,
                         getString(R.string.auth_successful));
 
-                Cipher cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+                var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
                 try {
                     assert cipher != null;
-                    byte[] aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
-                    SecretKey aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
-                    byte[] bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
+                    var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
+                    var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                    var bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
 
                     onDecryptedData(bArr);
                 } catch (Exception e) {
@@ -185,7 +179,7 @@ public class MessageFragment extends Fragment {
             }
         };
 
-        BiometricPrompt biometricPrompt = new BiometricPrompt(this, authenticationCallback);
+        var biometricPrompt = new BiometricPrompt(this, authenticationCallback);
 
         BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(getString(R.string.prompt_info_title))
@@ -195,7 +189,7 @@ public class MessageFragment extends Fragment {
                 .setConfirmationRequired(false)
                 .build();
 
-        Cipher cipher = new CryptographyManager().getInitializedCipherForDecryption(
+        var cipher = new CryptographyManager().getInitializedCipherForDecryption(
                 alias, rsaTransformation);
 
         biometricPrompt.authenticate(
@@ -204,19 +198,19 @@ public class MessageFragment extends Fragment {
     }
 
     private void onDecryptedData(byte[] bArr) {
-        String message = new String(bArr);
+        var message = new String(bArr);
 
         if (messageView instanceof HiddenTextFragment) {
-            String shareTitle = getString(R.string.oms_secret_message);
+            var shareTitle = getString(R.string.oms_secret_message);
             revealHandler = () -> ((HiddenTextFragment) messageView).setText(reveal ? message : getString(R.string.hidden_text));
-            OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+            var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
             outputFragment.setMessage(message, shareTitle);
         }
         if (messageView instanceof TotpFragment) {
             revealHandler = () -> ((TotpFragment) messageView).refresh();
-            String shareTitle = getString(R.string.one_time_password);
+            var shareTitle = getString(R.string.one_time_password);
             ((TotpFragment) messageView).init(new OneTimePassword(message), () -> reveal ? null : "●●●●●●", code -> {
-                OutputFragment outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+                var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
                 outputFragment.setMessage(code, shareTitle);
             });
             ((TotpFragment) messageView).refresh();

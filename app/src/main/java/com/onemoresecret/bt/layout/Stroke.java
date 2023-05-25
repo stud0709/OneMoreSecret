@@ -31,7 +31,7 @@ public class Stroke {
      * Add modifiers one by one emulating user input
      */
     public Stroke press(int... modifiers) {
-        int m = 0;
+        var m = 0;
 
         if (!reports.isEmpty()) {
             m = reports.get(reports.size() - 1).getModifiers();
@@ -49,7 +49,7 @@ public class Stroke {
      * Remove modifiers one by one emulating user input
      */
     public Stroke release(int... modifiers) {
-        int m = 0;
+        var m = 0;
 
         if (!reports.isEmpty()) {
             m = reports.get(reports.size() - 1).getModifiers();
@@ -69,7 +69,7 @@ public class Stroke {
      * @param upperCase upper case flag ("press SHIFT here")
      */
     public Stroke type(boolean upperCase, int... usages) {
-        int m = 0;
+        var m = 0;
 
         if (!reports.isEmpty()) {
             m = reports.get(reports.size() - 1).getModifiers();
@@ -99,11 +99,11 @@ public class Stroke {
      * Convert this {@link Stroke} to upper case. If there is only one type, it will be set to upper case regardless of the upperCase flag of this element.
      */
     public Stroke toUpper() {
-        long cnt = reports.stream().filter(r -> r.getKey() != 0).count();
+        var cnt = reports.stream().filter(r -> r.getKey() != 0).count();
 
-        Stroke upperCaseStroke = new Stroke();
+        var upperCaseStroke = new Stroke();
         for(int i = 0; i < reports.size(); i++) {
-            boolean upperCase = ucaseFlags.get(i) || (i==0 && cnt == 1);
+            var upperCase = ucaseFlags.get(i) || (i==0 && cnt == 1);
 
             if(upperCase) {
                 upperCaseStroke.reports.add(reports.get(i).addModifier(KeyboardReport.LEFT_SHIFT));

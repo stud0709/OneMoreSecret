@@ -14,7 +14,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -32,10 +31,8 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.zxing.Result;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
@@ -128,7 +125,7 @@ public class QRFragment extends Fragment {
             Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
             switch (intent.getAction()) {
-                case Intent.ACTION_VIEW:
+                case Intent.ACTION_VIEW -> {
                     Uri data = intent.getData();
                     if (data != null) {
                         onMessage(data.getPath().substring(1));
@@ -136,8 +133,8 @@ public class QRFragment extends Fragment {
                     } else {
                         Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
                     }
-                    break;
-                case Intent.ACTION_SEND:
+                }
+                case Intent.ACTION_SEND -> {
                     //a piece of text has been sent to the app using Android "send to" functionality
                     String text = intent.getStringExtra(Intent.EXTRA_TEXT);
                     if (MessageComposer.decode(text) == null) {
@@ -151,6 +148,7 @@ public class QRFragment extends Fragment {
                         onMessage(text);
                     }
                     return true;
+                }
             }
         }
         return false;
@@ -194,19 +192,19 @@ public class QRFragment extends Fragment {
     }
 
     private void startCamera() {
-        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
+        var cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
 
         cameraProviderFuture.addListener(() -> {
             try {
                 cameraProvider = cameraProviderFuture.get();
-                Preview preview = new Preview.Builder().build();
+                var preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(binding.cameraPreview.getSurfaceProvider());
 
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+                var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
 //                cameraProvider.unbindAll();
 
-                MessageParser parser = new MessageParser() {
+                var parser = new MessageParser() {
                     @Override
                     public void onMessage(String message) {
                         QRFragment.this.onMessage(message);
@@ -220,7 +218,6 @@ public class QRFragment extends Fragment {
 
                 imageAnalysis =
                         new ImageAnalysis.Builder()
-                                .setTargetResolution(new Size(binding.cameraPreview.getWidth(), binding.cameraPreview.getHeight()))
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build();
 
@@ -252,18 +249,18 @@ public class QRFragment extends Fragment {
      */
     private void onMessage(String message) {
         requireContext().getMainExecutor().execute(() -> {
-            byte[] bArr = MessageComposer.decode(message);
+            var bArr = MessageComposer.decode(message);
             if (bArr == null) {
                 Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
                 return;
             }
 
-            try (ByteArrayInputStream bais = new ByteArrayInputStream(bArr);
-                 OmsDataInputStream dataInputStream = new OmsDataInputStream(bais)) {
+            try (var bais = new ByteArrayInputStream(bArr);
+                 var dataInputStream = new OmsDataInputStream(bais)) {
 
-                Bundle bundle = new Bundle();
+                var bundle = new Bundle();
                 bundle.putByteArray("MESSAGE", bArr);
-                NavController navController = NavHostFragment.findNavController(QRFragment.this);
+                var navController = NavHostFragment.findNavController(QRFragment.this);
 
                 //other supported formats?
                 if (new OneTimePassword(message).isValid()) {
@@ -274,25 +271,22 @@ public class QRFragment extends Fragment {
                 }
 
                 //(1) application ID
-                int applicationId = dataInputStream.readUnsignedShort();
+                var applicationId = dataInputStream.readUnsignedShort();
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
                 switch (applicationId) {
-                    case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER:
+                    case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
-                        break;
-                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER:
-                    case MessageComposer.APPLICATION_TOTP_URI_TRANSFER:
+                    }
+                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER, MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
                         Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                        break;
-                    default:
-                        Log.d(TAG,
-                                "No processor defined for application ID " +
-                                        Integer.toHexString(applicationId)
-                        );
-                        break;
+                    }
+                    default -> Log.d(TAG,
+                            "No processor defined for application ID " +
+                                    Integer.toHexString(applicationId)
+                    );
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -306,7 +300,7 @@ public class QRFragment extends Fragment {
         if (receivedChunks.equals(lastReceivedChunks)) return;
         lastReceivedChunks = receivedChunks;
 
-        String s = IntStream.range(0, totalChunks)
+        var s = IntStream.range(0, totalChunks)
                 .filter(i -> !receivedChunks.get(i))
                 .mapToObj(i -> Integer.toString(i + 1)).collect(Collectors.joining(", "));
         requireContext().getMainExecutor().execute(() -> {
@@ -346,19 +340,19 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemPaste) {
                 //based on pre-launch test
                 //Exception java.lang.NullPointerException: Attempt to invoke virtual method 'android.content.ClipData$Item android.content.ClipData.getItemAt(int)' on a null object reference
-                ClipData clipData = clipboardManager.getPrimaryClip();
+                var clipData = clipboardManager.getPrimaryClip();
                 if (clipData != null) {
                     ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-                    String text = (String) item.getText();
+                    var text = (String) item.getText();
                     if (text != null) {
                         onMessage(text);
                     }
                 }
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
-                CrashReportData crashReportData = new CrashReportData(null);
+                var crashReportData = new CrashReportData(null);
 
                 try {
-                    Intent intentSendTo = new Intent(Intent.ACTION_SENDTO);
+                    var intentSendTo = new Intent(Intent.ACTION_SENDTO);
                     intentSendTo.setData(Uri.parse("mailto:"));
                     intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback");
                     intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});

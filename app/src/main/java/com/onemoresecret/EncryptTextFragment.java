@@ -39,10 +39,10 @@ public class EncryptTextFragment extends Fragment {
     private Runnable setPhrase;
     private final AtomicBoolean textChangeListenerActive = new AtomicBoolean(true);
     private SharedPreferences preferences;
-    private EncMenuProvider menuProvider = new EncMenuProvider();
+    private final EncMenuProvider menuProvider = new EncMenuProvider();
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentEncryptTextBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -57,7 +57,7 @@ public class EncryptTextFragment extends Fragment {
 
         //based on pre-launch test
         //java.lang.IllegalStateException: Fragment EncryptTextFragment does not have any arguments.
-        String text = getArguments() == null ? null : getArguments().getString("TEXT");
+        var text = getArguments() == null ? null : getArguments().getString("TEXT");
         if (text == null) text = "";
 
         binding.editTextPhrase.setText(text);
@@ -68,12 +68,12 @@ public class EncryptTextFragment extends Fragment {
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
                         .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<String>() {
+                        .addObserver(new SelectionTracker.SelectionObserver<>() {
                             @Override
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    String selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+                                    var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
                                     if (encryptPhrase != null)
                                         encryptPhrase.accept(selectedAlias);
                                 } else {
@@ -119,7 +119,7 @@ public class EncryptTextFragment extends Fragment {
     private Consumer<String> getEncryptPhrase(String phrase) {
         return alias -> {
             try {
-                String encrypted = MessageComposer.encodeAsOmsText(
+                var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessageTransfer(phrase.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),

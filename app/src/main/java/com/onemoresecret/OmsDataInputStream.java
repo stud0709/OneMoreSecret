@@ -32,8 +32,8 @@ public class OmsDataInputStream extends DataInputStream {
      * The byte array is prepended by its length. The length is an unsigned short value, so the maximal length of the array is 65535 bytes.
      */
     public byte[] readByteArray() throws IOException {
-        int size = readUnsignedShort();
-        byte[] bArr = new byte[size];
+        var size = readUnsignedShort();
+        var bArr = new byte[size];
         assert read(bArr) == size;
         return bArr;
     }

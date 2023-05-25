@@ -40,7 +40,7 @@ public class PermissionsFragment extends Fragment {
     ActivityResultLauncher<String[]> activityResultLauncher;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = FragmentPermissionsBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -74,7 +74,7 @@ public class PermissionsFragment extends Fragment {
         Log.d(tag, "Granted permissions:");
 
         Arrays.stream(permissions).forEach(p -> {
-            int check = ContextCompat.checkSelfPermission(ctx, p);
+            var check = ContextCompat.checkSelfPermission(ctx, p);
             Log.d(tag, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
         });
 

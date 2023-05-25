@@ -24,7 +24,6 @@ import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -59,7 +58,7 @@ public class KeyStoreListFragment extends Fragment {
     }
 
     public void onItemRemoved(String alias) {
-        int idx = aliasList.indexOf(alias);
+        //var idx = aliasList.indexOf(alias);
         aliasList.remove(alias);
         //itemAdapter.notifyItemRemoved(idx); //this is not working as per 1.21
         itemAdapter.notifyDataSetChanged();
@@ -78,7 +77,7 @@ public class KeyStoreListFragment extends Fragment {
         aliasList.clear();
 
         try {
-            Enumeration<String> aliasesEnum = cryptographyManager.keyStore.aliases();
+            var aliasesEnum = cryptographyManager.keyStore.aliases();
             while (aliasesEnum.hasMoreElements()) {
                 aliasList.add(aliasesEnum.nextElement());
             }
@@ -113,7 +112,7 @@ public class KeyStoreListFragment extends Fragment {
         @NonNull
         @Override
         public KeyStoreListFragment.PrivateKeyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            PrivateKeyListItemBinding binding =
+            var binding =
                     PrivateKeyListItemBinding.inflate(LayoutInflater.from(parent.getContext()),
                             parent,
                             false);
@@ -148,7 +147,7 @@ public class KeyStoreListFragment extends Fragment {
             this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
-                RSAPublicKey publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
+                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
                                 CryptographyManager.getFingerprint(publicKey)));
@@ -165,12 +164,12 @@ public class KeyStoreListFragment extends Fragment {
         @Nullable
         @Override
         public ItemDetails<String> getItemDetails(@NonNull MotionEvent e) {
-            View view = binding.list.findChildViewUnder(e.getX(), e.getY());
+            var view = binding.list.findChildViewUnder(e.getX(), e.getY());
             if (view == null)
                 return null;
 
-            PrivateKeyViewHolder holder = (PrivateKeyViewHolder) binding.list.getChildViewHolder(view);
-            return new ItemDetails<String>() {
+            var holder = (PrivateKeyViewHolder) binding.list.getChildViewHolder(view);
+            return new ItemDetails<>() {
                 @Override
                 public int getPosition() {
                     return holder.position;

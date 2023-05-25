@@ -1,62 +1,23 @@
 package com.onemoresecret;
 
-import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothHidDevice;
-import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 
-import com.onemoresecret.bt.BluetoothController;
-import com.onemoresecret.bt.layout.KeyboardLayout;
-import com.onemoresecret.bt.layout.Stroke;
-import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.databinding.FragmentOutputBinding;
 import com.onemoresecret.databinding.FragmentTotpBinding;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class TotpFragment extends Fragment {
     private static final String TAG = TotpFragment.class.getSimpleName();
@@ -109,8 +70,8 @@ public class TotpFragment extends Fragment {
         if (runOnce) {
             runOnce = false;
 
-            String name = otp.getName();
-            String issuer = otp.getIssuer();
+            var name = otp.getName();
+            var issuer = otp.getIssuer();
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (issuer == null || issuer.isEmpty()) {
@@ -121,11 +82,11 @@ public class TotpFragment extends Fragment {
             });
         }
 
-        String mask = maskSupplier.get();
+        var mask = maskSupplier.get();
 
         try {
             long[] state = otp.getState();
-            String code = otp.generateResponseCode(state[0]);
+            var code = otp.generateResponseCode(state[0]);
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (mask != null) {
@@ -154,6 +115,7 @@ public class TotpFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        binding = null;
         timer.cancel();
     }
 }

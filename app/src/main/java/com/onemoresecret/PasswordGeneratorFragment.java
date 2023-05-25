@@ -4,13 +4,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.SelectionTracker;
-
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -24,7 +17,12 @@ import android.widget.EditText;
 import android.widget.NumberPicker;
 import android.widget.Toast;
 
-import com.onemoresecret.bt.layout.KeyboardLayout;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.selection.SelectionTracker;
+
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.EncryptedMessageTransfer;
@@ -145,7 +143,7 @@ public class PasswordGeneratorFragment extends Fragment {
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    String selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+                                    var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
                                     encryptPwd.accept(selectedAlias);
                                 } else {
                                     setPwd.run();
@@ -182,9 +180,9 @@ public class PasswordGeneratorFragment extends Fragment {
 
 
     private void changePwdLen() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        var builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Password length");
-        NumberPicker numberPicker = new NumberPicker(requireContext());
+        var numberPicker = new NumberPicker(requireContext());
         numberPicker.setMinValue(PWD_LEN_MIN);
         numberPicker.setMaxValue(PWD_LEN_MAX);
         numberPicker.setValue(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT));
@@ -198,10 +196,10 @@ public class PasswordGeneratorFragment extends Fragment {
     }
 
     private void changeOccurs() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        var builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Occurrence");
         builder.setMessage("\u2026of every character class (at least)");
-        NumberPicker numberPicker = new NumberPicker(requireContext());
+        var numberPicker = new NumberPicker(requireContext());
         numberPicker.setMinValue(OCCURS_MIN);
         numberPicker.setMaxValue(OCCURS_MAX);
         numberPicker.setValue(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT));
@@ -217,32 +215,31 @@ public class PasswordGeneratorFragment extends Fragment {
     private void changeCharList(String propertyName) {
         String defaultList, title;
         switch (propertyName) {
-            case PROP_DIGITS_LIST:
+            case PROP_DIGITS_LIST -> {
                 defaultList = DEFAULT_DIGITS;
                 title = getString(R.string.digits);
-                break;
-            case PROP_LCASE_LIST:
+            }
+            case PROP_LCASE_LIST -> {
                 defaultList = DEFAULT_LCASE;
                 title = getString(R.string.lower_case);
-                break;
-            case PROP_SIMILAR_LIST:
+            }
+            case PROP_SIMILAR_LIST -> {
                 defaultList = DEFAULT_SIMILAR;
                 title = getString(R.string.similar);
-                break;
-            case PROP_SPECIALS_LIST:
+            }
+            case PROP_SPECIALS_LIST -> {
                 defaultList = DEFAULT_SPECIALS;
                 title = getString(R.string.specials);
-                break;
-            case PROP_UCASE_LIST:
+            }
+            case PROP_UCASE_LIST -> {
                 defaultList = DEFAULT_LCASE.toUpperCase();
                 title = getString(R.string.upper_case);
-                break;
-            default:
-                throw new IllegalArgumentException();
+            }
+            default -> throw new IllegalArgumentException();
         }
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        var builder = new AlertDialog.Builder(requireContext());
         builder.setTitle(title);
-        EditText editText = new EditText(requireContext());
+        var editText = new EditText(requireContext());
         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         editText.setText(preferences.getString(propertyName, defaultList));
         builder.setView(editText);
@@ -260,7 +257,7 @@ public class PasswordGeneratorFragment extends Fragment {
 
         List<String> charClasses = new ArrayList<>();
 
-        int length = preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT);
+        var length = preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT);
 
         if (binding.chipUpperCase.isChecked()) {
             charClasses.add(preferences.getString(PROP_UCASE_LIST, DEFAULT_LCASE.toUpperCase()));
@@ -275,17 +272,17 @@ public class PasswordGeneratorFragment extends Fragment {
             charClasses.add(preferences.getString(PROP_SPECIALS_LIST, DEFAULT_SPECIALS));
         }
 
-        int size = charClasses.size();
+        var size = charClasses.size();
 
         if (!binding.chipSimilar.isChecked()) {
-            char[] blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR).toCharArray();
+            var blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR).toCharArray();
             Arrays.sort(blacklist);
 
             for (int i = 0; i < size; i++) {
                 //deactivating "similar" will remove all similar characters
-                StringBuilder sb = new StringBuilder();
-                char[] cArr = charClasses.remove(0).toCharArray();
-                for (char c : cArr) {
+                var sb = new StringBuilder();
+                var cArr = charClasses.remove(0).toCharArray();
+                for (var c : cArr) {
                     if (Arrays.binarySearch(blacklist, c) < 0) {
                         sb.append(c);
                     }
@@ -296,7 +293,7 @@ public class PasswordGeneratorFragment extends Fragment {
 
         if (binding.chipLayout.isChecked()) {
             //make sure password can be printed with the selected layout
-            KeyboardLayout keyboardLayout =
+            var keyboardLayout =
                     ((KeyStoreListFragment) binding.fragmentContainerView.getFragment())
                             .getOutputFragment()
                             .getSelectedLayout();
@@ -306,11 +303,11 @@ public class PasswordGeneratorFragment extends Fragment {
                 return;
             }
 
-            for (int i = 0; i < size; i++) {
+            for (var i = 0; i < size; i++) {
 
-                StringBuilder sb = new StringBuilder();
-                char[] cArr = charClasses.remove(0).toCharArray();
-                for (char c : cArr) {
+                var sb = new StringBuilder();
+                var cArr = charClasses.remove(0).toCharArray();
+                for (var c : cArr) {
                     if (keyboardLayout.forKey(c) != null) {
                         //can type this character with this keyboard layout
                         sb.append(c);
@@ -322,8 +319,8 @@ public class PasswordGeneratorFragment extends Fragment {
         }
 
         //remove duplicates
-        for (int i = 0; i < size; i++) {
-            String s = charClasses.remove(0);
+        for (var i = 0; i < size; i++) {
+            var s = charClasses.remove(0);
             charClasses.add(s.replaceAll("(.)\\1+", "$1"));
         }
 
@@ -336,26 +333,26 @@ public class PasswordGeneratorFragment extends Fragment {
         }
 
         //ensure minimal occurrence
-        List<String> list = new ArrayList<>();
-        for (int i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
+        var list = new ArrayList<String>();
+        for (var i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
             list.addAll(charClasses);
         }
 
-        SecureRandom rnd = new SecureRandom();
+        var rnd = new SecureRandom();
 
         while (list.size() < length) {
             list.add(charClasses.get(rnd.nextInt(charClasses.size())));
         }
 
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
 
-        for (int i = 0; i < length; i++) {
-            String s = list.remove(rnd.nextInt(list.size()));
-            char[] cArr = s.toCharArray();
+        for (var i = 0; i < length; i++) {
+            var s = list.remove(rnd.nextInt(list.size()));
+            var cArr = s.toCharArray();
             sb.append(cArr[rnd.nextInt(cArr.length)]);
         }
 
-        String pwd = sb.toString();
+        var pwd = sb.toString();
 
         encryptPwd = getEncryptPwd(pwd);
         setPwd = getSetPwd(pwd);
@@ -378,7 +375,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private Consumer<String> getEncryptPwd(String pwd) {
         return alias -> {
             try {
-                String encrypted = MessageComposer.encodeAsOmsText(
+                var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessageTransfer(pwd.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),

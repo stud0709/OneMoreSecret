@@ -49,7 +49,7 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             activityResultLauncher = null;
             return;
         }
-        boolean b = this.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
+        var b = this.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
         Log.i(TAG, "getProfileProxy: " + b);
 
         //prepare intent "request discoverable"
@@ -67,7 +67,7 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
     }
 
     public void requestDiscoverable(int discoverable_duration_s) {
-        Intent discoverableIntent =
+        var discoverableIntent =
                 new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, discoverable_duration_s);
         activityResultLauncher.launch(discoverableIntent);

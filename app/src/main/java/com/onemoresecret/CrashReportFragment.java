@@ -42,7 +42,7 @@ public class CrashReportFragment extends Fragment {
 
     private void sendEmail() {
         final Function<String, Intent> intentFx = action -> {
-            Intent intent = new Intent(action);
+            var intent = new Intent(action);
             intent.setData(Uri.parse("mailto:"));
             intent.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret crash report");
             intent.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
@@ -50,13 +50,13 @@ public class CrashReportFragment extends Fragment {
         };
 
         try {
-            String crashReport = crashReportData.toString(binding.chkLogcat.isChecked());
-            Uri attachment = Util.toStream(requireContext(),
+            var crashReport = crashReportData.toString(binding.chkLogcat.isChecked());
+            var attachment = Util.toStream(requireContext(),
                     "crash_report.txt",
                     crashReport.getBytes(StandardCharsets.UTF_8),
                     false
             );
-            Intent intentSend = intentFx.apply(Intent.ACTION_SEND);
+            var intentSend = intentFx.apply(Intent.ACTION_SEND);
             intentSend.putExtra(Intent.EXTRA_STREAM, attachment);
             intentSend.putExtra(Intent.EXTRA_TEXT, "The report file has been attached. Please use this email to provide additional feedback (this is optional).");
 
@@ -67,7 +67,7 @@ public class CrashReportFragment extends Fragment {
             } catch (ActivityNotFoundException ex) {
                 try {
                     //email without attachment
-                    Intent intentSendTo = intentFx.apply(Intent.ACTION_SENDTO);
+                    var intentSendTo = intentFx.apply(Intent.ACTION_SENDTO);
                     intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReport);
                     startActivity(intentSendTo);
                     endProcess();

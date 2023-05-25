@@ -14,7 +14,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
@@ -142,8 +141,8 @@ public class OutputFragment extends Fragment {
         initSpinnerKeyboardLayout();
 
         binding.btnType.setOnClickListener(v -> {
-            KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-            List<Stroke> strokes = selectedLayout.forString(message);
+            var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+            var strokes = selectedLayout.forString(message);
 
             if (strokes.contains(null)) {
                 //not all characters could be converted into key strokes
@@ -155,9 +154,9 @@ public class OutputFragment extends Fragment {
         });
 
         copyValue = () -> {
-            String extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
-            ClipData clipData = ClipData.newPlainText("oneMoreSecret", message);
-            PersistableBundle persistableBundle = new PersistableBundle();
+            var extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
+            var clipData = ClipData.newPlainText("oneMoreSecret", message);
+            var persistableBundle = new PersistableBundle();
             persistableBundle.putBoolean(extra_is_sensitive, true);
             clipData.getDescription().setExtras(persistableBundle);
             clipboardManager.setPrimaryClip(clipData);
@@ -173,7 +172,7 @@ public class OutputFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (refreshingBtControls.get()) return;
 
-                SpinnerItemDevice selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                var selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
                 preferences.edit().putString(PROP_LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
 
                 refreshBluetoothControls();
@@ -188,7 +187,7 @@ public class OutputFragment extends Fragment {
     }
 
     private void initSpinnerKeyboardLayout() {
-        ArrayAdapter<KeyboardLayout> keyboardLayoutAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item);
+        var keyboardLayoutAdapter = new ArrayAdapter<KeyboardLayout>(getContext(), android.R.layout.simple_spinner_item);
         keyboardLayoutAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         Arrays.stream(KeyboardLayout.knownSubclasses)
                 .map(clazz -> {
@@ -206,8 +205,8 @@ public class OutputFragment extends Fragment {
         binding.spinnerKeyboardLayout.setAdapter(keyboardLayoutAdapter);
 
         //select last used keyboard layout
-        String lastSelectedKeyboardLayout = preferences.getString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, null);
-        for (int i = 0; i < keyboardLayoutAdapter.getCount(); i++) {
+        var lastSelectedKeyboardLayout = preferences.getString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, null);
+        for (var i = 0; i < keyboardLayoutAdapter.getCount(); i++) {
             if (keyboardLayoutAdapter.getItem(i).getClass().getName().equals(lastSelectedKeyboardLayout)) {
                 binding.spinnerKeyboardLayout.setSelection(i);
                 break;
@@ -219,7 +218,7 @@ public class OutputFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (refreshingBtControls.get()) return;
 
-                KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+                var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
                 preferences.edit().putString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, selectedLayout.getClass().getName()).apply();
 
                 refreshBluetoothControls();
@@ -237,7 +236,7 @@ public class OutputFragment extends Fragment {
         //register broadcast receiver for BT events
         bluetoothBroadcastReceiver = new BluetoothBroadcastReceiver();
 
-        Context ctx = requireContext();
+        var ctx = requireContext();
 
         ctx.registerReceiver(
                 bluetoothBroadcastReceiver,
@@ -264,7 +263,7 @@ public class OutputFragment extends Fragment {
     }
 
     protected void type(List<Stroke> list) {
-        SpinnerItemDevice selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+        var selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
 
         if (selectedSpinnerItem == null) {
             requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.select_bt_target), Toast.LENGTH_LONG));
@@ -298,7 +297,7 @@ public class OutputFragment extends Fragment {
         refreshBluetoothControls();
 
         new Thread(() -> {
-            BluetoothDevice bluetoothDevice = ((SpinnerItemDevice) binding
+            var bluetoothDevice = ((SpinnerItemDevice) binding
                     .spinnerBluetoothTarget
                     .getSelectedItem())
                     .getBluetoothDevice();
@@ -354,7 +353,7 @@ public class OutputFragment extends Fragment {
 
                 //disable all bluetooth functionality
                 requireContext().getMainExecutor().execute(() -> {
-                    Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                    var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
                     binding.chipBtStatus.setChipIcon(drawable);
                     binding.chipBtStatus.setText(getString(R.string.bt_not_available));
 
@@ -367,26 +366,26 @@ public class OutputFragment extends Fragment {
                 return;
             }
 
-            BluetoothAdapter bluetoothAdapter = bluetoothController.getAdapter();
+            var bluetoothAdapter = bluetoothController.getAdapter();
 
-            boolean bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
+            var bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
 
             if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
-            boolean discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+            var discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
 
-            List<BluetoothDevice> connectedDevices = bluetoothController.getBluetoothHidDevice() == null ?
-                    Collections.emptyList() :
+            var connectedDevices = bluetoothController.getBluetoothHidDevice() == null ?
+                    Collections.<BluetoothDevice>emptyList() :
                     bluetoothController.getBluetoothHidDevice().getConnectedDevices();
 
-            SpinnerItemDevice[] bondedDevices = bluetoothAdapter.getBondedDevices().stream().filter(
+            var bondedDevices = bluetoothAdapter.getBondedDevices().stream().filter(
                             d -> d.getBluetoothClass()
                                     .getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
                     .map(SpinnerItemDevice::new)
                     .sorted((s1, s2) -> {
-                        int i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
-                        int i2 = connectedDevices.contains(s2.getBluetoothDevice()) ? 0 : 1;
+                        var i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
+                        var i2 = connectedDevices.contains(s2.getBluetoothDevice()) ? 0 : 1;
                         if (i1 != i2) return Integer.compare(i1, i2);
 
                         return s1.toString().compareTo(s2.toString());
@@ -400,8 +399,8 @@ public class OutputFragment extends Fragment {
                 try {
                     binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
 
-                    String status = getString(R.string.bt_off);
-                    Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                    var status = getString(R.string.bt_off);
+                    var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
 
                     if (bluetoothAdapterEnabled) {
                         status = getString(R.string.bt_disconnected);
@@ -417,8 +416,8 @@ public class OutputFragment extends Fragment {
 
                     //remember selection
                     {
-                        SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                        String selectedBtAddress = selectedBluetoothTarget == null ?
+                        var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                        var selectedBtAddress = selectedBluetoothTarget == null ?
                                 preferences.getString(PROP_LAST_SELECTED_BT_TARGET, null) :
                                 selectedBluetoothTarget.getBluetoothDevice().getAddress();
 
@@ -428,7 +427,7 @@ public class OutputFragment extends Fragment {
 
                         //restore selection
                         if (selectedBtAddress != null) {
-                            for (int i = 0; i < arrayAdapterDevice.getCount(); i++) {
+                            for (var i = 0; i < arrayAdapterDevice.getCount(); i++) {
                                 if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
                                     binding.spinnerBluetoothTarget.setSelection(i);
                                     break;
@@ -438,11 +437,11 @@ public class OutputFragment extends Fragment {
                     }
 
                     //set BT connection state
-                    SpinnerItemDevice selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                    var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
                     boolean selectedDeviceConnected;
 
                     if (selectedBluetoothTarget != null) {
-                        String selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
+                        var selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
                         selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
                         if (selectedDeviceConnected) {
                             status = getString(R.string.bt_connected);
@@ -454,7 +453,7 @@ public class OutputFragment extends Fragment {
                     binding.chipBtStatus.setText(status);
 
                     //set TYPE button state
-                    KeyboardLayout selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+                    var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
                     binding.btnType.setEnabled(bluetoothAdapterEnabled &&
                             selectedBluetoothTarget != null &&
 //                            selectedDeviceConnected &&
@@ -512,7 +511,7 @@ public class OutputFragment extends Fragment {
 
             refreshBluetoothControls();
 
-            List<Stroke> queuedList = keyboardQueue.remove(device.getAddress());
+            var queuedList = keyboardQueue.remove(device.getAddress());
             if (queuedList != null) {
                 Log.d(TAG, "found queued message, size " + queuedList.size());
                 type(queuedList);
@@ -544,7 +543,7 @@ public class OutputFragment extends Fragment {
                     return;
                 }
 
-                List<BluetoothDevice> pairedDevices = bluetoothController.getBluetoothHidDevice().getDevicesMatchingConnectionStates(
+                var pairedDevices = bluetoothController.getBluetoothHidDevice().getDevicesMatchingConnectionStates(
                         new int[]{BluetoothProfile.STATE_CONNECTING,
                                 BluetoothProfile.STATE_CONNECTED,
                                 BluetoothProfile.STATE_DISCONNECTED,
@@ -586,14 +585,14 @@ public class OutputFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemShare) {
                 if (beforePause != null) beforePause.run();
 
-                Intent sendIntent = new Intent();
+                var sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);
                 sendIntent.putExtra(Intent.EXTRA_TEXT, message);
 
                 sendIntent.putExtra(Intent.EXTRA_TITLE, shareTitle);
                 sendIntent.setType("text/plain");
 
-                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                var shareIntent = Intent.createChooser(sendIntent, null);
                 startActivity(shareIntent);
             } else if (menuItem.getItemId() == R.id.menuItemOutputHelp) {
                 Util.openUrl(R.string.autotype_md_url, requireContext());

@@ -7,7 +7,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -26,25 +25,25 @@ public final class AESUtil {
     public static SecretKey getKeyFromPassword(char[] password, byte[] salt, String keyAlgorithm, int keyLength, int keySpecIterations)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
 
-        SecretKeyFactory factory = SecretKeyFactory.getInstance(keyAlgorithm);
-        KeySpec spec = new PBEKeySpec(password, salt, keySpecIterations, keyLength);
+        var factory = SecretKeyFactory.getInstance(keyAlgorithm);
+        var spec = new PBEKeySpec(password, salt, keySpecIterations, keyLength);
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
     }
 
     public static IvParameterSpec generateIv() {
-        byte[] iv = new byte[16];
+        var iv = new byte[16];
         new SecureRandom().nextBytes(iv);
         return new IvParameterSpec(iv);
     }
 
     public static SecretKey generateRandomSecretKey(int keyLength) {
-        byte[] bArr = new byte[keyLength / 8];
+        var bArr = new byte[keyLength / 8];
         new SecureRandom().nextBytes(bArr);
         return new SecretKeySpec(bArr, "AES");
     }
 
     public static byte[] generateSalt(int saltLength) {
-        byte[] salt = new byte[saltLength];
+        var salt = new byte[saltLength];
         new SecureRandom().nextBytes(salt);
         return salt;
     }
@@ -53,7 +52,7 @@ public final class AESUtil {
             throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
             InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
 
-        Cipher cipher = Cipher.getInstance(aesTransformation);
+        var cipher = Cipher.getInstance(aesTransformation);
         cipher.init(Cipher.ENCRYPT_MODE, key, iv);
         return cipher.doFinal(input);
     }
@@ -62,7 +61,7 @@ public final class AESUtil {
             throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
             InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
 
-        Cipher cipher = Cipher.getInstance(aesTransformation);
+        var cipher = Cipher.getInstance(aesTransformation);
         cipher.init(Cipher.DECRYPT_MODE, key, iv);
         return cipher.doFinal(cipherText);
     }

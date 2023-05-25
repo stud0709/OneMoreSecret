@@ -27,20 +27,11 @@ import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.security.KeyPair;
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.KeySpec;
 import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
 
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Key import Fragment.
@@ -61,44 +52,44 @@ public class KeyImportFragment extends Fragment {
 
         try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(getArguments().getByteArray("MESSAGE")))) {
             // (1) Application ID
-            int applicationId = dataInputStream.readUnsignedShort();
+            var applicationId = dataInputStream.readUnsignedShort();
             if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER)
                 throw new IllegalArgumentException("wrong applicationId: " + applicationId);
 
             // (2) alias
-            String alias = dataInputStream.readString();
+            var alias = dataInputStream.readString();
             Log.d(TAG, "alias: " + alias);
             binding.editTextKeyAlias.setText(alias);
             // --- AES parameter ---
 
             // (3) salt
-            byte[] salt = dataInputStream.readByteArray();
+            var salt = dataInputStream.readByteArray();
             Log.d(TAG, "salt: " + Util.byteArrayToHex(salt));
 
             // (4) IV
-            byte[] iv = dataInputStream.readByteArray();
+            var iv = dataInputStream.readByteArray();
             Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
             // (5) AES transformation index
-            String aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+            var aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
             Log.d(TAG, "cipher algorithm: " + aesTransformation);
 
             // (6) key algorithm index
-            String aesKeyAlg = AesKeyAlgorithm.values()[dataInputStream.readUnsignedShort()].keyAlgorithm;
+            var aesKeyAlg = AesKeyAlgorithm.values()[dataInputStream.readUnsignedShort()].keyAlgorithm;
             Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
 
             // (7) key length
-            int aesKeyLength = dataInputStream.readUnsignedShort();
+            var aesKeyLength = dataInputStream.readUnsignedShort();
             Log.d(TAG, "AES key length: " + aesKeyLength);
 
             // (8) AES iterations
-            int iterations = dataInputStream.readUnsignedShort();
+            var iterations = dataInputStream.readUnsignedShort();
             Log.d(TAG, "iterations: " + iterations);
 
             // --- Encrypted part ---
 
             // (9) cipher text
-            byte[] cipherText = dataInputStream.readByteArray();
+            var cipherText = dataInputStream.readByteArray();
             Log.d(TAG, cipherText.length + " bytes cipher text read");
 
             binding.editTextKeyAlias.setText(alias);
@@ -131,14 +122,14 @@ public class KeyImportFragment extends Fragment {
 
         try {
             //try decrypt
-            SecretKey secretKey = AESUtil.getKeyFromPassword(
+            var secretKey = AESUtil.getKeyFromPassword(
                     binding.editTextPassphrase.getText().toString().toCharArray(),
                     salt,
                     keyAlg,
                     keyLength,
                     iterations);
 
-            byte[] bArr = AESUtil.decrypt(
+            var bArr = AESUtil.decrypt(
                     cipherText,
                     secretKey,
                     new IvParameterSpec(iv),
@@ -146,17 +137,17 @@ public class KeyImportFragment extends Fragment {
 
             try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(bArr))) {
                 // (9.1) - private key material
-                byte[] privateKeyMaterial = dataInputStream.readByteArray();
+                var privateKeyMaterial = dataInputStream.readByteArray();
 
                 // (9.2) - public key material
-                byte[] publicKeyMaterial = dataInputStream.readByteArray();
+                var publicKeyMaterial = dataInputStream.readByteArray();
 
-                KeyPair keyPair = CryptographyManager.restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
+                var keyPair = CryptographyManager.restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
 
-                RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+                var publicKey = (RSAPublicKey) keyPair.getPublic();
 
-                byte[] fingerprintBytes = CryptographyManager.getFingerprint(publicKey);
-                String fingerprint = Util.byteArrayToHex(fingerprintBytes);
+                var fingerprintBytes = CryptographyManager.getFingerprint(publicKey);
+                var fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
                 requireContext().getMainExecutor().execute(() -> {
                     binding.textFingerprintData.setText(fingerprint);
@@ -172,7 +163,7 @@ public class KeyImportFragment extends Fragment {
                             new Thread(() -> {
                                 try {
                                     //delete other keys with the same fingerprint
-                                    List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
+                                    var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
                                     sameFingerprint.forEach(a -> {
                                         try {
                                             cryptographyManager.deleteKey(a);
@@ -181,7 +172,7 @@ public class KeyImportFragment extends Fragment {
                                         }
                                     });
 
-                                    String keyAlias = binding.
+                                    var keyAlias = binding.
                                             editTextKeyAlias.
                                             getText().
                                             toString().
@@ -236,24 +227,24 @@ public class KeyImportFragment extends Fragment {
 
     private void validateAlias(byte[] fingerprintNew) {
         try {
-            String alias = binding.editTextKeyAlias.getText().toString();
+            var alias = binding.editTextKeyAlias.getText().toString();
             Log.d(TAG, "alias: " + alias);
             String warning = null;
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
-                RSAPublicKey publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
-                byte[] fingerprint = CryptographyManager.getFingerprint(publicKey);
+                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
+                var fingerprint = CryptographyManager.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
                     warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
                 }
             }
 
-            List<String> sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew);
+            var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew);
             if (!sameFingerprint.isEmpty()) {
                 warning = String.format(getString(R.string.warning_same_fingerprint), sameFingerprint.get(0));
             }
 
-            String _warning = warning;
+            var _warning = warning;
 
             requireContext().getMainExecutor().execute(() -> {
                 binding.txtWarnings.setText(_warning == null ? "" : _warning);
