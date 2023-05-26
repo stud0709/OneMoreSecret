@@ -222,7 +222,6 @@ public class MessageFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
-        ((HiddenTextFragment) messageView).setText(getString(R.string.hidden_text));
         binding = null;
     }
 

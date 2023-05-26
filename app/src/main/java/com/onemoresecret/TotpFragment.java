@@ -115,7 +115,8 @@ public class TotpFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null;
         timer.cancel();
+        binding.textViewTotpValue.setText("000000");
+        binding = null;
     }
 }

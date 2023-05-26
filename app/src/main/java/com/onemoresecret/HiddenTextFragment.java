@@ -34,4 +34,11 @@ public class HiddenTextFragment extends Fragment {
     public void setText(String text) {
         binding.textViewMessage.setText(text);
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding.textViewMessage.setText(getString(R.string.hidden_text));
+        binding = null;
+    }
 }
