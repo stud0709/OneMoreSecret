@@ -89,13 +89,8 @@ public class TotpFragment extends Fragment {
             var code = otp.generateResponseCode(state[0]);
 
             requireActivity().getMainExecutor().execute(() -> {
-                if (mask != null) {
-                    binding.textViewRemaining.setText("");
-                    binding.textViewTotpValue.setText(mask);
-                } else {
-                    binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state[1]));
-                    binding.textViewTotpValue.setText(code);
-                }
+                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state[1]));
+                binding.textViewTotpValue.setText(mask == null ? code : mask);
             });
 
             if (lastState != state[0]) {
