@@ -34,6 +34,7 @@ public class TotpFragment extends Fragment {
             @NonNull LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         binding = FragmentTotpBinding.inflate(inflater, container, false);
+        binding.textViewTotpValue.setText("");
         return binding.getRoot();
     }
 
@@ -89,6 +90,7 @@ public class TotpFragment extends Fragment {
             var code = otp.generateResponseCode(state[0]);
 
             requireActivity().getMainExecutor().execute(() -> {
+                if (binding == null) return; //fragment has been destroyed
                 binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state[1]));
                 binding.textViewTotpValue.setText(mask == null ? code : mask);
             });
@@ -111,7 +113,7 @@ public class TotpFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         timer.cancel();
-        binding.textViewTotpValue.setText("000000");
+        binding.textViewTotpValue.setText("");
         binding = null;
     }
 }

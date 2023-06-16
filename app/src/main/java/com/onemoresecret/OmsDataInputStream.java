@@ -34,13 +34,12 @@ public class OmsDataInputStream extends DataInputStream {
     public byte[] readByteArray() throws IOException {
         var size = readUnsignedShort();
         var bArr = new byte[size];
-        assert read(bArr) == size;
+        if (read(bArr) != size) throw new IOException();
         return bArr;
     }
 
     /**
      * Reads a {@link BigInteger} from a byte array prepended by the array's length.
-     *
      */
     public BigInteger readBigInteger() throws IOException {
         return new BigInteger(readByteArray());
