@@ -367,6 +367,9 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemEncryptText) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_encryptTextFragment);
+            } else if (menuItem.getItemId() == R.id.menuItemTotp) {
+                NavHostFragment.findNavController(QRFragment.this)
+                        .navigate(R.id.action_QRFragment_to_totpManualEntryFragment);
             } else {
                 return false;
             }

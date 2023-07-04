@@ -33,6 +33,9 @@
         <action
             android:id="@+id/action_QRFragment_to_TotpImportFragment"
             app:destination="@id/timeOTPFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_totpManualEntryFragment"
+            app:destination="@id/totpManualEntryFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -78,4 +81,9 @@
         android:name="com.onemoresecret.TotpImportFragment"
         android:label="TOTP Import"
         tools:layout="@layout/fragment_totp_import" />
+    <fragment
+        android:id="@+id/totpManualEntryFragment"
+        android:name="com.onemoresecret.TotpManualEntryFragment"
+        android:label="TOTP Manual Entry"
+        tools:layout="@layout/fragment_totp_manual_entry" />
 </navigation>

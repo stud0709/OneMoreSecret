@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
@@ -20,14 +21,14 @@ public class OneTimePassword {
     public static final String OTP_SCHEME = "otpauth";
     public static final String TOTP = "totp"; // time-based
     private static final String ISSUER_PARAM = "issuer";
-    private static final String SECRET_PARAM = "secret";
+    public static final String SECRET_PARAM = "secret";
 
-    private static final int DEFAULT_PERIOD = 30;
-    private static final String PERIOD_PARAM = "period";
-    private static final int DEFAULT_DIGITS = 6;
-    private static final String DIGITS_PARAM = "digits";
-    private static final String ALGORITHM_PARAM = "algorithm";
-    private static final String DEFAULT_ALGORITHM = "SHA1";
+    public static final int DEFAULT_PERIOD = 30;
+    public static final String PERIOD_PARAM = "period";
+    public static final String[] DIGITS = {"6", "8"};
+    public static final String DIGITS_PARAM = "digits";
+    public static final String ALGORITHM_PARAM = "algorithm";
+    public static final String[] ALGORITHM = {"SHA1", "SHA256", "SHA512"};
 
     private static final String TAG = OneTimePassword.class.getSimpleName();
 
@@ -87,15 +88,17 @@ public class OneTimePassword {
 
     public int getDigits() {
         var s = uri.getQueryParameter(DIGITS_PARAM);
-        var i = (s == null || s.isEmpty()) ? DEFAULT_DIGITS : Integer.parseInt(s);
-        if (i > 8) throw new IllegalArgumentException("Too many digits (max. 8): " + i);
-        return i;
+        var d = (s == null || s.isEmpty()) ? DIGITS[0] : s;
+        if (!Arrays.stream(DIGITS).anyMatch(d::equals)) {
+            throw new IllegalArgumentException("Invalid digits: " + d);
+        }
+        return Integer.parseInt(d);
     }
 
     public String getAlgorithm() {
         var s = uri.getQueryParameter(ALGORITHM_PARAM);
-        var alg = (s == null || s.isEmpty()) ? DEFAULT_ALGORITHM : s;
-        if (!alg.equals("SHA1") && !alg.equals("SHA256") && !alg.equals("SHA512")) {
+        var alg = (s == null || s.isEmpty()) ? ALGORITHM[0] : s;
+        if (!Arrays.stream(ALGORITHM).anyMatch(alg::equals)) {
             throw new IllegalArgumentException("invalid algorithm: " + alg);
         }
         return alg;

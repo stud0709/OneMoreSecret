@@ -130,4 +130,11 @@
     <string name="email">Email</string>
     <string name="discord">Discord</string>
     <string name="one_time_password">One-Time Password</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="format_seconds">%ds</string>
+    <string name="time_based_otp">Time Based OTP</string>
+    <string name="totp_label">Label</string>
+    <string name="totp_secret">Secret</string>
+    <string name="totp_parameters_optional">Parameters (optional):</string>
 </resources>

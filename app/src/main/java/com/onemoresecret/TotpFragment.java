@@ -17,6 +17,7 @@ import com.onemoresecret.databinding.FragmentTotpBinding;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TotpFragment extends Fragment {
@@ -25,7 +26,7 @@ public class TotpFragment extends Fragment {
     private final Timer timer = new Timer();
     private long lastState = -1L;
     private OneTimePassword otp;
-    private Supplier<String> maskSupplier;
+    private Function<Integer, String> maskFx;
     private Consumer<String> onNewValue;
     private boolean runOnce = true;
 
@@ -44,9 +45,9 @@ public class TotpFragment extends Fragment {
         getTimerTask().run();
     }
 
-    public void init(OneTimePassword otp, Supplier<String> maskSupplier, Consumer<String> onNewValue) {
+    public void init(OneTimePassword otp, Function<Integer, String> maskFx, Consumer<String> onNewValue) {
         this.otp = otp;
-        this.maskSupplier = maskSupplier;
+        this.maskFx = maskFx;
         this.onNewValue = onNewValue;
     }
 
@@ -83,7 +84,7 @@ public class TotpFragment extends Fragment {
             });
         }
 
-        var mask = maskSupplier.get();
+        var mask = maskFx.apply(otp.getDigits());
 
         try {
             long[] state = otp.getState();

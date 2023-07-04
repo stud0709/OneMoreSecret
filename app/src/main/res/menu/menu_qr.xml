@@ -11,6 +11,9 @@
         android:id="@+id/menuItemPwdGenerator"
         android:title="@string/password_generator" />
     <item
+        android:id="@+id/menuItemTotp"
+        android:title="@string/time_based_otp" />
+    <item
         android:id="@+id/menuItemEncryptText"
         android:title="@string/encrypt_text" />
     <item
@@ -25,14 +28,11 @@
         android:title="@string/project_home_page" />
     <item
         android:id="@+id/menuItemFeedback"
-        android:title="@string/feedback" >
-        <menu >
-            <item
-                android:id="@+id/menuItemFeedbackEmail"
-                android:title="@string/email" />
-            <item
-                android:id="@+id/menuItemFeedbackDiscord"
-                android:title="@string/discord" />
-        </menu>
-    </item>
+        android:title="@string/feedback" />
+    <item
+        android:id="@+id/menuItemFeedbackEmail"
+        android:title="@string/email" />
+    <item
+        android:id="@+id/menuItemFeedbackDiscord"
+        android:title="@string/discord" />
 </menu>

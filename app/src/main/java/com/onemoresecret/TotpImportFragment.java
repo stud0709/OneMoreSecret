@@ -65,7 +65,7 @@ public class TotpImportFragment extends Fragment {
             }
 
             totpFragment.init(otp,
-                    () -> keyStoreListFragment.getSelectionTracker().hasSelection() ? MessageComposer.OMS_PREFIX + "..." : null,
+                    digits -> keyStoreListFragment.getSelectionTracker().hasSelection() ? MessageComposer.OMS_PREFIX + "..." : null,
                     code -> {
                         if (!keyStoreListFragment.getSelectionTracker().hasSelection())
                             keyStoreListFragment.getOutputFragment().setMessage(code, "One-Time Password");

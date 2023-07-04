@@ -209,7 +209,7 @@ public class MessageFragment extends Fragment {
         if (messageView instanceof TotpFragment) {
             revealHandler = () -> ((TotpFragment) messageView).refresh();
             var shareTitle = getString(R.string.one_time_password);
-            ((TotpFragment) messageView).init(new OneTimePassword(message), () -> reveal ? null : "●●●●●●", code -> {
+            ((TotpFragment) messageView).init(new OneTimePassword(message), digits -> reveal ? null : "●".repeat(digits), code -> {
                 var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
                 outputFragment.setMessage(code, shareTitle);
             });
