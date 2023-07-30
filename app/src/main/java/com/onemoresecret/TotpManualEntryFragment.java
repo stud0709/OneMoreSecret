@@ -187,7 +187,9 @@ public class TotpManualEntryFragment extends Fragment {
 
         otp = new OneTimePassword(uri);
 
-        if (selectedAlias != null) {
+        if (selectedAlias == null) {
+            generateResponseCode(true);
+        } else {
             try {
                 var result = MessageComposer.encodeAsOmsText(
                         new TotpUriTransfer(uri.getBytes(),
@@ -244,7 +246,9 @@ public class TotpManualEntryFragment extends Fragment {
                 }
             });
         } catch (Exception e) {
+            //invalid secret
             Log.e(TAG, e.getMessage());
+            keyStoreListFragment.getOutputFragment().setMessage(null, null);
             requireActivity().getMainExecutor().execute(() -> {
                 binding.textViewTotp.setText("-".repeat(Integer.parseInt(binding.chipDigits.getText().toString())));
                 binding.textViewTimer.setText("");
