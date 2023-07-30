@@ -43,9 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -62,7 +60,6 @@ public class OutputFragment extends Fragment {
             android.Manifest.permission.BLUETOOTH_CONNECT,
             android.Manifest.permission.BLUETOOTH_ADVERTISE
     };
-    private final Map<String, List<Stroke>> keyboardQueue = new ConcurrentHashMap<>();
 
     private FragmentOutputBinding binding;
     private BluetoothBroadcastReceiver bluetoothBroadcastReceiver;
@@ -175,6 +172,8 @@ public class OutputFragment extends Fragment {
                 var selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
                 preferences.edit().putString(PROP_LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
 
+                checkConnectSelectedDevice();
+
                 refreshBluetoothControls();
             }
 
@@ -262,36 +261,31 @@ public class OutputFragment extends Fragment {
 
     }
 
-    protected void type(List<Stroke> list) {
-        var selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-
-        if (selectedSpinnerItem == null) {
-            requireContext().getMainExecutor().execute(() -> Toast.makeText(getContext(), getString(R.string.select_bt_target), Toast.LENGTH_LONG));
-            return;
-        }
-
+    /**
+     * Check if the selected device is connected, try to connect.
+     */
+    private void checkConnectSelectedDevice() {
         if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
-        if (bluetoothController.getBluetoothHidDevice().getConnectedDevices()
-                .stream().noneMatch(d -> d.getAddress()
-                        .equals(selectedSpinnerItem.getBluetoothDevice().getAddress()))) {
-            Log.d(TAG, "queueing message for " + selectedSpinnerItem.getBluetoothDevice().getAddress() + " (size: " + list.size() + ")");
-            keyboardQueue.put(selectedSpinnerItem.getBluetoothDevice().getAddress(), list);
+        var selectedSpinnerItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+        if (selectedSpinnerItem == null) return;
+        var device = selectedSpinnerItem.getBluetoothDevice();
+        Log.d(TAG, String.format("Selected device: %s", device.getName()));
 
-            if (!bluetoothController.registerApp()) //if app is not registered, connect will be executed upon register event
-                //app is registered
-                bluetoothController.getBluetoothHidDevice().connect(selectedSpinnerItem.getBluetoothDevice());
+        if (bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
+            Log.d(TAG, String.format("App is registered, try to connect %s", device.getName()));
+            bluetoothController.getBluetoothHidDevice().connect(device);
+        }
+    }
 
+    protected void type(List<Stroke> list) {
+        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
         Log.d(TAG, "sending message (size: " + list.size() + ")");
-
-        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
 
         typing.set(true);
         refreshBluetoothControls();
@@ -438,7 +432,7 @@ public class OutputFragment extends Fragment {
 
                     //set BT connection state
                     var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                    boolean selectedDeviceConnected;
+                    boolean selectedDeviceConnected = false;
 
                     if (selectedBluetoothTarget != null) {
                         var selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
@@ -454,9 +448,7 @@ public class OutputFragment extends Fragment {
 
                     //set TYPE button state
                     var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-                    binding.btnType.setEnabled(bluetoothAdapterEnabled &&
-                            selectedBluetoothTarget != null &&
-//                            selectedDeviceConnected &&
+                    binding.btnType.setEnabled(selectedDeviceConnected &&
                             selectedLayout != null &&
                             message != null &&
                             !typing.get());
@@ -510,12 +502,6 @@ public class OutputFragment extends Fragment {
             Log.i(TAG, "onConnectionStateChanged -  device: " + device + ", state: " + state);
 
             refreshBluetoothControls();
-
-            var queuedList = keyboardQueue.remove(device.getAddress());
-            if (queuedList != null) {
-                Log.d(TAG, "found queued message, size " + queuedList.size());
-                type(queuedList);
-            }
         }
 
         @Override

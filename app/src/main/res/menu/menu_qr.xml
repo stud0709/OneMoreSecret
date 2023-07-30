@@ -21,18 +21,15 @@
         android:title="@string/action_private_keys"
         app:showAsAction="never" />
     <item
-        android:id="@+id/menuItemHelp"
-        android:title="@string/help" />
+        android:id="@+id/menuItemFeedbackEmail"
+        android:title="@string/feedback_by_email" />
+    <item
+        android:id="@+id/menuItemFeedbackDiscord"
+        android:title="@string/feedback_by_discord" />
     <item
         android:id="@+id/menuItemHomePage"
         android:title="@string/project_home_page" />
     <item
-        android:id="@+id/menuItemFeedback"
-        android:title="@string/feedback" />
-    <item
-        android:id="@+id/menuItemFeedbackEmail"
-        android:title="@string/email" />
-    <item
-        android:id="@+id/menuItemFeedbackDiscord"
-        android:title="@string/discord" />
+        android:id="@+id/menuItemHelp"
+        android:title="@string/help" />
 </menu>

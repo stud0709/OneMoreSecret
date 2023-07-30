@@ -15,7 +15,7 @@ public class Stroke {
      */
     public List<KeyboardReport> get() {
         List<KeyboardReport> list = new ArrayList<>(reports);
-        list.add(new KeyboardReport(0)); //release all keys
+        list.add(new KeyboardReport(KeyboardUsage.KBD_NONE)); //release all keys
         return list;
     }
 

@@ -114,7 +114,6 @@
     <string name="chk_logcat">logcat output (a journal containing hints about the program execution).</string>
     <string name="btn_dismiss">dismiss</string>
     <string name="btn_send">send</string>
-    <string name="feedback">Feedback</string>
     <string name="contact_email">stud0709.github@gmail.com</string>
     <string name="feedback_prompt">Please provide your feedback...</string>
     <string name="malformed_intent">Malformed intent</string>
@@ -127,8 +126,8 @@
     <string name="proceed">Proceed</string>
     <string name="encrypt_text">Encrypt Text</string>
     <string name="discord_url">https://discord.gg/eBH6U6XqMC</string>
-    <string name="email">Email</string>
-    <string name="discord">Discord</string>
+    <string name="feedback_by_email">Feedback by Email</string>
+    <string name="feedback_by_discord">Feedback by Discord</string>
     <string name="one_time_password">One-Time Password</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
