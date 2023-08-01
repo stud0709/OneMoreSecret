@@ -78,7 +78,6 @@ public class OutputFragment extends Fragment {
 
     private String message = null;
     private String shareTitle = null;
-
     private Runnable beforePause = null;
 
     private final AtomicBoolean typing = new AtomicBoolean(false);
@@ -138,6 +137,12 @@ public class OutputFragment extends Fragment {
         initSpinnerKeyboardLayout();
 
         binding.btnType.setOnClickListener(v -> {
+            if (typing.get()) {
+                //cancel typing
+                typing.set(false);
+                return;
+            }
+
             var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
             var strokes = selectedLayout.forString(message);
 
@@ -296,21 +301,23 @@ public class OutputFragment extends Fragment {
                     .getSelectedItem())
                     .getBluetoothDevice();
 
-            list.stream().flatMap(s -> s.get().stream()).forEach(r -> {
-                bluetoothController
-                        .getBluetoothHidDevice()
-                        .sendReport(
-                                bluetoothDevice,
-                                0,
-                                r.report);
+            list.stream()
+                    .filter(s -> typing.get())
+                    .flatMap(s -> s.get().stream())
+                    .forEach(r -> {
+                        bluetoothController
+                                .getBluetoothHidDevice()
+                                .sendReport(
+                                        bluetoothDevice,
+                                        0,
+                                        r.report);
 
-                try {
-                    Thread.sleep(binding.swDelayedStrokes.isChecked() ? getKeyStrokeDelayOn() : getKeyStrokeDelayOff());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            });
+                        try {
+                            Thread.sleep(binding.swDelayedStrokes.isChecked() ? getKeyStrokeDelayOn() : getKeyStrokeDelayOff());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    });
 
             typing.set(false);
             refreshBluetoothControls();
@@ -320,6 +327,9 @@ public class OutputFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        typing.set(false); //cancel typing, if any
+
         if (bluetoothBroadcastReceiver != null)
             requireContext().unregisterReceiver(bluetoothBroadcastReceiver);
         if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -364,7 +374,7 @@ public class OutputFragment extends Fragment {
 
             var bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
 
-            if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
             var discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
@@ -450,8 +460,9 @@ public class OutputFragment extends Fragment {
                     var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
                     binding.btnType.setEnabled(selectedDeviceConnected &&
                             selectedLayout != null &&
-                            message != null &&
-                            !typing.get());
+                            message != null);
+
+                    binding.btnType.setText(typing.get() ? getString(R.string.cancel) : getString(R.string.type));
 
                     binding.textTyping.setVisibility(typing.get() ? View.VISIBLE : View.INVISIBLE);
 

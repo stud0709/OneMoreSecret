@@ -136,4 +136,5 @@
     <string name="totp_label">Label</string>
     <string name="totp_secret">Secret</string>
     <string name="totp_parameters_optional">Parameters (optional):</string>
+    <string name="cancel">Cancel</string>
 </resources>
