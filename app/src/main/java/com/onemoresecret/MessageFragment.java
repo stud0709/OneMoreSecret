@@ -54,25 +54,24 @@ public class MessageFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "fragment paused");
-
-        if (navBackIfPaused) navBackOnResume = true;
+        if (navBackIfPaused) NavHostFragment.findNavController(this).popBackStack();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        navBackIfPaused = true;
 
-        if (navBackOnResume)
-            NavHostFragment.findNavController(this).popBackStack();
+        //rearm
+        navBackIfPaused = true;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
-        ((OutputFragment) binding.messageOutputFragment.getFragment()).setBeforePause(() -> navBackIfPaused = false);
+
+        ((OutputFragment) binding.messageOutputFragment.getFragment())
+                .setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
 
         try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray("MESSAGE"));
              var dataInputStream = new OmsDataInputStream(bais)) {

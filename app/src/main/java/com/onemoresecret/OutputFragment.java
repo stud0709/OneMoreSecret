@@ -93,8 +93,8 @@ public class OutputFragment extends Fragment {
      * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
      * This is to notify the parent, that this is about to happen.
      */
-    public void setBeforePause(Runnable onBtDiscover) {
-        this.beforePause = onBtDiscover;
+    public void setBeforePause(Runnable r) {
+        this.beforePause = r;
     }
 
     public KeyboardLayout getSelectedLayout() {
@@ -384,8 +384,15 @@ public class OutputFragment extends Fragment {
                     bluetoothController.getBluetoothHidDevice().getConnectedDevices();
 
             var bondedDevices = bluetoothAdapter.getBondedDevices().stream().filter(
-                            d -> d.getBluetoothClass()
-                                    .getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
+                            d -> {
+                                try {
+                                    return d.getBluetoothClass()
+                                            .getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER;
+                                } catch (NullPointerException ex) {
+                                    //NPE is thrown after a longer period in the background
+                                }
+                                return false;
+                            })
                     .map(SpinnerItemDevice::new)
                     .sorted((s1, s2) -> {
                         var i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
