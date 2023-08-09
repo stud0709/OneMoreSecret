@@ -383,16 +383,9 @@ public class OutputFragment extends Fragment {
                     Collections.<BluetoothDevice>emptyList() :
                     bluetoothController.getBluetoothHidDevice().getConnectedDevices();
 
-            var bondedDevices = bluetoothAdapter.getBondedDevices().stream().filter(
-                            d -> {
-                                try {
-                                    return d.getBluetoothClass()
-                                            .getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER;
-                                } catch (NullPointerException ex) {
-                                    //NPE is thrown after a longer period in the background
-                                }
-                                return false;
-                            })
+            var bondedDevices = bluetoothAdapter.getBondedDevices()
+                    .stream()
+                    .filter(d -> d.getBluetoothClass().getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
                     .map(SpinnerItemDevice::new)
                     .sorted((s1, s2) -> {
                         var i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;

@@ -114,8 +114,10 @@ public class TotpManualEntryFragment extends Fragment {
         binding.chipDigits.setOnClickListener(e -> selectDigits());
         binding.chipPeriod.setOnClickListener(e -> setPeriod());
 
-        generateResult();
-        getTimerTask().run();
+        requireActivity().getMainExecutor().execute(() -> {
+            generateResult();
+            getTimerTask().run();
+        });
     }
 
     private void setPeriod() {
