@@ -10,8 +10,8 @@ android {
         applicationId "com.onemoresecret"
         minSdk 31
         targetSdk 33
-        versionCode 16
-        versionName "alpha-0.16"
+        versionCode 17
+        versionName "alpha-0.17"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -31,14 +31,14 @@ android {
 }
 
 dependencies {
-    constraints { //as of https://stackoverflow.com/a/75298544/10746499
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
-            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
-        }
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
-            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
-        }
+    //as of https://stackoverflow.com/a/75298544/10746499
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
+        because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
     }
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+        because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+    }
+
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment:2.5.3'

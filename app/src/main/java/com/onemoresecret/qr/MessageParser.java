@@ -14,17 +14,13 @@ public abstract class MessageParser {
     private static final String TAG = MessageParser.class.getSimpleName();
     protected final List<String> chunks = new ArrayList<>();
     protected String transactionId = null;
-    protected final AtomicBoolean eventFired = new AtomicBoolean(false);
 
     public void consume(String qrCode) {
         //check other supported formats
         if (new OneTimePassword(qrCode).isValid()) {
             Log.d(TAG, "Looks like a valid TOTP");
             transactionId = null;
-            if (!eventFired.get()) {
-                onMessage(qrCode);
-                eventFired.set(true);
-            }
+            onMessage(qrCode);
             return;
         }
 
@@ -88,10 +84,7 @@ public abstract class MessageParser {
             //remove line breaks
             String msg = String.join("", chunks).replaceAll("[\\r\\n]", "");
             transactionId = null;
-            if (!eventFired.get()) {
-                onMessage(msg);
-                eventFired.set(true);
-            }
+            onMessage(msg);
         }
     }
 

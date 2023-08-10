@@ -42,6 +42,7 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
 import java.util.BitSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -51,12 +52,11 @@ public class QRFragment extends Fragment {
     private FragmentQrBinding binding;
     private ImageAnalysis imageAnalysis;
     private ProcessCameraProvider cameraProvider;
-
     private final QrMenuProvider menuProvider = new QrMenuProvider();
-
     private ClipboardManager clipboardManager;
-
     private SharedPreferences preferences;
+    private MessageParser parser;
+    private final AtomicBoolean messageReceived = new AtomicBoolean(false);
 
 
     @Override
@@ -105,6 +105,19 @@ public class QRFragment extends Fragment {
             }).launch(Manifest.permission.CAMERA);
         }
 
+        parser = new MessageParser() {
+            @Override
+            public void onMessage(String message) {
+                if (messageReceived.get()) return;
+                messageReceived.set(true);
+                QRFragment.this.onMessage(message);
+            }
+
+            @Override
+            public void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
+                QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
+            }
+        };
     }
 
     @Override
@@ -116,6 +129,10 @@ public class QRFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        Log.d(TAG, "resuming...");
+        //get ready to receive new messages
+        messageReceived.set(false);
     }
 
     private boolean processIntent(Intent intent) {
@@ -203,18 +220,6 @@ public class QRFragment extends Fragment {
                 var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
 //                cameraProvider.unbindAll();
-
-                var parser = new MessageParser() {
-                    @Override
-                    public void onMessage(String message) {
-                        QRFragment.this.onMessage(message);
-                    }
-
-                    @Override
-                    public void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
-                        QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
-                    }
-                };
 
                 imageAnalysis =
                         new ImageAnalysis.Builder()

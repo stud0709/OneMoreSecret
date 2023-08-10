@@ -54,6 +54,11 @@ public class MessageFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
+        var navController = NavHostFragment.findNavController(this);
+        if (navController.getCurrentDestination().getId() != R.id.MessageFragment) {
+            Log.d(TAG, String.format("Already navigating to %s", navController.getCurrentDestination()));
+            return;
+        }
         if (navBackIfPaused) NavHostFragment.findNavController(this).popBackStack();
     }
 
