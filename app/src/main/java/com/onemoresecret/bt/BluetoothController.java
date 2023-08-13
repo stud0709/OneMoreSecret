@@ -81,21 +81,26 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
 
     @Override
     public void onServiceConnected(int profile, BluetoothProfile proxy) {
-        Log.i(TAG, "Service connected (" + profile + ")");
+        Log.i(TAG, "Service connected");
         if (profile != BluetoothProfile.HID_DEVICE) {
             Log.wtf(TAG, "profile: " + profile + " is not HID_DEVICE");
             return;
         }
 
-        if (ActivityCompat.checkSelfPermission(
-                fragment.requireContext(),
-                Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
+        try {
+            if (ActivityCompat.checkSelfPermission(
+                    fragment.requireContext(),
+                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+
+            bluetoothHidDevice = (BluetoothHidDevice) proxy;
+
+            registerApp();
+        } catch (IllegalStateException ex) {
+            //things are happening outside the context
+            ex.printStackTrace();
         }
-
-        bluetoothHidDevice = (BluetoothHidDevice) proxy;
-
-        registerApp();
     }
 
     public boolean registerApp() {

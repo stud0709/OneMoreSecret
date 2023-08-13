@@ -68,14 +68,9 @@ public class OutputFragment extends Fragment {
     private SharedPreferences preferences;
     private final AtomicBoolean refreshingBtControls = new AtomicBoolean();
     private static final long DEF_KEY_STROKE_DELAY_ON = 50, DEF_KEY_STROKE_DELAY_OFF = 10;
-
-
     private ClipboardManager clipboardManager;
-
     private final OutputMenuProvider menuProvider = new OutputMenuProvider();
-
     private Runnable copyValue = null;
-
     private String message = null;
     private String shareTitle = null;
     private Runnable beforePause = null;
@@ -155,6 +150,8 @@ public class OutputFragment extends Fragment {
             type(strokes);
         });
 
+        binding.textTyping.setVisibility(View.INVISIBLE);
+
         copyValue = () -> {
             var extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
             var clipData = ClipData.newPlainText("oneMoreSecret", message);
@@ -173,7 +170,6 @@ public class OutputFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 if (refreshingBtControls.get()) return;
-
                 var selectedItem = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
                 preferences.edit().putString(PROP_LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
 
@@ -279,8 +275,9 @@ public class OutputFragment extends Fragment {
         var device = selectedSpinnerItem.getBluetoothDevice();
         Log.d(TAG, String.format("Selected device: %s", device.getName()));
 
-        if (bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
-            Log.d(TAG, String.format("App is registered, try to connect %s", device.getName()));
+        if (bluetoothController.getBluetoothHidDevice() != null //https://github.com/stud0709/OneMoreSecret/issues/11
+                && bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
+            Log.d(TAG, String.format("App is registered, trying to connect %s", device.getName()));
             bluetoothController.getBluetoothHidDevice().connect(device);
         }
     }
@@ -352,6 +349,8 @@ public class OutputFragment extends Fragment {
         if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {
+            if (binding == null) return; //already being destroyed
+
             if (!bluetoothController.isBluetoothAvailable() ||
                     !PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
 
@@ -366,6 +365,7 @@ public class OutputFragment extends Fragment {
                     binding.btnType.setEnabled(false);
                     binding.imgButtonDiscoverable.setEnabled(false);
                     binding.swDelayedStrokes.setEnabled(false);
+                    binding.textTyping.setVisibility(View.INVISIBLE);
                 });
                 return;
             }
@@ -377,6 +377,7 @@ public class OutputFragment extends Fragment {
             if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
+
             var discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
 
             var connectedDevices = bluetoothController.getBluetoothHidDevice() == null ?
@@ -397,6 +398,8 @@ public class OutputFragment extends Fragment {
                     .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
 
             requireContext().getMainExecutor().execute(() -> {
+                if (binding == null) return; //already being destroyed
+
                 Log.d(TAG, "Refreshing controls");
                 refreshingBtControls.set(true);
 
@@ -455,6 +458,7 @@ public class OutputFragment extends Fragment {
 
                     binding.chipBtStatus.setChipIcon(drawable);
                     binding.chipBtStatus.setText(status);
+                    binding.swDelayedStrokes.setEnabled(selectedDeviceConnected);
 
                     //set TYPE button state
                     var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
@@ -478,8 +482,18 @@ public class OutputFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent != null)
-                Log.d(TAG, intent.getAction());
+                Log.d(TAG, String.format("Got intent %s, state %s", intent.getAction(), intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)));
 
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
+                int newState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                switch (newState) {
+                    case BluetoothAdapter.STATE_ON:
+                        Log.d(TAG, "Bluetooth is now on");
+                        break;
+                }
+            }
+
+            checkConnectSelectedDevice();
             refreshBluetoothControls();
         }
     }
@@ -531,6 +545,8 @@ public class OutputFragment extends Fragment {
         public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
             Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
 
+            refreshBluetoothControls();
+
             if (device == null) return;
 
             super.onAppStatusChanged(device, registered);
@@ -546,10 +562,9 @@ public class OutputFragment extends Fragment {
                                 BluetoothProfile.STATE_DISCONNECTED,
                                 BluetoothProfile.STATE_DISCONNECTING});
                 Log.d(TAG, "paired devices: " + pairedDevices);
-
-                if (bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED)
-                    bluetoothController.getBluetoothHidDevice().connect(device);
             }
+
+            checkConnectSelectedDevice();
         }
 
         @Override
@@ -577,6 +592,9 @@ public class OutputFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (!isAdded() || getContext() == null)
+                return true;//https://github.com/stud0709/OneMoreSecret/issues/10
+
             if (menuItem.getItemId() == R.id.menuItemOutputCopy) {
                 copyValue.run();
             } else if (menuItem.getItemId() == R.id.menuItemShare) {

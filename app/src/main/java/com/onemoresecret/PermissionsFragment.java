@@ -31,6 +31,7 @@ public class PermissionsFragment extends Fragment {
 
     public static final String[] REQUIRED_PERMISSIONS = {
             android.Manifest.permission.BLUETOOTH_CONNECT,
+            android.Manifest.permission.BLUETOOTH_SCAN,
             android.Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.CAMERA
     };

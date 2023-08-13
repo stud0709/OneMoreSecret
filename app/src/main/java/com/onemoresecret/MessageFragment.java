@@ -37,7 +37,6 @@ public class MessageFragment extends Fragment {
     private byte[] cipherText, encryptedAesSecretKey, iv;
     private String rsaTransformation, aesTransformation;
     private FragmentMessageBinding binding;
-    private boolean navBackOnResume = false;
     private boolean reveal = false;
     private Runnable revealHandler = null;
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
@@ -130,6 +129,10 @@ public class MessageFragment extends Fragment {
                 throw new NoSuchElementException(getString(R.string.multiple_keys_found));
 
             showBiometricPromptForDecryption(aliases.get(0));
+        } catch(NoSuchElementException ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            NavHostFragment.findNavController(this).popBackStack();
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
@@ -205,17 +208,15 @@ public class MessageFragment extends Fragment {
         var message = new String(bArr);
 
         if (messageView instanceof HiddenTextFragment) {
-            var shareTitle = getString(R.string.oms_secret_message);
             revealHandler = () -> ((HiddenTextFragment) messageView).setText(reveal ? message : getString(R.string.hidden_text));
-            var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
-            outputFragment.setMessage(message, shareTitle);
+            ((OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment))
+                    .setMessage(message, getString(R.string.oms_secret_message));
         }
         if (messageView instanceof TotpFragment) {
             revealHandler = () -> ((TotpFragment) messageView).refresh();
-            var shareTitle = getString(R.string.one_time_password);
             ((TotpFragment) messageView).init(new OneTimePassword(message), digits -> reveal ? null : "●".repeat(digits), code -> {
                 var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
-                outputFragment.setMessage(code, shareTitle);
+                outputFragment.setMessage(code, getString(R.string.one_time_password));
             });
             ((TotpFragment) messageView).refresh();
         }
