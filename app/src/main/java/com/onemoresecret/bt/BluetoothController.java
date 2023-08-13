@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 //https://developer.android.com/guide/topics/connectivity/bluetooth/setup
 
 public class BluetoothController implements BluetoothProfile.ServiceListener {
@@ -77,6 +79,25 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         return bluetoothManager.getAdapter();
     }
 
+    public void destroy() {
+        try {
+            if (ActivityCompat.checkSelfPermission(
+                    fragment.requireContext(),
+                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+
+            if (bluetoothManager != null && bluetoothHidDevice != null) {
+                bluetoothHidDevice.getConnectedDevices().forEach(d -> getBluetoothHidDevice().disconnect(d));
+                bluetoothHidDevice.unregisterApp();
+                bluetoothManager.getAdapter().closeProfileProxy(BluetoothProfile.HID_DEVICE, bluetoothHidDevice);
+            }
+        } catch (IllegalStateException ex) {
+            //things are happening outside the context
+            Log.e(TAG, String.format("%s not attached to a context", fragment));
+        }
+    }
+
 // BluetoothProfile.ServiceListener
 
     @Override
@@ -88,36 +109,26 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
         }
 
         try {
+            bluetoothHidDevice = (BluetoothHidDevice) proxy;
             if (ActivityCompat.checkSelfPermission(
                     fragment.requireContext(),
                     Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
 
-            bluetoothHidDevice = (BluetoothHidDevice) proxy;
+            if (bluetoothHidDevice == null) return;
 
-            registerApp();
+            Log.i(TAG, String.format("registering HID app: %s",
+                    bluetoothHidDevice.registerApp(
+                            sdpRecord,
+                            null,
+                            null,
+                            fragment.requireContext().getMainExecutor(),
+                            callback)));
         } catch (IllegalStateException ex) {
             //things are happening outside the context
-            ex.printStackTrace();
+            Log.e(TAG, String.format("%s not attached to a context", fragment));
         }
-    }
-
-    public boolean registerApp() {
-        if (ActivityCompat.checkSelfPermission(
-                fragment.requireContext(),
-                Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return false;
-        }
-
-        if (bluetoothHidDevice == null) return false;
-
-        return bluetoothHidDevice.registerApp(
-                sdpRecord,
-                null,
-                null,
-                fragment.requireContext().getMainExecutor(),
-                callback);
     }
 
     @Override

@@ -163,7 +163,7 @@ public class OutputFragment extends Fragment {
     }
 
     private void initSpinnerTargetDevice() {
-        arrayAdapterDevice = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item);
+        arrayAdapterDevice = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item);
         arrayAdapterDevice.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spinnerBluetoothTarget.setAdapter(arrayAdapterDevice);
         binding.spinnerBluetoothTarget.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -174,7 +174,6 @@ public class OutputFragment extends Fragment {
                 preferences.edit().putString(PROP_LAST_SELECTED_BT_TARGET, selectedItem.getBluetoothDevice().getAddress()).apply();
 
                 checkConnectSelectedDevice();
-
                 refreshBluetoothControls();
             }
 
@@ -187,7 +186,7 @@ public class OutputFragment extends Fragment {
     }
 
     private void initSpinnerKeyboardLayout() {
-        var keyboardLayoutAdapter = new ArrayAdapter<KeyboardLayout>(getContext(), android.R.layout.simple_spinner_item);
+        var keyboardLayoutAdapter = new ArrayAdapter<KeyboardLayout>(requireContext(), android.R.layout.simple_spinner_item);
         keyboardLayoutAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         Arrays.stream(KeyboardLayout.knownSubclasses)
                 .map(clazz -> {
@@ -277,8 +276,9 @@ public class OutputFragment extends Fragment {
 
         if (bluetoothController.getBluetoothHidDevice() != null //https://github.com/stud0709/OneMoreSecret/issues/11
                 && bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
-            Log.d(TAG, String.format("App is registered, trying to connect %s", device.getName()));
-            bluetoothController.getBluetoothHidDevice().connect(device);
+            Log.d(TAG, String.format("Trying to connect %s: %s",
+                    device.getName(),
+                    bluetoothController.getBluetoothHidDevice().connect(device)));
         }
     }
 
@@ -329,13 +329,8 @@ public class OutputFragment extends Fragment {
 
         if (bluetoothBroadcastReceiver != null)
             requireContext().unregisterReceiver(bluetoothBroadcastReceiver);
-        if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        if (bluetoothController != null && bluetoothController.getBluetoothHidDevice() != null) {
-            bluetoothController.getBluetoothHidDevice().getConnectedDevices().forEach(d -> bluetoothController.getBluetoothHidDevice().disconnect(d));
-            bluetoothController.getBluetoothHidDevice().unregisterApp();
-        }
+
+        if (bluetoothController != null) bluetoothController.destroy();
 
         binding.btnType.setOnClickListener(null);
         requireActivity().removeMenuProvider(menuProvider);
@@ -356,16 +351,21 @@ public class OutputFragment extends Fragment {
 
                 //disable all bluetooth functionality
                 requireContext().getMainExecutor().execute(() -> {
-                    var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
-                    binding.chipBtStatus.setChipIcon(drawable);
-                    binding.chipBtStatus.setText(getString(R.string.bt_not_available));
+                    refreshingBtControls.set(true);
+                    try {
+                        var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                        binding.chipBtStatus.setChipIcon(drawable);
+                        binding.chipBtStatus.setText(getString(R.string.bt_not_available));
 
-                    binding.spinnerKeyboardLayout.setEnabled(false);
-                    binding.spinnerBluetoothTarget.setEnabled(false);
-                    binding.btnType.setEnabled(false);
-                    binding.imgButtonDiscoverable.setEnabled(false);
-                    binding.swDelayedStrokes.setEnabled(false);
-                    binding.textTyping.setVisibility(View.INVISIBLE);
+                        binding.spinnerKeyboardLayout.setEnabled(false);
+                        binding.spinnerBluetoothTarget.setEnabled(false);
+                        binding.btnType.setEnabled(false);
+                        binding.imgButtonDiscoverable.setEnabled(false);
+                        binding.swDelayedStrokes.setEnabled(false);
+                        binding.textTyping.setVisibility(View.INVISIBLE);
+                    } finally {
+                        refreshingBtControls.set(false);
+                    }
                 });
                 return;
             }
@@ -400,7 +400,6 @@ public class OutputFragment extends Fragment {
             requireContext().getMainExecutor().execute(() -> {
                 if (binding == null) return; //already being destroyed
 
-                Log.d(TAG, "Refreshing controls");
                 refreshingBtControls.set(true);
 
                 try {
@@ -481,8 +480,9 @@ public class OutputFragment extends Fragment {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent != null)
-                Log.d(TAG, String.format("Got intent %s, state %s", intent.getAction(), intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)));
+            if (intent == null) return;
+
+            Log.d(TAG, String.format("Got intent %s, state %s", intent.getAction(), intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)));
 
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
                 int newState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
@@ -493,7 +493,6 @@ public class OutputFragment extends Fragment {
                 }
             }
 
-            checkConnectSelectedDevice();
             refreshBluetoothControls();
         }
     }
@@ -543,15 +542,11 @@ public class OutputFragment extends Fragment {
 
         @Override
         public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
-            Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
-
-            refreshBluetoothControls();
-
-            if (device == null) return;
-
             super.onAppStatusChanged(device, registered);
 
-            if (registered) {
+            try {
+                Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
+
                 if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     return;
                 }
@@ -562,9 +557,13 @@ public class OutputFragment extends Fragment {
                                 BluetoothProfile.STATE_DISCONNECTED,
                                 BluetoothProfile.STATE_DISCONNECTING});
                 Log.d(TAG, "paired devices: " + pairedDevices);
-            }
 
-            checkConnectSelectedDevice();
+                checkConnectSelectedDevice();
+                refreshBluetoothControls();
+            } catch (IllegalStateException ex) {
+                //things are happening outside the context
+                Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
+            }
         }
 
         @Override
