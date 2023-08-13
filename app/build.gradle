@@ -8,10 +8,10 @@ android {
 
     defaultConfig {
         applicationId "com.onemoresecret"
-        minSdk 31
+        minSdk 30
         targetSdk 33
-        versionCode 17
-        versionName "alpha-0.17"
+        versionCode 18
+        versionName "alpha-0.18"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
