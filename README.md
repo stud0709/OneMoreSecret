@@ -6,7 +6,11 @@ This is a very early version of the software. Use it at your own risk. We'll do 
 
 
 ## For the impatient one (TLDR)
-<a href='https://play.google.com/store/apps/details?id=com.onemoresecret&gl=DE&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img  style="width:200px;height:auto;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a> 
+[Download](https://github.com/stud0709/OneMoreSecret/releases)  the latest release from GitHub or
+
+<a href='https://play.google.com/store/apps/details?id=com.onemoresecret&gl=DE&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img  style="width:200px;height:auto;" alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/>
+</a> 
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.onemoresecret/"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" style="width:200px;height:auto;" alt="Get it on IzzyOnDroid"></img></a>
 
 Try our ["Hello, World!" Tutorial](hello_world.md).
 
