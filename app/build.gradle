@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.onemoresecret"
-        minSdk 30
+        minSdk 31
         targetSdk 33
         versionCode 18
         versionName "alpha-0.18"
