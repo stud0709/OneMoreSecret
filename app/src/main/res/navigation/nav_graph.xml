@@ -36,6 +36,9 @@
         <action
             android:id="@+id/action_QRFragment_to_totpManualEntryFragment"
             app:destination="@id/totpManualEntryFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_pinSetupFragment"
+            app:destination="@id/pinSetupFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -55,7 +58,7 @@
     <fragment
         android:id="@+id/keyManagementFragment"
         android:name="com.onemoresecret.KeyManagementFragment"
-        android:label="Private Keys"
+        android:label="@string/private_keys"
         tools:layout="@layout/fragment_key_management">
         <action
             android:id="@+id/action_keyManagementFragment_to_newPrivateKeyFragment"
@@ -64,26 +67,31 @@
     <fragment
         android:id="@+id/passwordGeneratorFragment"
         android:name="com.onemoresecret.PasswordGeneratorFragment"
-        android:label="Password Generator"
+        android:label="@string/password_generator"
         tools:layout="@layout/fragment_password_generator" />
     <fragment
         android:id="@+id/permissionsFragment"
         android:name="com.onemoresecret.PermissionsFragment"
-        android:label="App Permissions"
+        android:label="@string/app_permissions"
         tools:layout="@layout/fragment_permissions" />
     <fragment
         android:id="@+id/encryptTextFragment"
         android:name="com.onemoresecret.EncryptTextFragment"
-        android:label="Encrypt Text"
+        android:label="@string/encrypt_text"
         tools:layout="@layout/fragment_encrypt_text" />
     <fragment
         android:id="@+id/timeOTPFragment"
         android:name="com.onemoresecret.TotpImportFragment"
-        android:label="TOTP Import"
+        android:label="@string/totp_import"
         tools:layout="@layout/fragment_totp_import" />
     <fragment
         android:id="@+id/totpManualEntryFragment"
         android:name="com.onemoresecret.TotpManualEntryFragment"
-        android:label="TOTP Manual Entry"
+        android:label="@string/totp_manual_entry"
         tools:layout="@layout/fragment_totp_manual_entry" />
+    <fragment
+        android:id="@+id/pinSetupFragment"
+        android:name="com.onemoresecret.PinSetupFragment"
+        android:label="@string/pin_setup"
+        tools:layout="@layout/fragment_pin_setup" />
 </navigation>

@@ -8,6 +8,13 @@
         android:title="@android:string/paste"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/menuItemPanic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:icon="@drawable/baseline_lock_24"
+        android:title="@string/panic"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/menuItemPwdGenerator"
         android:title="@string/password_generator" />
     <item
@@ -21,11 +28,16 @@
         android:title="@string/action_private_keys"
         app:showAsAction="never" />
     <item
+        android:id="@+id/menuItemPinSetup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:title="@string/pin_setup" />
+    <item
         android:id="@+id/menuItemFeedbackEmail"
         android:title="@string/feedback_by_email" />
     <item
         android:id="@+id/menuItemFeedbackDiscord"
-        android:title="@string/feedback_by_discord" />
+        android:title="@string/feedback_on_discord" />
     <item
         android:id="@+id/menuItemHomePage"
         android:title="@string/project_home_page" />
