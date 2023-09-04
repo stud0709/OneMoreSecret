@@ -155,4 +155,6 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="panic">Panic</string>
     <string name="please_enter_your_pin">Please enter your PIN</string>
+    <string name="operation_failed_s">Operation failed: %s</string>
+    <string name="authentication_failed_s">Authentication failed: %s</string>
 </resources>

@@ -22,7 +22,7 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView14">
+        app:layout_constraintTop_toBottomOf="@+id/textViewPin">
 
         <TableRow
             android:layout_width="match_parent"
@@ -110,14 +110,14 @@
                 android:text="1" />
 
             <ImageButton
-                android:id="@+id/imageButton"
+                android:id="@+id/imageButtonDel"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:layout_marginLeft="8dp"
                 android:src="@drawable/baseline_backspace_24" />
 
             <ImageButton
-                android:id="@+id/imageButton2"
+                android:id="@+id/imageButtonUnlock"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:layout_marginLeft="8dp"
@@ -128,12 +128,13 @@
     </TableLayout>
 
     <TextView
-        android:id="@+id/textView14"
+        android:id="@+id/textViewPin"
         style="@android:style/Widget.DeviceDefault.Light.TextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="●●●●"
+        android:password="true"
+        android:text="0000"
         android:textAppearance="@style/TextAppearance.AppCompat.Display1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
