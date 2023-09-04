@@ -167,6 +167,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 if (!textChangeListenerActive.get()) return;
 
                 setPwd = getSetPwd(s.toString());
+                setPwd.run();
                 encryptPwd = getEncryptPwd(s.toString());
             }
         });
