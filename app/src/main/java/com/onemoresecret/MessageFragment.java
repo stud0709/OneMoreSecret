@@ -179,7 +179,9 @@ public class MessageFragment extends Fragment {
                 } catch (Exception e) {
                     e.printStackTrace();
                     requireContext().getMainExecutor().execute(() -> {
-                        Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(),
+                                e.getMessage() == null ? String.format(requireContext().getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
                         NavHostFragment.findNavController(MessageFragment.this).popBackStack();
                     });
                 }

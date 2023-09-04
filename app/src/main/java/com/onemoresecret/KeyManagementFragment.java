@@ -115,7 +115,9 @@ public class KeyManagementFragment extends Fragment {
                                 keyStoreListFragment.onItemRemoved(alias);
                             } catch (KeyStoreException e) {
                                 e.printStackTrace();
-                                Toast.makeText(getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                                Toast.makeText(getContext(),
+                                        e.getMessage() == null ? String.format(requireContext().getString(R.string.operation_failed_s), e.getClass().getSimpleName()) : e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
                             }
                         }).setNegativeButton(android.R.string.cancel, null).show();
             } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
