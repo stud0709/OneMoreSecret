@@ -59,7 +59,7 @@ public class PinEntryFragment extends Fragment {
                 binding.imageButtonUnlock.setEnabled(binding.textViewPin.getText().length() > 0);
             }
         });
-        
+
         binding.textViewPin.setText("");
 
         //initialize keys with random numbers 0...9
@@ -79,9 +79,8 @@ public class PinEntryFragment extends Fragment {
 
         var rnd = new Random();
 
-        while (!bList.isEmpty()) {
-            var txt = Integer.toString(rnd.nextInt(bList.size()));
-            bList.remove(0).setText(txt);
+        for (int i = 0; i < bArr.length; i++) {
+            bList.remove(rnd.nextInt(bList.size())).setText(Integer.toString(i));
         }
 
         //set listeners
@@ -95,7 +94,7 @@ public class PinEntryFragment extends Fragment {
 
             binding.textViewPin.setText(cs.subSequence(0, cs.length() - 1));
         });
-        
+
         binding.imageButtonUnlock.setOnClickListener(v -> tryUnlock());
     }
 

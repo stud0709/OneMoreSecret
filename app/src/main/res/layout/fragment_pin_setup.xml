@@ -8,7 +8,7 @@
     tools:context=".PinSetupFragment">
 
     <EditText
-        android:id="@+id/editTextNumberPanicPin"
+        android:id="@+id/edit_text_panic_pin"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -48,7 +48,7 @@
         android:hint="@string/repeat_panic_pin"
         android:inputType="numberPassword"
         android:minHeight="48dp"
-        app:layout_constraintStart_toEndOf="@+id/editTextNumberPanicPin"
+        app:layout_constraintStart_toEndOf="@+id/edit_text_panic_pin"
         app:layout_constraintTop_toBottomOf="@+id/textView11" />
 
     <EditText
@@ -157,7 +157,7 @@
         app:layout_constraintTop_toTopOf="@+id/editTextRepeatPin" />
 
     <ImageView
-        android:id="@+id/imageViewPanicMatch"
+        android:id="@+id/imgViewPanicMatch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -167,7 +167,7 @@
         app:layout_constraintTop_toTopOf="@+id/editTextRepeatPanicPin" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/btnSavePinSettings"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
