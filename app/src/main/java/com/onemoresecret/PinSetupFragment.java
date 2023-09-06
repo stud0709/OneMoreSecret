@@ -8,12 +8,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.onemoresecret.databinding.FragmentPinSetupBinding;
 import com.onemoresecret.databinding.FragmentQrBinding;
@@ -21,7 +23,11 @@ import com.onemoresecret.databinding.FragmentQrBinding;
 public class PinSetupFragment extends Fragment {
     private FragmentPinSetupBinding binding;
     private SharedPreferences preferences;
-    private static final String prop_pin_enabled = "pin_enabled";
+    public static final String PROP_PIN_ENABLED = "pin_enabled",
+            PROP_PIN_VALUE = "pin_value",
+            PROP_PANIC_PIN = "pin_panic",
+            PROP_FAILED_ATTEMPTS = "pin_failed_attempts",
+            PROP_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes";
 
     @Override
     public View onCreateView(
@@ -37,7 +43,7 @@ public class PinSetupFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
-        boolean pinEnabled = preferences.getBoolean(prop_pin_enabled, false);
+        boolean pinEnabled = preferences.getBoolean(PROP_PIN_ENABLED, false);
         binding.chkEnablePin.setChecked(pinEnabled);
         setControls(pinEnabled);
         binding.chkEnablePin.setOnCheckedChangeListener((buttonView, isChecked) -> setControls(isChecked));
@@ -49,7 +55,45 @@ public class PinSetupFragment extends Fragment {
     }
 
     private void onSave() {
-        //todo
+        var editor = preferences.edit();
+
+        editor.putBoolean(PROP_PIN_ENABLED, binding.chkEnablePin.isChecked());
+
+        if (binding.chkEnablePin.isChecked()) {
+            editor.putString(PROP_PIN_VALUE, binding.editTextPin.getText().toString());
+
+            if (binding.editTextRepeatPanicPin.getText().toString().isEmpty()) {
+                editor.remove(PROP_PANIC_PIN);
+            } else {
+                editor.putString(PROP_PANIC_PIN, binding.editTextPanicPin.getText().toString());
+            }
+
+            int failedAttempts = Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
+            if (failedAttempts > 0) {
+                editor.putInt(PROP_FAILED_ATTEMPTS, failedAttempts);
+            } else {
+                editor.remove(PROP_FAILED_ATTEMPTS);
+            }
+
+            int request_interval = Integer.parseInt(binding.editTextRequestInterval.getText().toString());
+            if (request_interval > 0) {
+                editor.putInt(PROP_REQUEST_INTERVAL_MINUTES, request_interval);
+            } else {
+                editor.remove(PROP_REQUEST_INTERVAL_MINUTES);
+            }
+        } else {
+            editor.remove(PROP_PIN_VALUE)
+                    .remove(PROP_PANIC_PIN)
+                    .remove(PROP_FAILED_ATTEMPTS)
+                    .remove(PROP_REQUEST_INTERVAL_MINUTES);
+        }
+
+        editor.apply();
+
+        requireContext().getMainExecutor().execute(() -> {
+            Toast.makeText(getContext(), R.string.pin_preferences_saved, Toast.LENGTH_SHORT).show();
+            NavHostFragment.findNavController(PinSetupFragment.this).popBackStack();
+        });
     }
 
     private void setControls(boolean isChecked) {
@@ -64,17 +108,11 @@ public class PinSetupFragment extends Fragment {
         binding.imgViewPanicMatch.setVisibility(isChecked ? View.VISIBLE : View.INVISIBLE);
     }
 
-    /** Check if the form data is valid and it is OK to save it
-     *
+    /**
+     * Check if the form data is valid and it is OK to save it
      */
     private void validateForm() {
-        boolean b = binding.chkEnablePin.isChecked();
-        if (b) {
-            b &= isPinValid();
-            b &= isPanicPinValid();
-        }
-
-        binding.btnSavePinSettings.setEnabled(b);
+        binding.btnSavePinSettings.setEnabled(isPinValid() && isPanicPinValid());
     }
 
     private final TextWatcher textWatcherPin = new TextWatcher() {
@@ -124,8 +162,7 @@ public class PinSetupFragment extends Fragment {
     };
 
     private boolean isPinValid() {
-        return binding.editTextPin.getText().toString().isEmpty() ||
-                binding.editTextPin.getText().toString()
+        return binding.editTextPin.getText().toString()
                         .equals(binding.editTextRepeatPin.getText().toString());
     }
 
