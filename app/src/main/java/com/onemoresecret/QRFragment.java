@@ -57,6 +57,7 @@ public class QRFragment extends Fragment {
     private SharedPreferences preferences;
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
+    private long nextPinRequest = 0;
 
 
     @Override
@@ -253,7 +254,7 @@ public class QRFragment extends Fragment {
      * @see MessageComposer
      */
     private void onMessage(String message) {
-        requireContext().getMainExecutor().execute(() -> {
+        Runnable r = () -> {
             var bArr = MessageComposer.decode(message);
             if (bArr == null) {
                 Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
@@ -296,7 +297,14 @@ public class QRFragment extends Fragment {
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-        });
+        };
+
+        if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+            //todo: check PIN, otherwise finish activity
+
+        } else {
+            requireContext().getMainExecutor().execute(r);
+        }
     }
 
     private BitSet lastReceivedChunks = null;
@@ -375,7 +383,7 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemTotp) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_totpManualEntryFragment);
-            }else if (menuItem.getItemId() == R.id.menuItemPinSetup) {
+            } else if (menuItem.getItemId() == R.id.menuItemPinSetup) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_pinSetupFragment);
             } else {

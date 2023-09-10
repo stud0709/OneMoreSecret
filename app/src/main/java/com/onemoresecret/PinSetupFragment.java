@@ -52,6 +52,21 @@ public class PinSetupFragment extends Fragment {
         binding.editTextRepeatPin.addTextChangedListener(textWatcherPin);
         binding.editTextPanicPin.addTextChangedListener(textWatcherPanicPin);
         binding.editTextRepeatPanicPin.addTextChangedListener(textWatcherPanicPin);
+
+        //restoring values
+        binding.editTextPin.setText(preferences.getString(PROP_PIN_VALUE, ""));
+        binding.editTextRepeatPin.setText(preferences.getString(PROP_PIN_VALUE, ""));
+
+        binding.editTextPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
+        binding.editTextRepeatPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
+
+        int failedAttempts = preferences.getInt(PROP_FAILED_ATTEMPTS, 0);
+        if (failedAttempts > 0)
+            binding.editTextFailedAttempts.setText(Integer.toString(failedAttempts));
+
+        int requestInterval = preferences.getInt(PROP_REQUEST_INTERVAL_MINUTES, 0);
+        if (requestInterval > 0)
+            binding.editTextRequestInterval.setText(Integer.toString(requestInterval));
     }
 
     private void onSave() {
@@ -68,14 +83,14 @@ public class PinSetupFragment extends Fragment {
                 editor.putString(PROP_PANIC_PIN, binding.editTextPanicPin.getText().toString());
             }
 
-            int failedAttempts = Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
+            int failedAttempts = binding.editTextFailedAttempts.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
             if (failedAttempts > 0) {
                 editor.putInt(PROP_FAILED_ATTEMPTS, failedAttempts);
             } else {
                 editor.remove(PROP_FAILED_ATTEMPTS);
             }
 
-            int request_interval = Integer.parseInt(binding.editTextRequestInterval.getText().toString());
+            int request_interval = binding.editTextRequestInterval.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextRequestInterval.getText().toString());
             if (request_interval > 0) {
                 editor.putInt(PROP_REQUEST_INTERVAL_MINUTES, request_interval);
             } else {
@@ -112,7 +127,7 @@ public class PinSetupFragment extends Fragment {
      * Check if the form data is valid and it is OK to save it
      */
     private void validateForm() {
-        binding.btnSavePinSettings.setEnabled(isPinValid() && isPanicPinValid());
+        binding.btnSavePinSettings.setEnabled(!binding.chkEnablePin.isChecked() || (isPinValid() && isPanicPinValid()));
     }
 
     private final TextWatcher textWatcherPin = new TextWatcher() {
@@ -156,18 +171,26 @@ public class PinSetupFragment extends Fragment {
                             R.drawable.baseline_cancel_24,
                     getContext().getTheme());
 
-            binding.imgViewPinMatch.setImageDrawable(drawable);
+            binding.imgViewPanicMatch.setImageDrawable(drawable);
             validateForm();
         }
     };
 
     private boolean isPinValid() {
-        return binding.editTextPin.getText().toString()
+        return !binding.editTextPin.getText().toString().isEmpty() &&
+                binding.editTextPin.getText().toString()
                         .equals(binding.editTextRepeatPin.getText().toString());
     }
 
     private boolean isPanicPinValid() {
-        return binding.editTextPanicPin.getText().toString()
+        boolean b = binding.editTextPanicPin.getText().toString()
                 .equals(binding.editTextRepeatPanicPin.getText().toString());
+
+        if (b && binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
+            Toast.makeText(requireContext(), R.string.panic_pin_should_not_match_pin, Toast.LENGTH_LONG).show();
+            b = false;
+        }
+
+        return b;
     }
 }
