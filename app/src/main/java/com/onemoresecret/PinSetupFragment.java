@@ -18,7 +18,6 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.onemoresecret.databinding.FragmentPinSetupBinding;
-import com.onemoresecret.databinding.FragmentQrBinding;
 
 public class PinSetupFragment extends Fragment {
     private FragmentPinSetupBinding binding;
@@ -26,8 +25,9 @@ public class PinSetupFragment extends Fragment {
     public static final String PROP_PIN_ENABLED = "pin_enabled",
             PROP_PIN_VALUE = "pin_value",
             PROP_PANIC_PIN = "pin_panic",
-            PROP_FAILED_ATTEMPTS = "pin_failed_attempts",
-            PROP_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes";
+            PROP_MAX_ATTEMPTS = "pin_max_attempts",
+            PROP_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes",
+            PROP_REMAINING_ATTEMPTS = "pin_remaining_attempts";
 
     @Override
     public View onCreateView(
@@ -60,13 +60,13 @@ public class PinSetupFragment extends Fragment {
         binding.editTextPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
         binding.editTextRepeatPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
 
-        int failedAttempts = preferences.getInt(PROP_FAILED_ATTEMPTS, 0);
-        if (failedAttempts > 0)
-            binding.editTextFailedAttempts.setText(Integer.toString(failedAttempts));
+        int maxAttempts = preferences.getInt(PROP_MAX_ATTEMPTS, 0);
+        if (maxAttempts > 0)
+            binding.editTextFailedAttempts.setText(Integer.toString(maxAttempts));
 
-        int requestInterval = preferences.getInt(PROP_REQUEST_INTERVAL_MINUTES, 0);
+        long requestInterval = preferences.getLong(PROP_REQUEST_INTERVAL_MINUTES, 0);
         if (requestInterval > 0)
-            binding.editTextRequestInterval.setText(Integer.toString(requestInterval));
+            binding.editTextRequestInterval.setText(Long.toString(requestInterval));
     }
 
     private void onSave() {
@@ -83,23 +83,25 @@ public class PinSetupFragment extends Fragment {
                 editor.putString(PROP_PANIC_PIN, binding.editTextPanicPin.getText().toString());
             }
 
-            int failedAttempts = binding.editTextFailedAttempts.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
-            if (failedAttempts > 0) {
-                editor.putInt(PROP_FAILED_ATTEMPTS, failedAttempts);
+            int maxAttempts = binding.editTextFailedAttempts.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
+            if (maxAttempts > 0) {
+                editor.putInt(PROP_MAX_ATTEMPTS, maxAttempts);
+                editor.putInt(PROP_REMAINING_ATTEMPTS, maxAttempts);
             } else {
-                editor.remove(PROP_FAILED_ATTEMPTS);
+                editor.remove(PROP_MAX_ATTEMPTS);
+                editor.remove(PROP_REMAINING_ATTEMPTS);
             }
 
             int request_interval = binding.editTextRequestInterval.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextRequestInterval.getText().toString());
             if (request_interval > 0) {
-                editor.putInt(PROP_REQUEST_INTERVAL_MINUTES, request_interval);
+                editor.putLong(PROP_REQUEST_INTERVAL_MINUTES, request_interval);
             } else {
                 editor.remove(PROP_REQUEST_INTERVAL_MINUTES);
             }
         } else {
             editor.remove(PROP_PIN_VALUE)
                     .remove(PROP_PANIC_PIN)
-                    .remove(PROP_FAILED_ATTEMPTS)
+                    .remove(PROP_MAX_ATTEMPTS)
                     .remove(PROP_REQUEST_INTERVAL_MINUTES);
         }
 

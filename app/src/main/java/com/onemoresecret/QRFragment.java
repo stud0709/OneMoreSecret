@@ -255,6 +255,12 @@ public class QRFragment extends Fragment {
      */
     private void onMessage(String message) {
         Runnable r = () -> {
+            if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+                //calculate next pin request time
+                var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
+                nextPinRequest = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
+            }
+
             var bArr = MessageComposer.decode(message);
             if (bArr == null) {
                 Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
@@ -300,8 +306,8 @@ public class QRFragment extends Fragment {
         };
 
         if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-            //todo: check PIN, otherwise finish activity
-
+            new PinEntryFragment(r, /* enable message processing again */ () -> messageReceived.set(false))
+                    .show(requireActivity().getSupportFragmentManager(), null);
         } else {
             requireContext().getMainExecutor().execute(r);
         }
@@ -352,7 +358,8 @@ public class QRFragment extends Fragment {
                 Util.openUrl(R.string.readme_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemPaste) {
                 //based on pre-launch test
-                //Exception java.lang.NullPointerException: Attempt to invoke virtual method 'android.content.ClipData$Item android.content.ClipData.getItemAt(int)' on a null object reference
+                //Exception java.lang.NullPointerException: Attempt to invoke virtual method 'android.content.ClipData$Item android.content.ClipData.getItemAt(int)'
+                // on a null object reference
                 var clipData = clipboardManager.getPrimaryClip();
                 if (clipData != null) {
                     ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
@@ -384,8 +391,28 @@ public class QRFragment extends Fragment {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_totpManualEntryFragment);
             } else if (menuItem.getItemId() == R.id.menuItemPinSetup) {
-                NavHostFragment.findNavController(QRFragment.this)
+                Runnable r = () -> NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_pinSetupFragment);
+
+                if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+                    //protect access to PIN settings by PIN entry
+
+                    new PinEntryFragment(r, /* enable message processing again */ () -> messageReceived.set(false))
+                            .show(requireActivity().getSupportFragmentManager(), null);
+                } else {
+                    r.run();
+                }
+            } else if (menuItem.getItemId() == R.id.menuItemPanic) {
+                if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+                    nextPinRequest = 0;
+                    requireContext().getMainExecutor().execute(
+                            () -> Toast.makeText(getContext(), R.string.locked, Toast.LENGTH_LONG).show());
+                } else {
+                    requireContext().getMainExecutor().execute(
+                            () -> Toast.makeText(getContext(), R.string.enable_pin_first, Toast.LENGTH_LONG).show());
+                    NavHostFragment.findNavController(QRFragment.this)
+                            .navigate(R.id.action_QRFragment_to_pinSetupFragment);
+                }
             } else {
                 return false;
             }

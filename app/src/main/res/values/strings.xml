@@ -157,4 +157,8 @@
     <string name="pin_preferences_saved">PIN preferences saved</string>
     <string name="panic_pin_should_not_match_pin">Dude, Panic PIN should not match PIN!</string>
     <string name="panic">Panic</string>
+    <string name="pin_accepted">PIN accepted</string>
+    <string name="wrong_pin">wrong PIN</string>
+    <string name="locked">Locked</string>
+    <string name="enable_pin_first">Please enable PIN first</string>
 </resources>
