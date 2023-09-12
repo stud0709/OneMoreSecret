@@ -1,18 +1,26 @@
 package com.onemoresecret;
 
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -28,6 +36,7 @@ public class PinSetupFragment extends Fragment {
             PROP_MAX_ATTEMPTS = "pin_max_attempts",
             PROP_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes",
             PROP_REMAINING_ATTEMPTS = "pin_remaining_attempts";
+    private final PinMenuProvider menuProvider = new PinMenuProvider();
 
     @Override
     public View onCreateView(
@@ -67,6 +76,8 @@ public class PinSetupFragment extends Fragment {
         long requestInterval = preferences.getLong(PROP_REQUEST_INTERVAL_MINUTES, 0);
         if (requestInterval > 0)
             binding.editTextRequestInterval.setText(Long.toString(requestInterval));
+
+        requireActivity().addMenuProvider(menuProvider);
     }
 
     private void onSave() {
@@ -203,5 +214,31 @@ public class PinSetupFragment extends Fragment {
         }
 
         return b;
+    }
+
+    private class PinMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_pin_setup, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemPinSetupHelp) {
+                Util.openUrl(R.string.pin_setup_md_url, requireContext());
+            } else {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
+        binding = null;
     }
 }
