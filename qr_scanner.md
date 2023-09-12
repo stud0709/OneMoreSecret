@@ -9,3 +9,4 @@ If you are restoring your [private key](./key_import.md) from the backup file, p
 - [Private Key Management](key_management.md)
 - [Password Generator](password_generator.md)
 - [Encrypt Text](encrypt_text.md)
+- [Panic Mode](pin_setup.md#panic-mode) (🔒)

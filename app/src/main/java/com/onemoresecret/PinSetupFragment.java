@@ -179,9 +179,17 @@ public class PinSetupFragment extends Fragment {
     };
 
     private boolean isPinValid() {
-        return !binding.editTextPin.getText().toString().isEmpty() &&
+        boolean b = !binding.editTextPin.getText().toString().isEmpty() &&
                 binding.editTextPin.getText().toString()
                         .equals(binding.editTextRepeatPin.getText().toString());
+
+        if (b && !binding.editTextPanicPin.getText().toString().isEmpty() &&
+                binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
+            Toast.makeText(requireContext(), R.string.panic_pin_should_not_match_pin, Toast.LENGTH_LONG).show();
+            b = false;
+        }
+
+        return b;
     }
 
     private boolean isPanicPinValid() {

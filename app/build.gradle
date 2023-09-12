@@ -4,14 +4,14 @@ plugins {
 
 android {
     namespace 'com.onemoresecret'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.onemoresecret"
         minSdk 31
-        targetSdk 33
-        versionCode 18
-        versionName "alpha-0.18"
+        targetSdk 34
+        versionCode 19
+        versionName "alpha-0.19"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
