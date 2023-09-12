@@ -254,69 +254,82 @@ public class QRFragment extends Fragment {
      * @see MessageComposer
      */
     private void onMessage(String message) {
-        Runnable r = () -> {
-            if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-                //calculate next pin request time
-                var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
-                nextPinRequest = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
-            }
 
-            var bArr = MessageComposer.decode(message);
-            if (bArr == null) {
-                Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
-                return;
-            }
+        var bArr = MessageComposer.decode(message);
+        if (bArr == null) {
+            Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
+            return;
+        }
 
-            try (var bais = new ByteArrayInputStream(bArr);
-                 var dataInputStream = new OmsDataInputStream(bais)) {
+        Runnable runAfterCheckingPin = null;
 
-                var bundle = new Bundle();
-                bundle.putByteArray("MESSAGE", bArr);
-                var navController = NavHostFragment.findNavController(QRFragment.this);
+        try (var bais = new ByteArrayInputStream(bArr);
+             var dataInputStream = new OmsDataInputStream(bais)) {
 
-                //other supported formats?
-                if (new OneTimePassword(message).isValid()) {
-                    //time based OTP
+            var bundle = new Bundle();
+            bundle.putByteArray("MESSAGE", bArr);
+            var navController = NavHostFragment.findNavController(QRFragment.this);
+
+            //other supported formats?
+            if (new OneTimePassword(message).isValid()) {
+                //time based OTP
+                runAfterCheckingPin = () -> {
+                    setNexPinRequest();
                     Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
                     navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
-                    return;
-                }
-
+                };
+            } else {
                 //(1) application ID
                 var applicationId = dataInputStream.readUnsignedShort();
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
+                        //key import is not PIN protected
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER, MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
-                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                        navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        runAfterCheckingPin = () -> {
+                            setNexPinRequest();
+                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                            navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        };
                     }
                     default -> Log.d(TAG,
                             "No processor defined for application ID " +
                                     Integer.toHexString(applicationId)
                     );
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
             }
-        };
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        //PIN protected functions
+        if (runAfterCheckingPin == null)
+            return;
 
         if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-            new PinEntryFragment(r, /* enable message processing again */ () -> messageReceived.set(false))
+            new PinEntryFragment(runAfterCheckingPin, /* enable message processing again */ () -> messageReceived.set(false))
                     .show(requireActivity().getSupportFragmentManager(), null);
         } else {
-            requireContext().getMainExecutor().execute(r);
+            requireContext().getMainExecutor().execute(runAfterCheckingPin);
+        }
+    }
+
+    private void setNexPinRequest() {
+        if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+            //calculate next pin request time
+            var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
+            nextPinRequest = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
         }
     }
 
     private BitSet lastReceivedChunks = null;
 
     private void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
-        if(messageReceived.get()) return;
+        if (messageReceived.get()) return;
         if (receivedChunks.equals(lastReceivedChunks)) return;
         lastReceivedChunks = receivedChunks;
 
