@@ -339,140 +339,151 @@ public class OutputFragment extends Fragment {
     }
 
     protected void refreshBluetoothControls() {
-        if (getContext() == null) return; //post mortem call
         if (binding == null) return;
         if (refreshingBtControls.get()) return; //called in loop
 
         new Thread(() -> {
             if (binding == null) return; //already being destroyed
 
-            if (!bluetoothController.isBluetoothAvailable() ||
-                    !PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
+            try {
+                if (!bluetoothController.isBluetoothAvailable() ||
+                        !PermissionsFragment.isAllPermissionsGranted(TAG, requireContext(), REQUIRED_PERMISSIONS)) {
 
-                //disable all bluetooth functionality
+                    //disable all bluetooth functionality
+                    requireContext().getMainExecutor().execute(() -> {
+                        refreshingBtControls.set(true);
+
+                        try {
+                            var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                            binding.chipBtStatus.setChipIcon(drawable);
+                            binding.chipBtStatus.setText(getString(R.string.bt_not_available));
+
+                            binding.spinnerKeyboardLayout.setEnabled(false);
+                            binding.spinnerBluetoothTarget.setEnabled(false);
+                            binding.btnType.setEnabled(false);
+                            binding.imgButtonDiscoverable.setEnabled(false);
+                            binding.swDelayedStrokes.setEnabled(false);
+                            binding.textTyping.setVisibility(View.INVISIBLE);
+                        } catch (IllegalStateException ex) {
+                            //things are happening outside the context
+                            Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
+                        } finally {
+                            refreshingBtControls.set(false);
+                        }
+                    });
+                    return;
+                }
+
+                var bluetoothAdapter = bluetoothController.getAdapter();
+
+                var bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
+
+                if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+
+                var discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
+
+                var connectedDevices = bluetoothController.getBluetoothHidDevice() == null ?
+                        Collections.<BluetoothDevice>emptyList() :
+                        bluetoothController.getBluetoothHidDevice().getConnectedDevices();
+
+                var bondedDevices = bluetoothAdapter.getBondedDevices()
+                        .stream()
+                        .filter(d -> d.getBluetoothClass().getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
+                        .map(SpinnerItemDevice::new)
+                        .sorted((s1, s2) -> {
+                            var i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
+                            var i2 = connectedDevices.contains(s2.getBluetoothDevice()) ? 0 : 1;
+                            if (i1 != i2) return Integer.compare(i1, i2);
+
+                            return s1.toString().compareTo(s2.toString());
+                        })
+                        .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
+
+
                 requireContext().getMainExecutor().execute(() -> {
-                    refreshingBtControls.set(true);
-                    try {
-                        var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
-                        binding.chipBtStatus.setChipIcon(drawable);
-                        binding.chipBtStatus.setText(getString(R.string.bt_not_available));
+                    if (binding == null) return; //already being destroyed
 
-                        binding.spinnerKeyboardLayout.setEnabled(false);
-                        binding.spinnerBluetoothTarget.setEnabled(false);
-                        binding.btnType.setEnabled(false);
-                        binding.imgButtonDiscoverable.setEnabled(false);
-                        binding.swDelayedStrokes.setEnabled(false);
-                        binding.textTyping.setVisibility(View.INVISIBLE);
+                    refreshingBtControls.set(true);
+
+                    try {
+                        binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
+
+                        var status = getString(R.string.bt_off);
+                        var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+
+                        if (bluetoothAdapterEnabled) {
+                            status = getString(R.string.bt_disconnected);
+                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
+                        }
+
+                        if (discoverable) {
+                            status = getString(R.string.bt_discoverable);
+                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
+                        }
+
+                        binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
+
+                        //remember selection
+                        {
+                            var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                            var selectedBtAddress = selectedBluetoothTarget == null ?
+                                    preferences.getString(PROP_LAST_SELECTED_BT_TARGET, null) :
+                                    selectedBluetoothTarget.getBluetoothDevice().getAddress();
+
+                            //refreshing the list
+                            arrayAdapterDevice.clear();
+                            arrayAdapterDevice.addAll(bondedDevices);
+
+                            //restore selection
+                            if (selectedBtAddress != null) {
+                                for (var i = 0; i < arrayAdapterDevice.getCount(); i++) {
+                                    if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
+                                        binding.spinnerBluetoothTarget.setSelection(i);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        //set BT connection state
+                        var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
+                        boolean selectedDeviceConnected = false;
+
+                        if (selectedBluetoothTarget != null) {
+                            var selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
+                            selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
+                            if (selectedDeviceConnected) {
+                                status = getString(R.string.bt_connected);
+                                drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
+                            }
+                        }
+
+                        binding.chipBtStatus.setChipIcon(drawable);
+                        binding.chipBtStatus.setText(status);
+                        binding.swDelayedStrokes.setEnabled(selectedDeviceConnected);
+
+                        //set TYPE button state
+                        var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+                        binding.btnType.setEnabled(selectedDeviceConnected &&
+                                selectedLayout != null &&
+                                message != null);
+
+                        binding.btnType.setText(typing.get() ? getString(R.string.cancel) : getString(R.string.type));
+
+                        binding.textTyping.setVisibility(typing.get() ? View.VISIBLE : View.INVISIBLE);
+                    } catch (IllegalStateException ex) {
+                        //things are happening outside the context
+                        Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
                     } finally {
                         refreshingBtControls.set(false);
                     }
                 });
-                return;
+            } catch (IllegalStateException ex) {
+                //things are happening outside the context
+                Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
             }
-
-            var bluetoothAdapter = bluetoothController.getAdapter();
-
-            var bluetoothAdapterEnabled = bluetoothAdapter.isEnabled();
-
-            if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-
-            var discoverable = bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE;
-
-            var connectedDevices = bluetoothController.getBluetoothHidDevice() == null ?
-                    Collections.<BluetoothDevice>emptyList() :
-                    bluetoothController.getBluetoothHidDevice().getConnectedDevices();
-
-            var bondedDevices = bluetoothAdapter.getBondedDevices()
-                    .stream()
-                    .filter(d -> d.getBluetoothClass().getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
-                    .map(SpinnerItemDevice::new)
-                    .sorted((s1, s2) -> {
-                        var i1 = connectedDevices.contains(s1.getBluetoothDevice()) ? 0 : 1;
-                        var i2 = connectedDevices.contains(s2.getBluetoothDevice()) ? 0 : 1;
-                        if (i1 != i2) return Integer.compare(i1, i2);
-
-                        return s1.toString().compareTo(s2.toString());
-                    })
-                    .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
-
-            requireContext().getMainExecutor().execute(() -> {
-                if (binding == null) return; //already being destroyed
-
-                refreshingBtControls.set(true);
-
-                try {
-                    binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
-
-                    var status = getString(R.string.bt_off);
-                    var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
-
-                    if (bluetoothAdapterEnabled) {
-                        status = getString(R.string.bt_disconnected);
-                        drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
-                    }
-
-                    if (discoverable) {
-                        status = getString(R.string.bt_discoverable);
-                        drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
-                    }
-
-                    binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
-
-                    //remember selection
-                    {
-                        var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                        var selectedBtAddress = selectedBluetoothTarget == null ?
-                                preferences.getString(PROP_LAST_SELECTED_BT_TARGET, null) :
-                                selectedBluetoothTarget.getBluetoothDevice().getAddress();
-
-                        //refreshing the list
-                        arrayAdapterDevice.clear();
-                        arrayAdapterDevice.addAll(bondedDevices);
-
-                        //restore selection
-                        if (selectedBtAddress != null) {
-                            for (var i = 0; i < arrayAdapterDevice.getCount(); i++) {
-                                if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
-                                    binding.spinnerBluetoothTarget.setSelection(i);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    //set BT connection state
-                    var selectedBluetoothTarget = (SpinnerItemDevice) binding.spinnerBluetoothTarget.getSelectedItem();
-                    boolean selectedDeviceConnected = false;
-
-                    if (selectedBluetoothTarget != null) {
-                        var selectedBtAddress = selectedBluetoothTarget.getBluetoothDevice().getAddress();
-                        selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
-                        if (selectedDeviceConnected) {
-                            status = getString(R.string.bt_connected);
-                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
-                        }
-                    }
-
-                    binding.chipBtStatus.setChipIcon(drawable);
-                    binding.chipBtStatus.setText(status);
-                    binding.swDelayedStrokes.setEnabled(selectedDeviceConnected);
-
-                    //set TYPE button state
-                    var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
-                    binding.btnType.setEnabled(selectedDeviceConnected &&
-                            selectedLayout != null &&
-                            message != null);
-
-                    binding.btnType.setText(typing.get() ? getString(R.string.cancel) : getString(R.string.type));
-
-                    binding.textTyping.setVisibility(typing.get() ? View.VISIBLE : View.INVISIBLE);
-
-                } finally {
-                    refreshingBtControls.set(false);
-                }
-            });
         }).start();
     }
 
@@ -511,10 +522,17 @@ public class OutputFragment extends Fragment {
         @NonNull
         @Override
         public String toString() {
-            if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                throw new RuntimeException(getString(R.string.insufficient_permissions));
+            try {
+                if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    throw new RuntimeException(getString(R.string.insufficient_permissions));
+                }
+                return bluetoothDevice.getAlias() + " (" + bluetoothDevice.getAddress() + ")";
+            } catch (IllegalStateException ex) {
+                //things are happening outside the context
+                Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
             }
-            return bluetoothDevice.getAlias() + " (" + bluetoothDevice.getAddress() + ")";
+
+            return super.toString();
         }
     }
 
@@ -616,6 +634,7 @@ public class OutputFragment extends Fragment {
 
             return true;
         }
+
     }
 
     private int getDiscoverableDuration() {

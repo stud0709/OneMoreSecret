@@ -113,12 +113,17 @@ public class PinEntryFragment extends DialogFragment {
     }
 
     private void tryUnlock() {
-        if (binding.textViewPin.getText().equals(preferences.getString(PinSetupFragment.PROP_PANIC_PIN, null))) {
+        boolean panicPinEntered = binding.textViewPin.getText().toString()
+                .equals(preferences.getString(PinSetupFragment.PROP_PANIC_PIN, null));
+
+        if (panicPinEntered) {
             //panic pin
             panic();
         }
 
-        if (binding.textViewPin.getText().equals(preferences.getString(PinSetupFragment.PROP_PIN_VALUE, null))) {
+        if (panicPinEntered ||
+                binding.textViewPin.getText().toString()
+                        .equals(preferences.getString(PinSetupFragment.PROP_PIN_VALUE, null))) {
             //pin entered correctly
             Toast.makeText(requireContext(), R.string.pin_accepted, Toast.LENGTH_SHORT).show();
             requireContext().getMainExecutor().execute(runOnSuccess);

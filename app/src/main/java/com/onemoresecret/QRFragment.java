@@ -316,6 +316,7 @@ public class QRFragment extends Fragment {
     private BitSet lastReceivedChunks = null;
 
     private void onChunkReceived(BitSet receivedChunks, int cntReceived, int totalChunks) {
+        if(messageReceived.get()) return;
         if (receivedChunks.equals(lastReceivedChunks)) return;
         lastReceivedChunks = receivedChunks;
 

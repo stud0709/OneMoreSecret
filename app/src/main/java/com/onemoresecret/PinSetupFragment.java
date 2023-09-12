@@ -188,7 +188,8 @@ public class PinSetupFragment extends Fragment {
         boolean b = binding.editTextPanicPin.getText().toString()
                 .equals(binding.editTextRepeatPanicPin.getText().toString());
 
-        if (b && binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
+        if (b && !binding.editTextPin.getText().toString().isEmpty() &&
+                binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
             Toast.makeText(requireContext(), R.string.panic_pin_should_not_match_pin, Toast.LENGTH_LONG).show();
             b = false;
         }
