@@ -57,7 +57,7 @@ public class QRFragment extends Fragment {
     private SharedPreferences preferences;
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
-    private long nextPinRequest = 0;
+    private long nextPinRequestTimestamp = 0;
 
 
     @Override
@@ -261,7 +261,7 @@ public class QRFragment extends Fragment {
             return;
         }
 
-        Runnable runAfterCheckingPin = null;
+        Runnable pinProtectedRunnable = null;
 
         try (var bais = new ByteArrayInputStream(bArr);
              var dataInputStream = new OmsDataInputStream(bais)) {
@@ -273,8 +273,7 @@ public class QRFragment extends Fragment {
             //other supported formats?
             if (new OneTimePassword(message).isValid()) {
                 //time based OTP
-                runAfterCheckingPin = () -> {
-                    setNexPinRequest();
+                pinProtectedRunnable = () -> {
                     Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
                     navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
                 };
@@ -290,8 +289,7 @@ public class QRFragment extends Fragment {
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER, MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
-                        runAfterCheckingPin = () -> {
-                            setNexPinRequest();
+                        pinProtectedRunnable = () -> {
                             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         };
@@ -307,22 +305,30 @@ public class QRFragment extends Fragment {
         }
 
         //PIN protected functions
-        if (runAfterCheckingPin == null)
-            return;
-
-        if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-            new PinEntryFragment(runAfterCheckingPin, /* enable message processing again */ () -> messageReceived.set(false))
-                    .show(requireActivity().getSupportFragmentManager(), null);
-        } else {
-            requireContext().getMainExecutor().execute(runAfterCheckingPin);
-        }
+        if (pinProtectedRunnable != null)
+            runPinProtected(pinProtectedRunnable,
+                    () -> messageReceived.set(false) /* enable message processing again */,
+                    true);
     }
 
-    private void setNexPinRequest() {
-        if (System.currentTimeMillis() > nextPinRequest && preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-            //calculate next pin request time
-            var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
-            nextPinRequest = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
+    private void runPinProtected(Runnable onSuccess,
+                                 @Nullable Runnable onCancel,
+                                 boolean evaluateNextPinRequestTimestamp) {
+
+        if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false) &&
+                (System.currentTimeMillis() > nextPinRequestTimestamp || !evaluateNextPinRequestTimestamp)) {
+
+            new PinEntryFragment(() -> {
+                if (evaluateNextPinRequestTimestamp) {
+                    //calculate next pin request time
+                    var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
+                    nextPinRequestTimestamp = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
+                }
+
+                onSuccess.run();
+            }, onCancel).show(requireActivity().getSupportFragmentManager(), null);
+        } else {
+            requireContext().getMainExecutor().execute(onSuccess);
         }
     }
 
@@ -405,23 +411,17 @@ public class QRFragment extends Fragment {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_totpManualEntryFragment);
             } else if (menuItem.getItemId() == R.id.menuItemPinSetup) {
-                Runnable r = () -> NavHostFragment.findNavController(QRFragment.this)
-                        .navigate(R.id.action_QRFragment_to_pinSetupFragment);
-
-                if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-                    //protect access to PIN settings by PIN entry
-
-                    new PinEntryFragment(r, /* enable message processing again */ () -> messageReceived.set(false))
-                            .show(requireActivity().getSupportFragmentManager(), null);
-                } else {
-                    r.run();
-                }
+                runPinProtected(
+                        () -> NavHostFragment.findNavController(QRFragment.this)
+                                .navigate(R.id.action_QRFragment_to_pinSetupFragment),
+                        null, false);
             } else if (menuItem.getItemId() == R.id.menuItemPanic) {
                 if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
-                    nextPinRequest = 0;
+                    nextPinRequestTimestamp = 0;
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), R.string.locked, Toast.LENGTH_LONG).show());
                 } else {
+                    //PIN not enabled, go to PIN setup instead
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), R.string.enable_pin_first, Toast.LENGTH_LONG).show());
                     NavHostFragment.findNavController(QRFragment.this)

@@ -1,6 +1,5 @@
 package com.onemoresecret;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -9,7 +8,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
 
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,26 +19,21 @@ import android.widget.Toast;
 
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentPinEntryBinding;
-import com.onemoresecret.databinding.FragmentQrBinding;
-
-import org.w3c.dom.Text;
 
 import java.security.KeyStoreException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 
 public class PinEntryFragment extends DialogFragment {
     private FragmentPinEntryBinding binding;
     private SharedPreferences preferences;
     private final Runnable runOnSuccess;
-    private Runnable runOnDismiss;
+    private Runnable runOnCancel;
 
-    public PinEntryFragment(Runnable runOnSuccess, Runnable runOnDismiss) {
+    public PinEntryFragment(Runnable runOnSuccess, @Nullable Runnable runOnCancel) {
         this.runOnSuccess = runOnSuccess;
-        this.runOnDismiss = runOnDismiss;
+        this.runOnCancel = runOnCancel;
     }
 
     @Override
@@ -127,7 +120,7 @@ public class PinEntryFragment extends DialogFragment {
             //pin entered correctly
             Toast.makeText(requireContext(), R.string.pin_accepted, Toast.LENGTH_SHORT).show();
             requireContext().getMainExecutor().execute(runOnSuccess);
-            runOnDismiss = null;
+            runOnCancel = null;
             dismiss();
         } else {
             //wrong pin
@@ -164,8 +157,8 @@ public class PinEntryFragment extends DialogFragment {
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
         super.onDismiss(dialog);
-        if (this.runOnDismiss != null) {
-            requireContext().getMainExecutor().execute(runOnDismiss);
+        if (this.runOnCancel != null) {
+            requireContext().getMainExecutor().execute(runOnCancel);
         }
     }
 }
