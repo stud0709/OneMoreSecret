@@ -35,7 +35,7 @@ public class CrashReportFragment extends Fragment {
         crashReportData = (CrashReportData) requireActivity().getIntent().getSerializableExtra(OmsUncaughtExceptionHandler.EXTRA_CRASH_REPORT);
 
         binding.chkLogcat.setOnCheckedChangeListener((buttonView, isChecked) -> displayCrashReport());
-        binding.btnDismiss.setOnClickListener(v -> endProcess());
+        binding.btnDismiss.setOnClickListener(v -> requireActivity().finish());
         binding.btnSend.setOnClickListener(v -> sendEmail());
         displayCrashReport();
     }
@@ -63,18 +63,18 @@ public class CrashReportFragment extends Fragment {
             try {
                 //try send as attached file
                 startActivity(intentSend);
-                endProcess();
+                requireActivity().finish();
             } catch (ActivityNotFoundException ex) {
                 try {
                     //email without attachment
                     var intentSendTo = intentFx.apply(Intent.ACTION_SENDTO);
                     intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReport);
                     startActivity(intentSendTo);
-                    endProcess();
+                    requireActivity().finish();
                 } catch (ActivityNotFoundException exx) {
                     requireContext().getMainExecutor().execute(() -> {
                         Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show();
-                        endProcess();
+                        requireActivity().finish();
                     });
                 }
             }
@@ -92,11 +92,4 @@ public class CrashReportFragment extends Fragment {
     private void displayCrashReport() {
         binding.txtCrashReport.setText(crashReportData.toString(binding.chkLogcat.isChecked()));
     }
-
-    private void endProcess() {
-        requireActivity().finish();
-//            android.os.Process.killProcess(android.os.Process.myPid());
-        System.exit(0);
-    }
-
 }

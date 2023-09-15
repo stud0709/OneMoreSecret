@@ -265,6 +265,7 @@ public class OutputFragment extends Fragment {
      * Check if the selected device is connected, try to connect.
      */
     private void checkConnectSelectedDevice() {
+        if (binding == null) return;
         if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
