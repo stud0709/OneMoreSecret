@@ -162,4 +162,11 @@
     <string name="wrong_pin">wrong PIN</string>
     <string name="locked">Locked</string>
     <string name="enable_pin_first">Please enable PIN first</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="phrase_to_encrypt">Phrase to encrypt</string>
+    <string name="filename">Filename:</string>
+    <string name="encrypt">Encrypt</string>
+    <string name="size">Size:</string>
+    <string name="encrypt_file">Encrypt File</string>
 </resources>

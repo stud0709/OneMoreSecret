@@ -3,6 +3,7 @@ package com.onemoresecret;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.Output;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -45,6 +46,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private final PwdMenuProvider menuProvider = new PwdMenuProvider();
     private SharedPreferences preferences;
     private KeyStoreListFragment keyStoreListFragment;
+    private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
     private final AtomicBoolean textChangeListenerActive = new AtomicBoolean(true);
     private static final String
@@ -90,6 +92,8 @@ public class PasswordGeneratorFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        outputFragment = binding.fragmentContainerView4.getFragment();
+
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         binding.chipUpperCase.setChecked(preferences.getBoolean(PROP_UCASE, true));
@@ -294,10 +298,7 @@ public class PasswordGeneratorFragment extends Fragment {
 
         if (binding.chipLayout.isChecked()) {
             //make sure password can be printed with the selected layout
-            var keyboardLayout =
-                    ((KeyStoreListFragment) binding.fragmentContainerView.getFragment())
-                            .getOutputFragment()
-                            .getSelectedLayout();
+            var keyboardLayout = outputFragment.getSelectedLayout();
 
             if (keyboardLayout == null) {
                 Toast.makeText(requireContext(), R.string.cannot_apply_layout_filter, Toast.LENGTH_LONG).show();
@@ -368,7 +369,7 @@ public class PasswordGeneratorFragment extends Fragment {
             textChangeListenerActive.set(true);
 
             binding.editTextPassword.setEnabled(true);
-            keyStoreListFragment.getOutputFragment().setMessage(pwd, getString(R.string.unprotected_password));
+            outputFragment.setMessage(pwd, getString(R.string.unprotected_password));
             switchControls(true);
         };
     }
@@ -389,7 +390,7 @@ public class PasswordGeneratorFragment extends Fragment {
                 textChangeListenerActive.set(true);
 
                 binding.editTextPassword.setEnabled(false);
-                keyStoreListFragment.getOutputFragment().setMessage(encrypted, getString(R.string.encrypted_password));
+                outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));
 
                 //disable controls that can trigger password generator. Otherwise, the user can accidentally
                 //trigger password change.

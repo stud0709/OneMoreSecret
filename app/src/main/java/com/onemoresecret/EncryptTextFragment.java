@@ -2,6 +2,7 @@ package com.onemoresecret;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.Output;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,7 @@ import java.util.function.Consumer;
 public class EncryptTextFragment extends Fragment {
     private FragmentEncryptTextBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
+    private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
     private Consumer<String> encryptPhrase;
     private Runnable setPhrase;
@@ -53,6 +55,7 @@ public class EncryptTextFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        outputFragment = binding.fragmentContainerView5.getFragment();
         requireActivity().addMenuProvider(menuProvider);
 
         //based on pre-launch test
@@ -112,7 +115,7 @@ public class EncryptTextFragment extends Fragment {
             textChangeListenerActive.set(true);
 
             binding.editTextPhrase.setEnabled(true);
-            keyStoreListFragment.getOutputFragment().setMessage(pwd, "Unprotected phrase");
+            outputFragment.setMessage(pwd, "Unprotected phrase");
         };
     }
 
@@ -131,7 +134,7 @@ public class EncryptTextFragment extends Fragment {
                 textChangeListenerActive.set(true);
 
                 binding.editTextPhrase.setEnabled(false);
-                keyStoreListFragment.getOutputFragment().setMessage(encrypted, getString(R.string.encrypted_password));
+                outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -33,6 +33,7 @@ public class TotpImportFragment extends Fragment {
     private static final String TAG = TotpImportFragment.class.getSimpleName();
     private FragmentTotpImportBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
+    private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
     private final OtpMenuProvider menuProvider = new OtpMenuProvider();
     private SharedPreferences preferences;
@@ -52,6 +53,8 @@ public class TotpImportFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        outputFragment = binding.fragmentContainerView3.getFragment();
+
         totpFragment = binding.fragmentTotp.getFragment();
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
@@ -68,7 +71,7 @@ public class TotpImportFragment extends Fragment {
                     digits -> keyStoreListFragment.getSelectionTracker().hasSelection() ? MessageComposer.OMS_PREFIX + "..." : null,
                     code -> {
                         if (!keyStoreListFragment.getSelectionTracker().hasSelection())
-                            keyStoreListFragment.getOutputFragment().setMessage(code, "One-Time Password");
+                            outputFragment.setMessage(code, "One-Time Password");
                     });
 
 
@@ -82,7 +85,7 @@ public class TotpImportFragment extends Fragment {
                                     if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
                                         var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
                                         var encrypted = encrypt(selectedAlias, message);
-                                        keyStoreListFragment.getOutputFragment().setMessage(encrypted, "Encrypted OTP Configuration");
+                                        outputFragment.setMessage(encrypted, "Encrypted OTP Configuration");
                                     }
                                     totpFragment.refresh();
                                 }

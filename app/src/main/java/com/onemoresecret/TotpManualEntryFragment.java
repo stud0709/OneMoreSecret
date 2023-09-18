@@ -13,6 +13,7 @@ import static com.onemoresecret.crypto.OneTimePassword.TOTP;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.Output;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -46,6 +47,7 @@ public class TotpManualEntryFragment extends Fragment {
     private static final String TAG = TotpManualEntryFragment.class.getSimpleName();
     private FragmentTotpManualEntryBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
+    private OutputFragment outputFragment;
     private static final int PERIOD_MIN = 1, PERIOD_MAX = 120;
     private SharedPreferences preferences;
     private final Timer timer = new Timer();
@@ -74,6 +76,7 @@ public class TotpManualEntryFragment extends Fragment {
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        outputFragment = binding.fragmentContainerView2.getFragment();
 
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -200,7 +203,7 @@ public class TotpManualEntryFragment extends Fragment {
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformationIdx(preferences)).getMessage());
 
-                keyStoreListFragment.getOutputFragment().setMessage(result, "TOTP Configuration (encrypted)");
+                outputFragment.setMessage(result, "TOTP Configuration (encrypted)");
                 binding.textViewTotp.setText(MessageComposer.OMS_PREFIX + "...");
                 binding.textViewTimer.setText("");
             } catch (Exception e) {
@@ -243,14 +246,14 @@ public class TotpManualEntryFragment extends Fragment {
 
                 if (lastState != state[0] || force) {
                     //new State = new code; update output fragment
-                    keyStoreListFragment.getOutputFragment().setMessage(code, "One-Time-Password");
+                    outputFragment.setMessage(code, "One-Time-Password");
                     lastState = state[0];
                 }
             });
         } catch (Exception e) {
             //invalid secret
             Log.e(TAG, e.getMessage());
-            keyStoreListFragment.getOutputFragment().setMessage(null, null);
+            outputFragment.setMessage(null, null);
             requireActivity().getMainExecutor().execute(() -> {
                 binding.textViewTotp.setText("-".repeat(Integer.parseInt(binding.chipDigits.getText().toString())));
                 binding.textViewTimer.setText("");

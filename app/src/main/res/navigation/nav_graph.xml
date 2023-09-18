@@ -39,6 +39,9 @@
         <action
             android:id="@+id/action_QRFragment_to_pinSetupFragment"
             app:destination="@id/pinSetupFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_fileEncryptionFragment"
+            app:destination="@id/fileEncryptionFragment" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -94,4 +97,8 @@
         android:name="com.onemoresecret.PinSetupFragment"
         android:label="@string/pin_setup"
         tools:layout="@layout/fragment_pin_setup" />
+    <fragment
+        android:id="@+id/fileEncryptionFragment"
+        android:name="com.onemoresecret.FileEncryptionFragment"
+        android:label="@string/encrypt_file" />
 </navigation>

@@ -97,10 +97,6 @@ public class KeyStoreListFragment extends Fragment {
                 .build();
     }
 
-    public OutputFragment getOutputFragment() {
-        return binding.keyListOutputFragment.getFragment();
-    }
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();

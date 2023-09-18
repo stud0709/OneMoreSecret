@@ -1,6 +1,7 @@
 package com.onemoresecret;
 
 import android.app.AlertDialog;
+import android.icu.util.Output;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -28,6 +29,7 @@ public class KeyManagementFragment extends Fragment {
     private FragmentKeyManagementBinding binding;
     private final KeyEntryMenuProvider menuProvider = new KeyEntryMenuProvider();
     private KeyStoreListFragment keyStoreListFragment;
+    private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
     @Override
@@ -44,6 +46,7 @@ public class KeyManagementFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        outputFragment = binding.fragmentContainerView2.getFragment();
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment.
                         getSelectionTracker()
@@ -54,11 +57,9 @@ public class KeyManagementFragment extends Fragment {
                                 requireActivity().invalidateOptionsMenu();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
                                     var alias = getSelectedAlias();
-                                    keyStoreListFragment
-                                            .getOutputFragment()
-                                            .setMessage(getPublicKeyMessage(alias), String.format(getString(R.string.share_public_key_title), alias));
+                                    outputFragment.setMessage(getPublicKeyMessage(alias), String.format(getString(R.string.share_public_key_title), alias));
                                 } else {
-                                    keyStoreListFragment.getOutputFragment().setMessage(null, null);
+                                    outputFragment.setMessage(null, null);
                                 }
                             }
                         }));

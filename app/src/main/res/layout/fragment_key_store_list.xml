@@ -14,21 +14,11 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         app:layoutManager="LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@+id/keyListOutputFragment"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:context=".KeyStoreListFragment"
         tools:listitem="@layout/private_key_list_item" />
-
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/keyListOutputFragment"
-        android:name="com.onemoresecret.OutputFragment"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:layout="@layout/fragment_output" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

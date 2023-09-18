@@ -12,13 +12,22 @@
         android:name="com.onemoresecret.KeyStoreListFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/fragmentContainerView3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewEncryptWith"
-        app:layout_constraintVertical_bias="0.0"
         tools:layout="@layout/fragment_key_store_list" />
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainerView3"
+        android:name="com.onemoresecret.OutputFragment"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout="@layout/fragment_output" />
 
     <TextView
         android:id="@+id/textViewEncryptWith"
@@ -36,7 +45,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout="@layout/fragment_totp"/>
+        tools:layout="@layout/fragment_totp" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

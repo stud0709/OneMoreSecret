@@ -31,6 +31,7 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavHost;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.zxing.Result;
@@ -138,8 +139,8 @@ public class QRFragment extends Fragment {
 
     private boolean processIntent(Intent intent) {
         if (intent != null) {
-            String action = intent.getAction();
-            String type = intent.getType();
+            var action = intent.getAction();
+            var type = intent.getType();
             Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
             switch (intent.getAction()) {
@@ -154,16 +155,29 @@ public class QRFragment extends Fragment {
                 }
                 case Intent.ACTION_SEND -> {
                     //a piece of text has been sent to the app using Android "send to" functionality
-                    String text = intent.getStringExtra(Intent.EXTRA_TEXT);
-                    if (MessageComposer.decode(text) == null) {
-                        //this is not an OMS message, forward it to the text encryption fragment
-                        Bundle bundle = new Bundle();
-                        bundle.putString("TEXT", text);
+                    var text = intent.getStringExtra(Intent.EXTRA_TEXT);
+
+                    if (text == null) {
+                        var uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                        Log.d(TAG, "URI: " + uri);
+
+                        //pass URI to file encoder
+                        var bundle = new Bundle();
+                        bundle.putParcelable("URI", uri);
 
                         NavHostFragment.findNavController(QRFragment.this)
-                                .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
+                                .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
                     } else {
-                        onMessage(text);
+                        if (MessageComposer.decode(text) == null) {
+                            //this is not an OMS message, forward it to the text encryption fragment
+                            var bundle = new Bundle();
+                            bundle.putString("TEXT", text);
+
+                            NavHostFragment.findNavController(QRFragment.this)
+                                    .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
+                        } else {
+                            onMessage(text);
+                        }
                     }
                     return true;
                 }
