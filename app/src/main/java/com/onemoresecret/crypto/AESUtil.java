@@ -2,8 +2,14 @@ package com.onemoresecret.crypto;
 
 import android.content.SharedPreferences;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -48,13 +54,53 @@ public final class AESUtil {
         return salt;
     }
 
-    public static byte[] encrypt(byte[] input, SecretKey key, IvParameterSpec iv, String aesTransformation)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
-            InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+    public static byte[] encrypt(byte[] input,
+                                 SecretKey key,
+                                 IvParameterSpec iv,
+                                 String aesTransformation) throws
+            NoSuchPaddingException,
+            NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException,
+            InvalidKeyException,
+            BadPaddingException,
+            IllegalBlockSizeException {
 
         var cipher = Cipher.getInstance(aesTransformation);
         cipher.init(Cipher.ENCRYPT_MODE, key, iv);
         return cipher.doFinal(input);
+    }
+
+    /**
+     * Encrypts input stream and calculates SHA-256 of the original data.
+     */
+    public static byte[] encryptAndCalculateSHA256(InputStream is,
+                                                   OutputStream os,
+                                                   SecretKey key,
+                                                   IvParameterSpec iv,
+                                                   String aesTransformation) throws
+            NoSuchPaddingException,
+            NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException,
+            InvalidKeyException,
+            BadPaddingException,
+            IllegalBlockSizeException,
+            IOException {
+
+        var cipher = Cipher.getInstance(aesTransformation);
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+
+        var sha256 = MessageDigest.getInstance("SHA-256");
+
+        var bArr = new byte[1024];
+        int length;
+
+        while ((length = is.read(bArr)) > 0) {
+            os.write(cipher.update(bArr, 0, length));
+            sha256.update(bArr, 0, length);
+        }
+
+        os.write(cipher.doFinal());
+        return sha256.digest();
     }
 
     public static byte[] decrypt(byte[] cipherText, SecretKey key, IvParameterSpec iv, String aesTransformation)

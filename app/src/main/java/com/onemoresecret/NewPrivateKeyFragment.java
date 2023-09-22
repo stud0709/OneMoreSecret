@@ -31,8 +31,6 @@ import com.onemoresecret.qr.QRUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Objects;

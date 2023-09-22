@@ -3,6 +3,11 @@ package com.onemoresecret;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -10,20 +15,16 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
 
-import android.provider.OpenableColumns;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
-
-import com.onemoresecret.databinding.FragmentEncryptTextBinding;
 import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 
+import java.io.File;
 import java.util.Locale;
 
 public class FileEncryptionFragment extends Fragment {
     private FragmentFileEncryptionBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
+    private String filename;
+    private File file;
 
     @Nullable
     @Override
@@ -47,10 +48,12 @@ public class FileEncryptionFragment extends Fragment {
             var nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
 
             var fileSize = cursor.getLong(sizeIndex);
-            var filename = cursor.getString(nameIndex);
+            filename = cursor.getString(nameIndex);
 
             binding.textView4.setText(filename);
             binding.textView15.setText(String.format(Locale.getDefault(), "%.3f KB", fileSize / 1024D));
+
+            file = new File(uri.getPath());
         } catch (Exception ex) {
             ex.printStackTrace();
             requireContext().getMainExecutor().execute(() -> {

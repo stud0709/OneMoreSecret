@@ -70,7 +70,6 @@ public class EncryptedMessageTransfer extends MessageComposer {
         return APPLICATION_ENCRYPTED_MESSAGE_TRANSFER;
     }
 
-    @Override
     public byte[] getMessage() {
         return message;
     }
