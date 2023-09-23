@@ -31,6 +31,7 @@ import com.onemoresecret.qr.QRUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Objects;
@@ -136,14 +137,12 @@ public class NewPrivateKeyFragment extends Fragment {
             //share HTML file
             var html = getKeyBackupHtml(alias, fingerprint, message);
             var fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
-            var contentUri = Util.toStream(requireContext(),
-                    "pk_" + fingerprintString + ".html",
-                    html.getBytes(StandardCharsets.UTF_8),
-                    true);
+            var fileRecord = OmsFileProvider.create(requireContext(), "pk_" + fingerprintString + ".html", true);
+            Files.write(fileRecord.path(), html.getBytes(StandardCharsets.UTF_8));
 
             var intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
-            intent.putExtra(Intent.EXTRA_STREAM, contentUri);
+            intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.setType("text/html");
             startActivity(Intent.createChooser(intent, String.format(getString(R.string.backup_file), alias)));

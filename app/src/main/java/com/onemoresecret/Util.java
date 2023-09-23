@@ -30,17 +30,4 @@ public final class Util {
         intent.setData(Uri.parse(url));
         ctx.startActivity(intent);
     }
-
-    public static Uri toStream(Context ctx, String filename, byte[] content, boolean deleteOnExit) throws IOException {
-        var dir = new File(ctx.getCacheDir(), "tmp");
-        if (!dir.exists()) dir.mkdirs();
-
-        var p = dir.toPath().resolve(filename);
-        if (Files.exists(p)) Files.delete(p);
-
-        Files.write(p, content);
-        if (deleteOnExit) p.toFile().deleteOnExit();
-
-        return OmsFileProvider.getUriForFile(ctx, "com.onemoresecret.fileprovider", p.toFile());
-    }
 }

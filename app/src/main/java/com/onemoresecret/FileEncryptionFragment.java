@@ -1,9 +1,15 @@
 package com.onemoresecret;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,16 +21,28 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
 
+import com.onemoresecret.crypto.AESUtil;
+import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.EncryptedFile;
+import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Locale;
+import java.util.Objects;
 
 public class FileEncryptionFragment extends Fragment {
     private FragmentFileEncryptionBinding binding;
     private KeyStoreListFragment keyStoreListFragment;
+    private final CryptographyManager cryptographyManager = new CryptographyManager();
+    private SharedPreferences preferences;
+    private static final String TAG = FileEncryptionFragment.class.getSimpleName();
+    private Uri uri;
     private String filename;
-    private File file;
 
     @Nullable
     @Override
@@ -36,12 +54,14 @@ public class FileEncryptionFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
         binding.btnEncrypt.setEnabled(false);
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
 
-        var uri = (Uri) (getArguments() == null ? null : getArguments().getParcelable("URI"));
+        uri = getArguments().getParcelable("URI");
 
-        try (Cursor cursor = requireActivity().getContentResolver().query(uri, null, null, null, null)) {
+        try (Cursor cursor = requireContext().getContentResolver().query(uri, null, null, null, null)) {
+            Objects.requireNonNull(cursor);
             cursor.moveToFirst();
 
             var sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
@@ -52,8 +72,6 @@ public class FileEncryptionFragment extends Fragment {
 
             binding.textView4.setText(filename);
             binding.textView15.setText(String.format(Locale.getDefault(), "%.3f KB", fileSize / 1024D));
-
-            file = new File(uri.getPath());
         } catch (Exception ex) {
             ex.printStackTrace();
             requireContext().getMainExecutor().execute(() -> {
@@ -70,11 +88,7 @@ public class FileEncryptionFragment extends Fragment {
                             @Override
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
-                                if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    //todo
-                                } else {
-                                    //todo
-                                }
+                                binding.btnEncrypt.setEnabled(keyStoreListFragment.getSelectionTracker().hasSelection());
                             }
                         }));
 
@@ -84,6 +98,27 @@ public class FileEncryptionFragment extends Fragment {
     private void encrypt() {
         var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
 
-        //todo
+        try {
+            var oFileRecord = OmsFileProvider.create(requireContext(), filename + "." + MessageComposer.OMS_MIME_TYPE, true);
+
+            EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
+                    oFileRecord.path().toFile(),
+                    (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
+                    RSAUtils.getRsaTransformationIdx(preferences),
+                    AESUtil.getKeyLength(preferences),
+                    AESUtil.getAesTransformationIdx(preferences));
+
+            var intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("application/" + MessageComposer.OMS_MIME_TYPE);
+            intent.putExtra(Intent.EXTRA_STREAM, oFileRecord.uri());
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(intent);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
+                    String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
+                    Toast.LENGTH_LONG).show());
+        }
     }
 }

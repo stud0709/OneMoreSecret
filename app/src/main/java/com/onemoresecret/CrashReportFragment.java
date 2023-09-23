@@ -17,6 +17,7 @@ import com.onemoresecret.databinding.FragmentCrashReportBinding;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.function.Function;
 
 public class CrashReportFragment extends Fragment {
@@ -51,13 +52,11 @@ public class CrashReportFragment extends Fragment {
 
         try {
             var crashReport = crashReportData.toString(binding.chkLogcat.isChecked());
-            var attachment = Util.toStream(requireContext(),
-                    "crash_report.txt",
-                    crashReport.getBytes(StandardCharsets.UTF_8),
-                    false
-            );
+            var fileRecord = OmsFileProvider.create(requireContext(), "crash_report.txt", false);
+            Files.write(fileRecord.path(), crashReport.getBytes(StandardCharsets.UTF_8));
             var intentSend = intentFx.apply(Intent.ACTION_SEND);
-            intentSend.putExtra(Intent.EXTRA_STREAM, attachment);
+            intentSend.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+            intentSend.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intentSend.putExtra(Intent.EXTRA_TEXT, "The report file has been attached. Please use this email to provide additional feedback (this is optional).");
 
             try {
