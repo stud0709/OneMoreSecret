@@ -16,7 +16,7 @@ public abstract class MessageComposer {
      */
     public static final String OMS_PREFIX = "oms00_";
 
-    public static final String OMS_MIME_TYPE = "oms00";
+    public static final String OMS_FILE_TYPE = "oms00";
 
     /**
      * Text encoded OMS messages begin with omsXX_ with XX being the protocol

@@ -1,5 +1,7 @@
 package com.onemoresecret;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,15 +28,19 @@ import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class MessageFragment extends Fragment {
     private static final String TAG = MessageFragment.class.getSimpleName();
-    private byte[] cipherText, encryptedAesSecretKey, iv;
+    private byte[] encryptedAesSecretKey, iv;
     private String rsaTransformation, aesTransformation;
     private FragmentMessageBinding binding;
     private boolean reveal = false;
@@ -42,6 +48,36 @@ public class MessageFragment extends Fragment {
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
     private Fragment messageView = null;
+    private Consumer<BiometricPrompt.AuthenticationResult> onAuthenticationSucceeded = null;
+
+    private final BiometricPrompt.AuthenticationCallback authenticationCallback = new BiometricPrompt.AuthenticationCallback() {
+
+        @Override
+        public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
+            Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
+            requireContext().getMainExecutor().execute(() -> {
+                Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
+                NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+            });
+        }
+
+        @Override
+        public void onAuthenticationFailed() {
+            Log.d(TAG,
+                    "User biometrics rejected");
+            requireContext().getMainExecutor().execute(() -> {
+                Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
+                NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+            });
+        }
+
+        @Override
+        public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+            Log.d(TAG, getString(R.string.auth_successful));
+
+            MessageFragment.this.onAuthenticationSucceeded.accept(result);
+        }
+    };
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -77,7 +113,122 @@ public class MessageFragment extends Fragment {
         ((OutputFragment) binding.messageOutputFragment.getFragment())
                 .setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
 
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray("MESSAGE"));
+        if (requireArguments().containsKey(QRFragment.ARG_MESSAGE)) {
+            onMessage();
+        } else if (requireArguments().containsKey(QRFragment.ARG_URI)) {
+            onUri();
+        }
+    }
+
+    private void onUri() {
+        var uri = (Uri) getArguments().getParcelable("URI");
+        var uriFileInfo = Util.getFileInfo(requireContext(), uri);
+
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri);
+             var dataInputStream = new OmsDataInputStream(is)) {
+
+            //(1) Application ID
+            var applicationId = dataInputStream.readUnsignedShort();
+            assert applicationId == MessageComposer.APPLICATION_ENCRYPTED_FILE;
+
+            //initialize file info fragment
+            var fileInfoFragment = new FileInfoFragment();
+            getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, fileInfoFragment).commit();
+            fileInfoFragment.setValues(uriFileInfo.filename(), uriFileInfo.fileSize());
+
+            //(2) RSA transformation index
+            rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+            Log.d(TAG, "RSA transformation: " + rsaTransformation);
+
+            //(3) RSA fingerprint
+            var fingerprint = dataInputStream.readByteArray();
+            Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
+
+            // (4) AES transformation index
+            aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+            Log.d(TAG, "AES transformation: " + aesTransformation);
+
+            //(5) IV
+            iv = dataInputStream.readByteArray();
+            Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
+
+            //(6) RSA-encrypted AES secret key
+            encryptedAesSecretKey = dataInputStream.readByteArray();
+
+            //(7) SHA-256 of the original file
+            dataInputStream.readByteArray();
+
+            //(8) date last modified
+            dataInputStream.readLong();
+
+            //the remaining data is the payload
+
+            //******* decrypting ********
+            onAuthenticationSucceeded = getForDataInputStream(dataInputStream);
+
+            showBiometricPromptForDecryption(fingerprint);
+        } catch (NoSuchElementException ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
+            NavHostFragment.findNavController(this).popBackStack();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
+            NavHostFragment.findNavController(this).popBackStack();
+        }
+    }
+
+    private Consumer<BiometricPrompt.AuthenticationResult> getForDataInputStream(OmsDataInputStream dataInputStream) {
+        return result -> {
+            var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+
+            try {
+                assert cipher != null;
+                var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
+                var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                var filename = getArguments().getString(QRFragment.ARG_FILENAME);
+
+                try {
+                    var oFileRecord = OmsFileProvider.create(requireContext(),
+                            filename.substring(0, filename.length() - (MessageComposer.OMS_FILE_TYPE.length() + 1 /*the dot*/)),
+                            true);
+
+                    try (FileOutputStream fos = new FileOutputStream(oFileRecord.path().toFile())) {
+                        var sha256 = AESUtil.decryptAndCalculateSHA256(dataInputStream,
+                                fos,
+                                aesSecretKey,
+                                new IvParameterSpec(iv),
+                                aesTransformation);
+                    }
+
+                    var intent = new Intent(Intent.ACTION_SEND);
+                    intent.setType("application/octet-stream");
+                    intent.putExtra(Intent.EXTRA_STREAM, oFileRecord.uri());
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                    startActivity(intent);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
+                            String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
+                            Toast.LENGTH_LONG).show());
+                }
+
+                //requireActivity().invalidateOptionsMenu();
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(getContext(),
+                            e.getMessage() == null ? String.format(requireContext().getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+                });
+            }
+        };
+    }
+
+    private void onMessage() {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray(QRFragment.ARG_MESSAGE));
              var dataInputStream = new OmsDataInputStream(bais)) {
 
             //(1) Application ID
@@ -115,21 +266,12 @@ public class MessageFragment extends Fragment {
             encryptedAesSecretKey = dataInputStream.readByteArray();
 
             //(7) AES-encrypted message
-            cipherText = dataInputStream.readByteArray();
+            var cipherText = dataInputStream.readByteArray();
+            onAuthenticationSucceeded = getForByteArray(cipherText);
 
             //******* decrypting ********
-
-            var cryptographyManager = new CryptographyManager();
-            var aliases = cryptographyManager.getByFingerprint(fingerprint);
-
-            if (aliases.isEmpty())
-                throw new NoSuchElementException(String.format(getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
-
-            if (aliases.size() > 1)
-                throw new NoSuchElementException(getString(R.string.multiple_keys_found));
-
-            showBiometricPromptForDecryption(aliases.get(0));
-        } catch(NoSuchElementException ex) {
+            showBiometricPromptForDecryption(fingerprint);
+        } catch (NoSuchElementException ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
@@ -140,55 +282,55 @@ public class MessageFragment extends Fragment {
         }
     }
 
-    private void showBiometricPromptForDecryption(String alias) {
+    private Consumer<BiometricPrompt.AuthenticationResult> getForByteArray(byte[] cipherText) {
+        return result -> {
+            var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+            try {
+                assert cipher != null;
+                var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
+                var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                var bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
 
-        BiometricPrompt.AuthenticationCallback authenticationCallback = new BiometricPrompt.AuthenticationCallback() {
+                var message = new String(bArr);
 
-            @Override
-            public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
-                Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
-                requireContext().getMainExecutor().execute(() -> {
-                    Toast.makeText(getContext(), errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
-                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-                });
-            }
-
-            @Override
-            public void onAuthenticationFailed() {
-                Log.d(TAG,
-                        "User biometrics rejected");
-                requireContext().getMainExecutor().execute(() -> {
-                    Toast.makeText(getContext(), getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
-                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-                });
-            }
-
-            @Override
-            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                Log.d(TAG,
-                        getString(R.string.auth_successful));
-
-                var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
-                try {
-                    assert cipher != null;
-                    var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
-                    var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
-                    var bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
-
-                    onDecryptedData(bArr);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    requireContext().getMainExecutor().execute(() -> {
-                        Toast.makeText(getContext(),
-                                e.getMessage() == null ? String.format(requireContext().getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
-                                Toast.LENGTH_SHORT).show();
-                        NavHostFragment.findNavController(MessageFragment.this).popBackStack();
-                    });
+                if (messageView instanceof HiddenTextFragment) {
+                    revealHandler = () -> ((HiddenTextFragment) messageView).setText(reveal ? message : getString(R.string.hidden_text));
+                    ((OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment))
+                            .setMessage(message, getString(R.string.oms_secret_message));
                 }
+                if (messageView instanceof TotpFragment) {
+                    revealHandler = () -> ((TotpFragment) messageView).refresh();
+                    ((TotpFragment) messageView).init(new OneTimePassword(message), digits -> reveal ? null : "●".repeat(digits), code -> {
+                        var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
+                        outputFragment.setMessage(code, getString(R.string.one_time_password));
+                    });
+                    ((TotpFragment) messageView).refresh();
+                }
+                requireActivity().invalidateOptionsMenu();
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(getContext(),
+                            e.getMessage() == null ? String.format(requireContext().getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    NavHostFragment.findNavController(MessageFragment.this).popBackStack();
+                });
             }
         };
+    }
+
+    private void showBiometricPromptForDecryption(byte[] fingerprint) throws KeyStoreException {
+        var cryptographyManager = new CryptographyManager();
+        var aliases = cryptographyManager.getByFingerprint(fingerprint);
+
+        if (aliases.isEmpty())
+            throw new NoSuchElementException(String.format(getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
+
+        if (aliases.size() > 1)
+            throw new NoSuchElementException(getString(R.string.multiple_keys_found));
 
         var biometricPrompt = new BiometricPrompt(this, authenticationCallback);
+        var alias = aliases.get(0);
 
         BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(getString(R.string.prompt_info_title))
@@ -204,25 +346,6 @@ public class MessageFragment extends Fragment {
         biometricPrompt.authenticate(
                 promptInfo,
                 new BiometricPrompt.CryptoObject(cipher));
-    }
-
-    private void onDecryptedData(byte[] bArr) {
-        var message = new String(bArr);
-
-        if (messageView instanceof HiddenTextFragment) {
-            revealHandler = () -> ((HiddenTextFragment) messageView).setText(reveal ? message : getString(R.string.hidden_text));
-            ((OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment))
-                    .setMessage(message, getString(R.string.oms_secret_message));
-        }
-        if (messageView instanceof TotpFragment) {
-            revealHandler = () -> ((TotpFragment) messageView).refresh();
-            ((TotpFragment) messageView).init(new OneTimePassword(message), digits -> reveal ? null : "●".repeat(digits), code -> {
-                var outputFragment = (OutputFragment) getChildFragmentManager().findFragmentById(R.id.messageOutputFragment);
-                outputFragment.setMessage(code, getString(R.string.one_time_password));
-            });
-            ((TotpFragment) messageView).refresh();
-        }
-        requireActivity().invalidateOptionsMenu();
     }
 
     @Override

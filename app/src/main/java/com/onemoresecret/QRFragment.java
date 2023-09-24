@@ -59,6 +59,12 @@ public class QRFragment extends Fragment {
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
 
+    public static final String ARG_FILENAME = "FILENAME",
+            ARG_FILESIZE = "FILESIZE",
+            ARG_URI = "URI",
+            ARG_MESSAGE = "MESSAGE",
+            ARG_TEXT = "TEXT";
+
 
     @Override
     public View onCreateView(
@@ -160,17 +166,29 @@ public class QRFragment extends Fragment {
                         var uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
                         Log.d(TAG, "URI: " + uri);
 
-                        //pass URI to file encoder
                         var bundle = new Bundle();
-                        bundle.putParcelable("URI", uri);
+                        bundle.putParcelable(ARG_URI, uri);
 
-                        NavHostFragment.findNavController(QRFragment.this)
-                                .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+                        var fileInfo = Util.getFileInfo(requireContext(), uri);
+
+                        bundle.putString(ARG_FILENAME, fileInfo.filename());
+                        bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
+
+                        if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
+                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                            NavHostFragment.findNavController(QRFragment.this)
+                                    .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        } else {
+                            //pass URI to file encoder
+                            Log.d(TAG, "calling " + FileEncryptionFragment.class.getSimpleName());
+                            NavHostFragment.findNavController(QRFragment.this)
+                                    .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+                        }
                     } else {
                         if (MessageComposer.decode(text) == null) {
                             //this is not an OMS message, forward it to the text encryption fragment
                             var bundle = new Bundle();
-                            bundle.putString("TEXT", text);
+                            bundle.putString(ARG_TEXT, text);
 
                             NavHostFragment.findNavController(QRFragment.this)
                                     .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
@@ -280,7 +298,7 @@ public class QRFragment extends Fragment {
              var dataInputStream = new OmsDataInputStream(bais)) {
 
             var bundle = new Bundle();
-            bundle.putByteArray("MESSAGE", bArr);
+            bundle.putByteArray(ARG_MESSAGE, bArr);
             var navController = NavHostFragment.findNavController(QRFragment.this);
 
             //other supported formats?

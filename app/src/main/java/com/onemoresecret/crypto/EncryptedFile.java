@@ -5,7 +5,6 @@ import static com.onemoresecret.crypto.MessageComposer.APPLICATION_ENCRYPTED_FIL
 import com.onemoresecret.OmsDataOutputStream;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,7 +69,6 @@ public class EncryptedFile {
             // (8) last modified time of the original file
             dataOutputStream.writeLong(0 /* looks like this is not supported by content providers in Android */);
 
-            // (7) AES-encrypted message
             sha256 = AESUtil.encryptAndCalculateSHA256(fis, dataOutputStream, secretKey, iv,
                     AesTransformation.values()[aesTransformationIdx].transformation);
         } catch (IOException ex) {

@@ -91,12 +91,45 @@ public final class AESUtil {
 
         var sha256 = MessageDigest.getInstance("SHA-256");
 
-        var bArr = new byte[1024];
+        var iArr = new byte[1024];
         int length;
 
-        while ((length = is.read(bArr)) > 0) {
-            os.write(cipher.update(bArr, 0, length));
-            sha256.update(bArr, 0, length);
+        while ((length = is.read(iArr)) > 0) {
+            os.write(cipher.update(iArr, 0, length));
+            sha256.update(iArr, 0, length);
+        }
+
+        os.write(cipher.doFinal());
+        return sha256.digest();
+    }
+
+    /** Decrypt and calculate SHA-256 of the decrypted file.
+    */
+    public static byte[] decryptAndCalculateSHA256(InputStream is,
+                                                   OutputStream os,
+                                                   SecretKey key,
+                                                   IvParameterSpec iv,
+                                                   String aesTransformation) throws
+            NoSuchPaddingException,
+            NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException,
+            InvalidKeyException,
+            BadPaddingException,
+            IllegalBlockSizeException,
+            IOException {
+
+        var cipher = Cipher.getInstance(aesTransformation);
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+
+        var sha256 = MessageDigest.getInstance("SHA-256");
+
+        var iArr = new byte[1024];
+        int length;
+
+        while ((length = is.read(iArr)) > 0) {
+            var oArr = cipher.update(iArr, 0, length);
+            os.write(oArr);
+            sha256.update(oArr, 0, length);
         }
 
         os.write(cipher.doFinal());

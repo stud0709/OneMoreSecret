@@ -58,8 +58,7 @@ public class EncryptTextFragment extends Fragment {
 
         //based on pre-launch test
         //java.lang.IllegalStateException: Fragment EncryptTextFragment does not have any arguments.
-        var text = getArguments() == null ? null : getArguments().getString("TEXT");
-        if (text == null) text = "";
+        var text = getArguments() == null ? "" : getArguments().getString(QRFragment.ARG_TEXT);
 
         binding.editTextPhrase.setText(text);
 
