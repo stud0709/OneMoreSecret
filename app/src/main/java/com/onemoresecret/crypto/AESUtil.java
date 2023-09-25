@@ -4,9 +4,7 @@ import android.content.SharedPreferences;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -54,7 +52,7 @@ public final class AESUtil {
         return salt;
     }
 
-    public static byte[] encrypt(byte[] input,
+    public static byte[] process(int cipherMode, byte[] input,
                                  SecretKey key,
                                  IvParameterSpec iv,
                                  String aesTransformation) throws
@@ -66,18 +64,15 @@ public final class AESUtil {
             IllegalBlockSizeException {
 
         var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        cipher.init(cipherMode, key, iv);
         return cipher.doFinal(input);
     }
 
-    /**
-     * Encrypts input stream and calculates SHA-256 of the original data.
-     */
-    public static byte[] encryptAndCalculateSHA256(InputStream is,
-                                                   OutputStream os,
-                                                   SecretKey key,
-                                                   IvParameterSpec iv,
-                                                   String aesTransformation) throws
+    public static void process(int cipherMode, InputStream is,
+                                 OutputStream os,
+                                 SecretKey key,
+                                 IvParameterSpec iv,
+                                 String aesTransformation) throws
             NoSuchPaddingException,
             NoSuchAlgorithmException,
             InvalidAlgorithmParameterException,
@@ -87,63 +82,18 @@ public final class AESUtil {
             IOException {
 
         var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-
-        var sha256 = MessageDigest.getInstance("SHA-256");
+        cipher.init(cipherMode, key, iv);
 
         var iArr = new byte[1024];
         int length;
 
         while ((length = is.read(iArr)) > 0) {
             os.write(cipher.update(iArr, 0, length));
-            sha256.update(iArr, 0, length);
         }
 
         os.write(cipher.doFinal());
-        return sha256.digest();
     }
 
-    /** Decrypt and calculate SHA-256 of the decrypted file.
-    */
-    public static byte[] decryptAndCalculateSHA256(InputStream is,
-                                                   OutputStream os,
-                                                   SecretKey key,
-                                                   IvParameterSpec iv,
-                                                   String aesTransformation) throws
-            NoSuchPaddingException,
-            NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException,
-            InvalidKeyException,
-            BadPaddingException,
-            IllegalBlockSizeException,
-            IOException {
-
-        var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
-
-        var sha256 = MessageDigest.getInstance("SHA-256");
-
-        var iArr = new byte[1024];
-        int length;
-
-        while ((length = is.read(iArr)) > 0) {
-            var oArr = cipher.update(iArr, 0, length);
-            os.write(oArr);
-            sha256.update(oArr, 0, length);
-        }
-
-        os.write(cipher.doFinal());
-        return sha256.digest();
-    }
-
-    public static byte[] decrypt(byte[] cipherText, SecretKey key, IvParameterSpec iv, String aesTransformation)
-            throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
-            InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-
-        var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
-        return cipher.doFinal(cipherText);
-    }
 
     public static final String PROP_AES_KEY_LENGTH = "aes_key_length", PROP_AES_KEY_ITERATIONS = "aes_key_iterations",
             PROP_AES_SALT_LENGTH = "aes_salt_length", PROP_AES_TRANSFORMATION_IDX = "aes_transformation_idx", PROP_AES_KEY_ALGORITHM_IDX = "aes_key_algorithm_idx";

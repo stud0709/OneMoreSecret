@@ -12,6 +12,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -94,7 +95,7 @@ public class AesEncryptedPrivateKeyTransfer extends MessageComposer {
             // (9.2) - public key material
             dataOutputStreamCipher.writeByteArray(publicKey.getEncoded());
 
-            return AESUtil.encrypt(baos.toByteArray(),
+            return AESUtil.process(Cipher.ENCRYPT_MODE, baos.toByteArray(),
                     aesKey,
                     iv,
                     AesTransformation.values()[aesTransformationIdx].transformation);

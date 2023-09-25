@@ -31,9 +31,7 @@ public class FileInfoFragment extends Fragment {
     }
 
     public void setValues(String filename, int filesize) {
-        requireContext().getMainExecutor().execute(() -> {
-            binding.textViewFilename.setText(filename);
-            binding.textViewFileSize.setText(String.format(Locale.getDefault(), "%.3f KB", filesize / 1024D));
-        });
+        binding.textViewFilenameValue.setText(filename);
+        binding.textViewFileSizeValue.setText(String.format(Locale.getDefault(), "%.3f KB", filesize / 1024D));
     }
 }

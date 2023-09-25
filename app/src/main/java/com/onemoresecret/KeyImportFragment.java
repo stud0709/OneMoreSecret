@@ -31,6 +31,7 @@ import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 
+import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 
 /**
@@ -129,7 +130,8 @@ public class KeyImportFragment extends Fragment {
                     keyLength,
                     iterations);
 
-            var bArr = AESUtil.decrypt(
+            var bArr = AESUtil.process(
+                    Cipher.DECRYPT_MODE,
                     cipherText,
                     secretKey,
                     new IvParameterSpec(iv),

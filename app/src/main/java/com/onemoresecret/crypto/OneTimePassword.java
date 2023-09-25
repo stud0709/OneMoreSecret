@@ -53,7 +53,7 @@ public class OneTimePassword {
                 getAlgorithm();
                 generateResponseCode(0);
                 return true;
-            } catch (Exception ex) {
+            } catch (Exception ignored) {
 
             }
         }

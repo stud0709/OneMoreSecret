@@ -28,19 +28,22 @@ import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class MessageFragment extends Fragment {
     private static final String TAG = MessageFragment.class.getSimpleName();
-    private byte[] encryptedAesSecretKey, iv;
+    private byte[] encryptedAesSecretKey, iv, fingerprint;
     private String rsaTransformation, aesTransformation;
     private FragmentMessageBinding binding;
     private boolean reveal = false;
@@ -127,21 +130,34 @@ public class MessageFragment extends Fragment {
         try (InputStream is = requireContext().getContentResolver().openInputStream(uri);
              var dataInputStream = new OmsDataInputStream(is)) {
 
-            //(1) Application ID
-            var applicationId = dataInputStream.readUnsignedShort();
-            assert applicationId == MessageComposer.APPLICATION_ENCRYPTED_FILE;
+            readHeaderUri(dataInputStream);
 
             //initialize file info fragment
             var fileInfoFragment = new FileInfoFragment();
             getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, fileInfoFragment).commit();
-            fileInfoFragment.setValues(uriFileInfo.filename(), uriFileInfo.fileSize());
+            requireContext().getMainExecutor().execute(() -> fileInfoFragment.setValues(uriFileInfo.filename(), uriFileInfo.fileSize()));
+
+            onAuthenticationSucceeded = getForDataInputStream();
+
+            showBiometricPromptForDecryption();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
+            NavHostFragment.findNavController(this).popBackStack();
+        }
+    }
+
+    private void readHeaderUri(OmsDataInputStream dataInputStream) throws IOException {
+            //(1) Application ID
+            var applicationId = dataInputStream.readUnsignedShort();
+            assert applicationId == MessageComposer.APPLICATION_ENCRYPTED_FILE;
 
             //(2) RSA transformation index
             rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
-            var fingerprint = dataInputStream.readByteArray();
+            fingerprint = dataInputStream.readByteArray();
             Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
 
             // (4) AES transformation index
@@ -155,35 +171,23 @@ public class MessageFragment extends Fragment {
             //(6) RSA-encrypted AES secret key
             encryptedAesSecretKey = dataInputStream.readByteArray();
 
-            //(7) SHA-256 of the original file
-            dataInputStream.readByteArray();
-
-            //(8) date last modified
-            dataInputStream.readLong();
-
             //the remaining data is the payload
-
-            //******* decrypting ********
-            onAuthenticationSucceeded = getForDataInputStream(dataInputStream);
-
-            showBiometricPromptForDecryption(fingerprint);
-        } catch (NoSuchElementException ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
-        }
     }
 
-    private Consumer<BiometricPrompt.AuthenticationResult> getForDataInputStream(OmsDataInputStream dataInputStream) {
+    private Consumer<BiometricPrompt.AuthenticationResult> getForDataInputStream() {
         return result -> {
+            var uri = (Uri) getArguments().getParcelable("URI");
+
             var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
 
-            try {
+            try (InputStream is = requireContext().getContentResolver().openInputStream(uri);
+                 var dataInputStream = new OmsDataInputStream(is)) {
+
                 assert cipher != null;
+
+                //re-read header to get to the start position of the encrypted data
+                readHeaderUri(dataInputStream);
+
                 var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
                 var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
                 var filename = getArguments().getString(QRFragment.ARG_FILENAME);
@@ -194,7 +198,7 @@ public class MessageFragment extends Fragment {
                             true);
 
                     try (FileOutputStream fos = new FileOutputStream(oFileRecord.path().toFile())) {
-                        var sha256 = AESUtil.decryptAndCalculateSHA256(dataInputStream,
+                        AESUtil.process(Cipher.DECRYPT_MODE, dataInputStream,
                                 fos,
                                 aesSecretKey,
                                 new IvParameterSpec(iv),
@@ -270,11 +274,7 @@ public class MessageFragment extends Fragment {
             onAuthenticationSucceeded = getForByteArray(cipherText);
 
             //******* decrypting ********
-            showBiometricPromptForDecryption(fingerprint);
-        } catch (NoSuchElementException ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            showBiometricPromptForDecryption();
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
@@ -289,7 +289,7 @@ public class MessageFragment extends Fragment {
                 assert cipher != null;
                 var aesSecretKeyData = cipher.doFinal(encryptedAesSecretKey);
                 var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
-                var bArr = AESUtil.decrypt(cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
+                var bArr = AESUtil.process(Cipher.DECRYPT_MODE, cipherText, aesSecretKey, new IvParameterSpec(iv), aesTransformation);
 
                 var message = new String(bArr);
 
@@ -319,7 +319,7 @@ public class MessageFragment extends Fragment {
         };
     }
 
-    private void showBiometricPromptForDecryption(byte[] fingerprint) throws KeyStoreException {
+    private void showBiometricPromptForDecryption() throws KeyStoreException {
         var cryptographyManager = new CryptographyManager();
         var aliases = cryptographyManager.getByFingerprint(fingerprint);
 
