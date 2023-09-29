@@ -235,12 +235,12 @@ public class NewPrivateKeyFragment extends Fragment {
 
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_new_private_key, menu);
+            menuInflater.inflate(R.menu.menu_help, menu);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemNewPrivateKeyHelp) {
+            if (menuItem.getItemId() == R.id.menuItemHelp) {
                 Util.openUrl(R.string.new_private_key_md_url, requireContext());
             } else {
                 return false;

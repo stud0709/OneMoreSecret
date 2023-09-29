@@ -116,7 +116,7 @@ public class TotpImportFragment extends Fragment {
 
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_otp_import, menu);
+            menuInflater.inflate(R.menu.menu_help, menu);
         }
 
         @Override
@@ -126,7 +126,7 @@ public class TotpImportFragment extends Fragment {
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemOtpImportHelp) {
+            if (menuItem.getItemId() == R.id.menuItemHelp) {
                 Util.openUrl(R.string.totp_import_md_url, requireContext());
             } else {
                 return false;

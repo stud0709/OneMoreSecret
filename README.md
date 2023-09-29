@@ -1,5 +1,5 @@
 # ![App Icon](/app/src/main/res/mipmap-xhdpi/ic_launcher.png) OneMoreSecret
-OneMoreSecret is a standalone security layer for your data (e.g. passwords, more to come). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
+OneMoreSecret is a standalone security layer for your data (e.g. passwords, TOTP tokens, and files). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
 
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
@@ -72,7 +72,7 @@ Login from a mobile device? No problem, OneMoreSecret will respond to browser li
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
 
 ### On Your Smartphone
-You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords or [time-based OTPs](./totp_import.md) on your mobile phone, create and import private keys etc.
+You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords, [time-based OTPs](./totp_import.md) or [files](./encrypt_file.md) on your mobile phone, create and import private keys etc.
 
 The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with OneMoreSecret (OneMoreSecret will register as a recipient of text data).
 

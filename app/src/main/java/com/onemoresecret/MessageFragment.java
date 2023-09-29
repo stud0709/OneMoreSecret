@@ -125,7 +125,6 @@ public class MessageFragment extends Fragment {
 
     private void onUri() {
         var uri = (Uri) getArguments().getParcelable("URI");
-        var uriFileInfo = Util.getFileInfo(requireContext(), uri);
 
         try (InputStream is = requireContext().getContentResolver().openInputStream(uri);
              var dataInputStream = new OmsDataInputStream(is)) {
@@ -135,7 +134,7 @@ public class MessageFragment extends Fragment {
             //initialize file info fragment
             var fileInfoFragment = new FileInfoFragment();
             getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, fileInfoFragment).commit();
-            requireContext().getMainExecutor().execute(() -> fileInfoFragment.setValues(uriFileInfo.filename(), uriFileInfo.fileSize()));
+            requireContext().getMainExecutor().execute(() -> fileInfoFragment.setValues(getArguments().getString(QRFragment.ARG_FILENAME), getArguments().getInt(QRFragment.ARG_FILESIZE)));
 
             onAuthenticationSucceeded = getForDataInputStream();
 
@@ -255,7 +254,7 @@ public class MessageFragment extends Fragment {
             Log.d(TAG, "RSA transformation: " + rsaTransformation);
 
             //(3) RSA fingerprint
-            var fingerprint = dataInputStream.readByteArray();
+            fingerprint = dataInputStream.readByteArray();
             Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
 
             // (4) AES transformation index

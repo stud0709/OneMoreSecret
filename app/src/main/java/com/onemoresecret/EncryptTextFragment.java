@@ -150,12 +150,12 @@ public class EncryptTextFragment extends Fragment {
 
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_encrypt_text, menu);
+            menuInflater.inflate(R.menu.menu_help, menu);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemEncryptTextHelp) {
+            if (menuItem.getItemId() == R.id.menuItemHelp) {
                 Util.openUrl(R.string.encrypt_text_md_url, requireContext());
             } else {
                 return false;

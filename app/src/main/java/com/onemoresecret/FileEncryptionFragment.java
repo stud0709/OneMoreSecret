@@ -7,12 +7,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.telephony.mbms.FileInfo;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
@@ -35,6 +39,8 @@ public class FileEncryptionFragment extends Fragment {
     private static final String TAG = FileEncryptionFragment.class.getSimpleName();
     private Uri uri;
 
+    private final FileEncryptionMenuProvider menuProvider = new FileEncryptionMenuProvider();
+
 
     @Nullable
     @Override
@@ -44,17 +50,28 @@ public class FileEncryptionFragment extends Fragment {
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        requireActivity().removeMenuProvider(menuProvider);
+        binding = null;
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        requireActivity().addMenuProvider(menuProvider);
+
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
         binding.btnEncrypt.setEnabled(false);
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
 
         uri = getArguments().getParcelable(QRFragment.ARG_URI);
 
-        ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
-                getArguments().getString(QRFragment.ARG_FILENAME),
-                getArguments().getInt(QRFragment.ARG_FILESIZE));
+        getContext().getMainExecutor().execute(() ->
+                ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
+                        getArguments().getString(QRFragment.ARG_FILENAME),
+                        getArguments().getInt(QRFragment.ARG_FILESIZE)));
+
 
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -96,6 +113,25 @@ public class FileEncryptionFragment extends Fragment {
             requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
                     String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
                     Toast.LENGTH_LONG).show());
+        }
+    }
+
+    private class FileEncryptionMenuProvider implements MenuProvider {
+
+        @Override
+        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu);
+        }
+
+        @Override
+        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+            if (menuItem.getItemId() == R.id.menuItemHelp) {
+                Util.openUrl(R.string.encrypt_text_md_url, requireContext());
+            } else {
+                return false;
+            }
+
+            return true;
         }
     }
 }

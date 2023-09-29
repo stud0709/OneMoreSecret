@@ -2,6 +2,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/menuItemKeyImportHelp"
+        android:id="@+id/menuItemHelp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:title="@string/help" />
 </menu>

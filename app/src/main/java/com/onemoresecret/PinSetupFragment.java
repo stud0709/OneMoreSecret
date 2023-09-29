@@ -220,12 +220,12 @@ public class PinSetupFragment extends Fragment {
 
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_pin_setup, menu);
+            menuInflater.inflate(R.menu.menu_help, menu);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemPinSetupHelp) {
+            if (menuItem.getItemId() == R.id.menuItemHelp) {
                 Util.openUrl(R.string.pin_setup_md_url, requireContext());
             } else {
                 return false;
