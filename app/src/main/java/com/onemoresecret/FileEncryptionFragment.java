@@ -126,7 +126,7 @@ public class FileEncryptionFragment extends Fragment {
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.encrypt_text_md_url, requireContext());
+                Util.openUrl(R.string.encrypt_file_md_url, requireContext());
             } else {
                 return false;
             }

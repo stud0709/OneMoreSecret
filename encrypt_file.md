@@ -15,7 +15,7 @@ You can encrypt single files on your smartphone using *Send To* aka *Share* func
 ![File Encryption](./readme_images/encrypt_file.png)
 
 ## Decryption
-If you want to decrypt a *.oms00* file, just send it to *OneMoreSecret* again. It will ask for your fingerprint to access the required key and bring up the dialog for the encrypted file. 
+If you want to decrypt an *.oms00* file, just send it to *OneMoreSecret* again. It will ask for your fingerprint to access the required key, decrypt the data and bring up the *Send To* dialog for the resulting file. 
 
 ## Some technical details
-The encryption works exactly the same way the password encryption works. For every file, a unique AES key is generated, which is then encrypted by the RSA key you select in the dialog. The key is stored together with the encrypted file data, so every file has all you need to decrypt it again - well, provided you have the right key in your phone. 
+The encryption works exactly the same way the password encryption does. For every file, a unique AES key is generated, which is then encrypted by the RSA key you select in the dialog. The key is stored together with the encrypted data, so every file has all you need to decrypt it again - well, provided you have the right key in your phone. 
