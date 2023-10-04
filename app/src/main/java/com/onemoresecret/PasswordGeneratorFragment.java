@@ -3,7 +3,6 @@ package com.onemoresecret;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.icu.util.Output;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;

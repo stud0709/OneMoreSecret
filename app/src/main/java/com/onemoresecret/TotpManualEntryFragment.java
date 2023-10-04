@@ -13,7 +13,6 @@ import static com.onemoresecret.crypto.OneTimePassword.TOTP;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.icu.util.Output;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;

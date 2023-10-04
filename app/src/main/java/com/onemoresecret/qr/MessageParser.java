@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class MessageParser {
     private static final String TAG = MessageParser.class.getSimpleName();

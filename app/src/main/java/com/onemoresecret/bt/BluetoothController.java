@@ -18,8 +18,6 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 //https://developer.android.com/guide/topics/connectivity/bluetooth/setup
 
 public class BluetoothController implements BluetoothProfile.ServiceListener {

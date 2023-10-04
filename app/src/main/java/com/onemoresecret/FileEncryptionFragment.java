@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.telephony.mbms.FileInfo;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,7 +17,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
 
 import com.onemoresecret.crypto.AESUtil;
@@ -29,7 +27,6 @@ import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 
 import java.security.interfaces.RSAPublicKey;
-import java.util.Locale;
 
 public class FileEncryptionFragment extends Fragment {
     private FragmentFileEncryptionBinding binding;

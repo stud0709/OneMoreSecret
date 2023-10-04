@@ -5,14 +5,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
-import android.widget.Toast;
 
-import androidx.navigation.fragment.NavHostFragment;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Locale;
 import java.util.Objects;
 
 public final class Util {
