@@ -72,7 +72,7 @@ Login from a mobile device? No problem, OneMoreSecret will respond to browser li
 This is a brief overview of the functionality. For every screen, you can find a Help menu entry. 
 
 ### On Your Smartphone
-You have all the toolbox to [encrypt](/password_generator.md) and decrypt passwords, [time-based OTPs](./totp_import.md) or [files](./encrypt_file.md) on your mobile phone, create and import private keys etc.
+You have all the toolbox to encrypt and decrypt [passwords](./password_generator.md), [time-based OTPs](./totp_import.md) or [files](./encrypt_file.md) on your mobile phone, create and import private keys etc.
 
 The app will also respond to specific links in the web browser (as described [here](#login-without-a-password)). Alternatively, you can select the `oms00_....` piece of text on your phone and share it with OneMoreSecret (OneMoreSecret will register as a recipient of text data).
 
