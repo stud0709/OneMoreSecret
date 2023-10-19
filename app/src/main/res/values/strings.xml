@@ -169,4 +169,5 @@
     <string name="size">Size:</string>
     <string name="encrypt_file">Encrypt File</string>
     <string name="share_encrypted_file_using">Share encrypted file using...</string>
+    <string name="provided_reference">Provided reference: %s</string>
 </resources>

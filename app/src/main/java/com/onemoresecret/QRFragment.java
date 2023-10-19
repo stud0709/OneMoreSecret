@@ -319,7 +319,9 @@ public class QRFragment extends Fragment {
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
-                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER, MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
+                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER,
+                            MessageComposer.APPLICATION_TOTP_URI_TRANSFER,
+                            MessageComposer.APPLICATION_KEY_REQUEST -> {
                         pinProtectedRunnable = () -> {
                             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);

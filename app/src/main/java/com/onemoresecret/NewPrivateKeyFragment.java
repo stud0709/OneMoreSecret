@@ -25,6 +25,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentNewPrivateKeyBinding;
 import com.onemoresecret.qr.QRUtil;
 
@@ -87,7 +88,7 @@ public class NewPrivateKeyFragment extends Fragment {
 
             var keyPair = CryptographyManager.generateKeyPair(preferences);
             var publicKey = (RSAPublicKey) keyPair.getPublic();
-            var fingerprint = CryptographyManager.getFingerprint(publicKey);
+            var fingerprint = RSAUtils.getFingerprint(publicKey);
             var iv = AESUtil.generateIv();
             var salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
             var aesKeyLength = AESUtil.getKeyLength(preferences);

@@ -17,6 +17,7 @@ import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
 import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 
@@ -146,7 +147,7 @@ public class KeyStoreListFragment extends Fragment {
                 var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
-                                CryptographyManager.getFingerprint(publicKey)));
+                                RSAUtils.getFingerprint(publicKey)));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -27,7 +27,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
@@ -225,7 +224,7 @@ public class CryptographyManager {
     /**
      * Resolve key by its modulus and public exponent
      *
-     * @param fingerprint SHA-256 hash of modulus and public exponent, {@link CryptographyManager#getFingerprint(RSAPublicKey)}
+     * @param fingerprint SHA-256 hash of modulus and public exponent, {@link RSAUtils#getFingerprint(RSAPublicKey)}
      * @return all key alias matching that SHA-256
      */
     public List<String> getByFingerprint(byte[] fingerprint) throws
@@ -239,7 +238,7 @@ public class CryptographyManager {
             try {
                 var cert = (X509Certificate) getCertificate(alias);
                 var publicKey = (RSAPublicKey) cert.getPublicKey();
-                var _fingerprint = getFingerprint(publicKey);
+                var _fingerprint = RSAUtils.getFingerprint(publicKey);
 
                 if (Arrays.equals(fingerprint, _fingerprint)) {
                     result.add(alias);
@@ -252,10 +251,5 @@ public class CryptographyManager {
         return result;
     }
 
-    public static byte[] getFingerprint(RSAPublicKey publicKey) throws NoSuchAlgorithmException {
-        var sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(publicKey.getModulus().toByteArray());
-        return sha256.digest(publicKey.getPublicExponent().toByteArray());
-    }
 }
 

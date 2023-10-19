@@ -45,7 +45,7 @@ public class EncryptedMessageTransfer extends MessageComposer {
             dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
 
             // (3) fingerprint
-            dataOutputStream.writeByteArray(CryptographyManager.getFingerprint(rsaPublicKey));
+            dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey));
 
             // (4) AES transformation index
             dataOutputStream.writeUnsignedShort(aesTransformationIdx);

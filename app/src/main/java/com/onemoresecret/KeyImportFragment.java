@@ -23,6 +23,7 @@ import com.onemoresecret.crypto.AesKeyAlgorithm;
 import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.io.ByteArrayInputStream;
@@ -148,7 +149,7 @@ public class KeyImportFragment extends Fragment {
 
                 var publicKey = (RSAPublicKey) keyPair.getPublic();
 
-                var fingerprintBytes = CryptographyManager.getFingerprint(publicKey);
+                var fingerprintBytes = RSAUtils.getFingerprint(publicKey);
                 var fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
                 requireContext().getMainExecutor().execute(() -> {
@@ -235,7 +236,7 @@ public class KeyImportFragment extends Fragment {
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
                 var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
-                var fingerprint = CryptographyManager.getFingerprint(publicKey);
+                var fingerprint = RSAUtils.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
                     warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
                 }
