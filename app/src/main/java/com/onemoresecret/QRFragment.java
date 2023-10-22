@@ -288,7 +288,7 @@ public class QRFragment extends Fragment {
 
         var bArr = MessageComposer.decode(message);
         if (bArr == null) {
-            Toast.makeText(getContext(), R.string.wrong_message_format, Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), R.string.malformed_message, Toast.LENGTH_LONG).show();
             return;
         }
 

@@ -86,6 +86,10 @@ public class OneTimePassword {
         return (s == null || s.isEmpty()) ? DEFAULT_PERIOD : Integer.parseInt(s);
     }
 
+    /**
+     * Length of the TOTP token
+     * @return
+     */
     public int getDigits() {
         var s = uri.getQueryParameter(DIGITS_PARAM);
         var d = (s == null || s.isEmpty()) ? DIGITS[0] : s;
@@ -168,11 +172,10 @@ public class OneTimePassword {
         return result;
     }
 
-    /**
-     * @return {current state, remaining seconds until next state}
-     */
-    public long[] getState() {
+    public record OtpState(long current, long secondsUntilNext){};
+
+    public OtpState getState() {
         var now_s = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
-        return new long[]{now_s / getPeriod(), now_s % getPeriod()};
+        return new OtpState(now_s / getPeriod(), now_s % getPeriod());
     }
 }

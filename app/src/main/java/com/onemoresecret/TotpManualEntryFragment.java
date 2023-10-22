@@ -235,18 +235,18 @@ public class TotpManualEntryFragment extends Fragment {
         if (selectedAlias != null) return;
 
         try {
-            long[] state = otp.getState();
-            var code = otp.generateResponseCode(state[0]);
+            var otpState = otp.getState();
+            var code = otp.generateResponseCode(otpState.current());
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (binding == null) return; //fragment has been destroyed
-                binding.textViewTimer.setText(String.format("...%ss", otp.getPeriod() - state[1]));
+                binding.textViewTimer.setText(String.format("...%ss", otp.getPeriod() - otpState.secondsUntilNext()));
                 binding.textViewTotp.setText(code);
 
-                if (lastState != state[0] || force) {
+                if (lastState != otpState.current() || force) {
                     //new State = new code; update output fragment
                     outputFragment.setMessage(code, "One-Time-Password");
-                    lastState = state[0];
+                    lastState = otpState.current();
                 }
             });
         } catch (Exception e) {

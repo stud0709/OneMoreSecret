@@ -10,6 +10,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.databinding.FragmentTotpBinding;
@@ -25,9 +28,7 @@ public class TotpFragment extends Fragment {
     private final Timer timer = new Timer();
     private long lastState = -1L;
     private OneTimePassword otp;
-    private Function<Integer, String> maskFx;
-    private Consumer<String> onNewValue;
-    private boolean runOnce = true;
+    private final MutableLiveData<String> code = new MutableLiveData<>();
 
     @Override
     public View onCreateView(
@@ -44,61 +45,59 @@ public class TotpFragment extends Fragment {
         getTimerTask().run();
     }
 
-    public void init(OneTimePassword otp, Function<Integer, String> maskFx, Consumer<String> onNewValue) {
+    public void init(OneTimePassword otp,
+                     LifecycleOwner owner,
+                     Observer<String> observer) {
         this.otp = otp;
-        this.maskFx = maskFx;
-        this.onNewValue = onNewValue;
+        code.observe(owner, observer);
+        var name = otp.getName();
+        var issuer = otp.getIssuer();
+
+        requireActivity().getMainExecutor().execute(() -> {
+            if (issuer == null || issuer.isEmpty()) {
+                binding.textViewNameIssuer.setText(name);
+            } else {
+                binding.textViewNameIssuer.setText(String.format(getString(R.string.totp_name_issuer), name, issuer));
+            }
+        });
     }
 
     private TimerTask getTimerTask() {
         return new TimerTask() {
             @Override
             public void run() {
-                if (generateResponseCode()) {
+                if (generateResponseCode(false)) {
                     timer.schedule(getTimerTask(), 1000);
                 }
             }
         };
     }
 
-    public void refresh() {
-        generateResponseCode();
+    public void setTotpText(String s) {
+        requireActivity().getMainExecutor().execute(() -> {
+            if (binding == null) return; //fragment has been destroyed
+            binding.textViewTotpValue.setText(s);
+        });
     }
 
-    private boolean generateResponseCode() {
-        if (otp == null) return true; //otp not set yet
+    public void refresh() {
+        generateResponseCode(true);
+    }
 
-        if (runOnce) {
-            runOnce = false;
-
-            var name = otp.getName();
-            var issuer = otp.getIssuer();
-
-            requireActivity().getMainExecutor().execute(() -> {
-                if (issuer == null || issuer.isEmpty()) {
-                    binding.textViewNameIssuer.setText(name);
-                } else {
-                    binding.textViewNameIssuer.setText(String.format("%s by %s", name, issuer));
-                }
-            });
-        }
-
-        var mask = maskFx.apply(otp.getDigits());
+    private boolean generateResponseCode(boolean force) {
+        if (otp == null) return true; //otp not set (yet)
 
         try {
-            long[] state = otp.getState();
-            var code = otp.generateResponseCode(state[0]);
+            var state = otp.getState();
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (binding == null) return; //fragment has been destroyed
-                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state[1]));
-                binding.textViewTotpValue.setText(mask == null ? code : mask);
+                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state.secondsUntilNext()));
             });
 
-            if (lastState != state[0]) {
-                //new State = new code; update output fragment
-                onNewValue.accept(code);
-                lastState = state[0];
+            if (lastState != state.current() || force) {
+                this.code.postValue(otp.generateResponseCode(state.current()));
+                lastState = state.current();
             }
         } catch (Exception e) {
             Log.wtf(TAG, e);

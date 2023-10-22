@@ -57,7 +57,7 @@
     <string name="biometrics_unavailable_long_text">Looks like your biometric hardware is not available right now. Try again later.</string>
     <string name="biometrics_not_detected_long_text">Sorry, we cannot continue without biometric hardware.</string>
     <string name="biometrics_not_enabled_long_text">Please set up biometric authentication on your device.</string>
-    <string name="wrong_message_format">Wrong message format</string>
+    <string name="malformed_message">Malformed message</string>
     <string name="readme_url">https://github.com/stud0709/OneMoreSecret/blob/master/README.md</string>
     <string name="key_successfully_activated">Key %s successfully activated</string>
     <string name="new_private_key">New Private Key</string>
@@ -169,5 +169,6 @@
     <string name="size">Size:</string>
     <string name="encrypt_file">Encrypt File</string>
     <string name="share_encrypted_file_using">Share encrypted file using...</string>
-    <string name="provided_reference">Provided reference: %s</string>
+    <string name="reference">Reference: %s</string>
+    <string name="totp_name_issuer">%s by %s</string>
 </resources>

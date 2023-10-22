@@ -67,13 +67,14 @@ public class TotpImportFragment extends Fragment {
                 throw new IllegalArgumentException("Invalid scheme or authority");
             }
 
-            totpFragment.init(otp,
-                    digits -> keyStoreListFragment.getSelectionTracker().hasSelection() ? MessageComposer.OMS_PREFIX + "..." : null,
-                    code -> {
-                        if (!keyStoreListFragment.getSelectionTracker().hasSelection())
-                            outputFragment.setMessage(code, "One-Time Password");
-                    });
+            totpFragment.init(otp, this, code -> {
+                var hasSelection =  keyStoreListFragment.getSelectionTracker().hasSelection();
 
+                totpFragment.setTotpText(hasSelection ? MessageComposer.OMS_PREFIX + "..." : code);
+
+                if (!hasSelection)
+                    outputFragment.setMessage(code, "One-Time Password");
+            });
 
             keyStoreListFragment.setRunOnStart(
                     fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -86,6 +87,8 @@ public class TotpImportFragment extends Fragment {
                                         var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
                                         var encrypted = encrypt(selectedAlias, message);
                                         outputFragment.setMessage(encrypted, "Encrypted OTP Configuration");
+                                    } else {
+                                        outputFragment.setMessage(null, null);
                                     }
                                     totpFragment.refresh();
                                 }
@@ -93,7 +96,7 @@ public class TotpImportFragment extends Fragment {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }

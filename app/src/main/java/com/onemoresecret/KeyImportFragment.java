@@ -108,7 +108,7 @@ public class KeyImportFragment extends Fragment {
             );
         } catch (IOException ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.wrong_message_format), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }
