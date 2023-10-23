@@ -171,4 +171,6 @@
     <string name="share_encrypted_file_using">Share encrypted file using...</string>
     <string name="reference">Reference: %s</string>
     <string name="totp_name_issuer">%s by %s</string>
+    <string name="key_response">Key Response</string>
+    <string name="key_response_is_ready">Key response for %s is ready</string>
 </resources>
