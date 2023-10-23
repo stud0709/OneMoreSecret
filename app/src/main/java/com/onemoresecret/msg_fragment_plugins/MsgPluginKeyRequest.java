@@ -11,13 +11,16 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.onemoresecret.HiddenTextFragment;
 import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OmsDataInputStream;
+import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
+import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -47,7 +50,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
 
     @Override
     public String getDescription() {
-       return String.format(context.getString(R.string.reference), description);
+        return String.format(context.getString(R.string.reference), description);
     }
 
     @Override
@@ -57,6 +60,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
 
             //(1) Application ID
             var applicationId = dataInputStream.readUnsignedShort();
+            assert applicationId == MessageComposer.APPLICATION_KEY_REQUEST;
 
             //(2) reference (e.g. file name)
             description = dataInputStream.readString();
@@ -87,16 +91,29 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
             var aesKeyMaterial = cipher.doFinal(cipherText);
 
             //encrypt AES key with the provided public key
-            var message = RSAUtils.process(Cipher.ENCRYPT_MODE, rsaPublicKey, RSAUtils.getRsaTransformation(preferences).transformation, aesKeyMaterial);
+            var rsaEncryptedAesKey = RSAUtils.process(Cipher.ENCRYPT_MODE, rsaPublicKey, RSAUtils.getRsaTransformation(preferences).transformation, aesKeyMaterial);
 
-            var base64Message = Base64.getEncoder().encodeToString(message);
+            try (var baos = new ByteArrayOutputStream();
+                 var dataOutputStream = new OmsDataOutputStream(baos)) {
 
-            var hiddenTextFragment = (HiddenTextFragment) messageView;
-            hiddenTextFragment.setText("Ready to TYPE...");
+                // (1) Application identifier
+                dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
 
-            outputFragment.setMessage(base64Message, context.getString(R.string.oms_secret_message));
+                // (2) RSA transformation
+                dataOutputStream.writeUnsignedShort(RSAUtils.getRsaTransformationIdx(preferences));
 
-            activity.invalidateOptionsMenu();
+                // (3) RSA encrypted AES key
+                dataOutputStream.writeByteArray(rsaEncryptedAesKey);
+
+                var base64Message = Base64.getEncoder().encodeToString(baos.toByteArray());
+
+                var hiddenTextFragment = (HiddenTextFragment) messageView;
+                hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), description));
+
+                outputFragment.setMessage(base64Message, context.getString(R.string.key_response));
+
+                activity.invalidateOptionsMenu();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             context.getMainExecutor().execute(() -> {

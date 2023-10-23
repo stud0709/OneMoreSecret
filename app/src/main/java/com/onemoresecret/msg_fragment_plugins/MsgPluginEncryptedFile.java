@@ -96,7 +96,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
 
         var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
 
-        try (InputStream is = context.getContentResolver().openInputStream(messageData);
+        try (var is = context.getContentResolver().openInputStream(messageData);
              var dataInputStream = new OmsDataInputStream(is)) {
 
             assert cipher != null;

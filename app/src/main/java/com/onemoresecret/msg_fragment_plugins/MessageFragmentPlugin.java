@@ -42,7 +42,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         this.messageFragment = messageFragment;
         this.outputFragment = outputFragment;
         this.context = messageFragment.requireContext();
-        this.activity = (FragmentActivity) messageFragment.requireActivity();
+        this.activity = messageFragment.requireActivity();
         init(messageData);
     }
 
@@ -67,7 +67,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         var biometricPrompt = new BiometricPrompt(activity, this);
         var alias = aliases.get(0);
 
-        BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+        var promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(context.getString(R.string.prompt_info_title))
                 .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), alias))
                 .setDescription(Objects.requireNonNullElse(getDescription(), context.getString(R.string.prompt_info_description)))

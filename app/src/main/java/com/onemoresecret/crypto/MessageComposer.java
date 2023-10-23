@@ -10,7 +10,8 @@ public abstract class MessageComposer {
             APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1,
             APPLICATION_TOTP_URI_TRANSFER = 2,
             APPLICATION_ENCRYPTED_FILE = 3,
-            APPLICATION_KEY_REQUEST = 4;
+            APPLICATION_KEY_REQUEST = 4,
+            APPLICATION_KEY_RESPONSE = 5;
 
     /**
      * Prefix of a text encoded message.

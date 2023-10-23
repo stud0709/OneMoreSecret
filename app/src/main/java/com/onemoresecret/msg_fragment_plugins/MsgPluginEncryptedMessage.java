@@ -41,7 +41,7 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
 
     @Override
     protected void init(byte[] messageData) throws IOException {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(messageData);
+        try (var bais = new ByteArrayInputStream(messageData);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
             //(1) Application ID
