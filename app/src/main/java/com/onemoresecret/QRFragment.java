@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -43,6 +44,7 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 import java.io.ByteArrayInputStream;
 import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -424,17 +426,31 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
                 var crashReportData = new CrashReportData(null);
 
-                try {
-                    var intentSendTo = new Intent(Intent.ACTION_SENDTO);
-                    intentSendTo.setData(Uri.parse("mailto:"));
-                    intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback");
-                    intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
-                    intentSendTo.putExtra(Intent.EXTRA_TEXT, crashReportData.toString(false) + "\n" + getString(R.string.feedback_prompt));
-                    startActivity(intentSendTo);
-                } catch (ActivityNotFoundException ex) {
-                    requireContext().getMainExecutor().execute(
-                            () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
-                }
+                Consumer<Boolean> sendEmail = b -> {
+                    try {
+                        var intentSendTo = new Intent(Intent.ACTION_SENDTO);
+                        intentSendTo.setData(Uri.parse("mailto:"));
+                        intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback");
+                        intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
+                        intentSendTo.putExtra(Intent.EXTRA_TEXT,  getString(R.string.feedback_prompt) + "\n\n" + crashReportData.toString(b));
+                        startActivity(intentSendTo);
+                    } catch (ActivityNotFoundException ex) {
+                        requireContext().getMainExecutor().execute(
+                                () -> Toast.makeText(getContext(), "Could not send email", Toast.LENGTH_LONG).show());
+                    }
+                };
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+                builder.setTitle("Include logcat into feedback?")
+                        .setPositiveButton("Yes", (dialogInterface, i) -> sendEmail.accept(true))
+                        .setNegativeButton("No", (dialogInterface, i) -> {
+                            sendEmail.accept(false);
+                            dialogInterface.dismiss();
+                        });
+
+                var dialog = builder.create();
+
+                requireActivity().getMainExecutor().execute(() -> dialog.show());
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackDiscord) {
                 Util.openUrl(R.string.discord_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemEncryptText) {

@@ -160,7 +160,6 @@ public class MessageFragment extends Fragment {
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
-                if (!hiddenState.hasActiveObservers()) return true;
                 hiddenState.setValue(!hiddenState.getValue());
                 menuItem.setIcon(hiddenState.getValue() ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
             } else if (menuItem.getItemId() == R.id.menuItemMsgHelp) {

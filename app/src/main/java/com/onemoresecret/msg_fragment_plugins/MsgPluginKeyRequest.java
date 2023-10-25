@@ -110,7 +110,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
                 var hiddenTextFragment = (HiddenTextFragment) messageView;
                 hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), description));
 
-                outputFragment.setMessage(base64Message, context.getString(R.string.key_response));
+                outputFragment.setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
 
                 activity.invalidateOptionsMenu();
             }
