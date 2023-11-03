@@ -6,7 +6,6 @@ import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -19,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -43,6 +43,7 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
 import java.util.BitSet;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -60,6 +61,7 @@ public class QRFragment extends Fragment {
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
+    private static String PROP_TARGET_ROTATION = "target_rotation", PROP_USE_ZXING = "use_zxing";
 
     public static final String ARG_FILENAME = "FILENAME",
             ARG_FILESIZE = "FILESIZE",
@@ -127,6 +129,30 @@ public class QRFragment extends Fragment {
                 QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
             }
         };
+
+        binding.imgBtnRotate.setOnClickListener(view1 -> onChangeRotationRequest());
+
+        binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
+
+        binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
+    }
+
+    private void onChangeRotationRequest() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        var currentValue = preferences.getInt(PROP_TARGET_ROTATION, Surface.ROTATION_0);
+        var newValue = (currentValue + 1) % 4;
+
+        builder.setTitle("Change Target Rotation?")
+                .setMessage(String.format("Current value: %s°, new value: %s°", currentValue * 90, newValue * 90))
+                .setPositiveButton("Yes", (dialogInterface, i) -> {
+                    preferences.edit().putInt(PROP_TARGET_ROTATION, newValue).apply();
+                    requireActivity().getMainExecutor().execute(() -> startCamera());
+                })
+                .setNegativeButton("No", (dialogInterface, i) -> {
+                    dialogInterface.dismiss();
+                });
+
+        requireActivity().getMainExecutor().execute(() -> builder.create().show());
     }
 
     @Override
@@ -145,62 +171,69 @@ public class QRFragment extends Fragment {
     }
 
     private boolean processIntent(Intent intent) {
-        if (intent != null) {
-            var action = intent.getAction();
-            var type = intent.getType();
-            Log.d(TAG, "Intent action: " + action + ", type: " + type);
+        try {
+            if (intent != null) {
+                var action = intent.getAction();
+                var type = intent.getType();
+                Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
-            switch (intent.getAction()) {
-                case Intent.ACTION_VIEW -> {
-                    Uri data = intent.getData();
-                    if (data != null) {
-                        onMessage(data.getPath().substring(1));
-                        return true;
-                    } else {
-                        Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
-                    }
-                }
-                case Intent.ACTION_SEND -> {
-                    //a piece of text has been sent to the app using Android "send to" functionality
-                    var text = intent.getStringExtra(Intent.EXTRA_TEXT);
-
-                    if (text == null) {
-                        var uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                        Log.d(TAG, "URI: " + uri);
-
-                        var bundle = new Bundle();
-                        bundle.putParcelable(ARG_URI, uri);
-
-                        var fileInfo = Util.getFileInfo(requireContext(), uri);
-
-                        bundle.putString(ARG_FILENAME, fileInfo.filename());
-                        bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
-
-                        if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
-                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                            NavHostFragment.findNavController(QRFragment.this)
-                                    .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                switch (intent.getAction()) {
+                    case Intent.ACTION_VIEW -> {
+                        Uri data = intent.getData();
+                        if (data != null) {
+                            onMessage(data.getPath().substring(1));
+                            return true;
                         } else {
-                            //pass URI to file encoder
-                            Log.d(TAG, "calling " + FileEncryptionFragment.class.getSimpleName());
-                            NavHostFragment.findNavController(QRFragment.this)
-                                    .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+                            Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
                         }
-                    } else {
-                        if (MessageComposer.decode(text) == null) {
-                            //this is not an OMS message, forward it to the text encryption fragment
+                    }
+                    case Intent.ACTION_SEND -> {
+                        //a piece of text has been sent to the app using Android "send to" functionality
+                        var text = intent.getStringExtra(Intent.EXTRA_TEXT);
+
+                        if (text == null) {
+                            var uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                            Log.d(TAG, "URI: " + uri);
+
                             var bundle = new Bundle();
-                            bundle.putString(ARG_TEXT, text);
+                            bundle.putParcelable(ARG_URI, uri);
 
-                            NavHostFragment.findNavController(QRFragment.this)
-                                    .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
+                            var fileInfo = Util.getFileInfo(requireContext(), uri);
+
+                            bundle.putString(ARG_FILENAME, fileInfo.filename());
+                            bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
+
+                            if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
+                                Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                                NavHostFragment.findNavController(QRFragment.this)
+                                        .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                            } else {
+                                //pass URI to file encoder
+                                Log.d(TAG, "calling " + FileEncryptionFragment.class.getSimpleName());
+                                NavHostFragment.findNavController(QRFragment.this)
+                                        .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+                            }
                         } else {
-                            onMessage(text);
+                            if (MessageComposer.decode(text) == null) {
+                                //this is not an OMS message, forward it to the text encryption fragment
+                                var bundle = new Bundle();
+                                bundle.putString(ARG_TEXT, text);
+
+                                NavHostFragment.findNavController(QRFragment.this)
+                                        .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
+                            } else {
+                                onMessage(text);
+                            }
                         }
+                        return true;
                     }
-                    return true;
                 }
             }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(),
+                    Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                    Toast.LENGTH_LONG).show();
         }
         return false;
     }
@@ -253,23 +286,27 @@ public class QRFragment extends Fragment {
 
                 var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
-//                cameraProvider.unbindAll();
+                cameraProvider.unbindAll();
+
+                var targetRotation = preferences.getInt(PROP_TARGET_ROTATION, Surface.ROTATION_0);
+
+                Toast.makeText(getContext(), String.format("Target Rotation: %s°", targetRotation * 90), Toast.LENGTH_SHORT).show();
 
                 imageAnalysis =
                         new ImageAnalysis.Builder()
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .setTargetRotation(targetRotation)
                                 .build();
 
-                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer() {
+                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer(binding.txtViewResolution, () -> binding.swZxing.isChecked()) {
                     @Override
-                    public void onQRCodeFound(Result result) {
+                    public void onQRCodeFound(String barcodeValue) {
                         try {
-                            parser.consume(result.getText());
+                            parser.consume(barcodeValue);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
-
                 });
 
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
@@ -290,7 +327,7 @@ public class QRFragment extends Fragment {
 
         var bArr = MessageComposer.decode(message);
         if (bArr == null) {
-            Toast.makeText(getContext(), R.string.malformed_message, Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), getString(R.string.could_not_decode), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -432,7 +469,7 @@ public class QRFragment extends Fragment {
                         intentSendTo.setData(Uri.parse("mailto:"));
                         intentSendTo.putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback");
                         intentSendTo.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.contact_email)});
-                        intentSendTo.putExtra(Intent.EXTRA_TEXT,  getString(R.string.feedback_prompt) + "\n\n" + crashReportData.toString(b));
+                        intentSendTo.putExtra(Intent.EXTRA_TEXT, getString(R.string.feedback_prompt) + "\n\n" + crashReportData.toString(b));
                         startActivity(intentSendTo);
                     } catch (ActivityNotFoundException ex) {
                         requireContext().getMainExecutor().execute(
@@ -448,9 +485,7 @@ public class QRFragment extends Fragment {
                             dialogInterface.dismiss();
                         });
 
-                var dialog = builder.create();
-
-                requireActivity().getMainExecutor().execute(() -> dialog.show());
+                requireActivity().getMainExecutor().execute(() -> builder.create().show());
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackDiscord) {
                 Util.openUrl(R.string.discord_url, requireContext());
             } else if (menuItem.getItemId() == R.id.menuItemEncryptText) {
@@ -464,6 +499,16 @@ public class QRFragment extends Fragment {
                         () -> NavHostFragment.findNavController(QRFragment.this)
                                 .navigate(R.id.action_QRFragment_to_pinSetupFragment),
                         null, false);
+            } else if (menuItem.getItemId() == R.id.menuItemLogcat) {
+                var sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, new CrashReportData(null).toString(true));
+
+                sendIntent.putExtra(Intent.EXTRA_TITLE, "Diagnose Data");
+                sendIntent.setType("text/plain");
+
+                var shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
             } else if (menuItem.getItemId() == R.id.menuItemPanic) {
                 if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
                     nextPinRequestTimestamp = 0;

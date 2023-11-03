@@ -4,10 +4,24 @@ import static android.graphics.ImageFormat.YUV_420_888;
 import static android.graphics.ImageFormat.YUV_422_888;
 import static android.graphics.ImageFormat.YUV_444_888;
 
+import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
+import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
+import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.common.InputImage;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.ChecksumException;
 import com.google.zxing.FormatException;
@@ -17,24 +31,81 @@ import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
+import org.w3c.dom.Text;
+
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.Supplier;
 
 public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
+    private static final String TAG = QRCodeAnalyzer.class.getSimpleName();
+    public QRCodeAnalyzer(TextView tv, Supplier<Boolean> isZxingEnabled) {
+        this.resolutionTextView = tv;
+        this.isZxingEnabled = isZxingEnabled;
+    }
+
+    private final TextView resolutionTextView;
+    private final Supplier<Boolean> isZxingEnabled;
+    private boolean b = false;
+    private BarcodeScanner barcodeScanner;
+    private Task<List<Barcode>> mlTask = null;
+
     @Override
-    public void analyze(@NonNull ImageProxy image) {
+    public void analyze(@NonNull ImageProxy imageProxy) {
+        if (!b) {
+            resolutionTextView.getContext().getMainExecutor().execute(() -> resolutionTextView.setText(String.format("%s x %s", imageProxy.getWidth(), imageProxy.getHeight())));
+        }
+        b = true;
+
+        if (isZxingEnabled.get()) {
+            useZxing(imageProxy);
+        } else {
+            useMlKit(imageProxy);
+        }
+    }
+
+    @OptIn(markerClass = ExperimentalGetImage.class)
+    private void useMlKit(ImageProxy imageProxy) {
+        if (mlTask != null) return;
+
+        var mediaImage = imageProxy.getImage();
+
+        if (mediaImage != null) {
+            if (barcodeScanner == null) {
+                barcodeScanner = BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build());
+            }
+            var inputImage =
+                    InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+
+            mlTask = barcodeScanner.process(inputImage)
+                    .addOnSuccessListener(barcodes -> {
+                        mlTask = null;
+                        imageProxy.close();
+                        for (var barcode : barcodes) {
+                            onQRCodeFound(barcode.getRawValue());
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        imageProxy.close();
+                        e.printStackTrace();
+                    });
+        }
+    }
+
+    private void useZxing(ImageProxy imageProxy) {
         try {
-            if (image.getFormat() != YUV_420_888 && image.getFormat() != YUV_422_888 && image.getFormat() != YUV_444_888)
+            if (imageProxy.getFormat() != YUV_420_888 && imageProxy.getFormat() != YUV_422_888 && imageProxy.getFormat() != YUV_444_888)
                 return;
 
-            ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+            ByteBuffer byteBuffer = imageProxy.getPlanes()[0].getBuffer();
             byte[] imageData = new byte[byteBuffer.capacity()];
             byteBuffer.get(imageData);
 
             PlanarYUVLuminanceSource source = new PlanarYUVLuminanceSource(
                     imageData,
-                    image.getWidth(), image.getHeight(),
+                    imageProxy.getWidth(), imageProxy.getHeight(),
                     0, 0,
-                    image.getWidth(), image.getHeight(),
+                    imageProxy.getWidth(), imageProxy.getHeight(),
                     false
             );
 
@@ -42,15 +113,15 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
 
             try {
                 Result result = new QRCodeReader().decode(binaryBitmap);
-                onQRCodeFound(result);
+                onQRCodeFound(result.getText());
             } catch (FormatException | ChecksumException | NotFoundException ignored) {
 
             }
         } finally {
-            image.close();
+            imageProxy.close();
         }
     }
 
-    public abstract void onQRCodeFound(Result result);
+    public abstract void onQRCodeFound(String barcodeValue);
 
 }

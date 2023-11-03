@@ -33,11 +33,25 @@
         android:layout_height="wrap_content"
         android:title="@string/pin_setup" />
     <item
-        android:id="@+id/menuItemFeedbackEmail"
-        android:title="@string/feedback_by_email" />
-    <item
-        android:id="@+id/menuItemFeedbackDiscord"
-        android:title="@string/feedback_on_discord" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:title="@string/support_amp_feedback" >
+        <menu
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+            <item
+                android:id="@+id/menuItemFeedbackEmail"
+                android:title="@string/feedback_by_email" />
+            <item
+                android:id="@+id/menuItemFeedbackDiscord"
+                android:title="@string/feedback_on_discord" />
+            <item
+                android:id="@+id/menuItemLogcat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:title="@string/logcat" />
+        </menu>
+    </item>
     <item
         android:id="@+id/menuItemHomePage"
         android:title="@string/project_home_page" />

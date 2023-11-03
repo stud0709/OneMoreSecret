@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
+import java.util.Objects;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -108,7 +109,7 @@ public class KeyImportFragment extends Fragment {
             );
         } catch (IOException ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }

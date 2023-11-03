@@ -28,6 +28,8 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.KeyStoreException;
+import java.util.Objects;
+
 import com.onemoresecret.databinding.FragmentMessageBinding;
 
 public class MessageFragment extends Fragment {
@@ -85,9 +87,9 @@ public class MessageFragment extends Fragment {
         //request authentication
         try {
             messageFragmentPlugin.showBiometricPromptForDecryption();
-        } catch (KeyStoreException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }
@@ -104,7 +106,7 @@ public class MessageFragment extends Fragment {
 
         } catch (IOException ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }
@@ -132,7 +134,7 @@ public class MessageFragment extends Fragment {
             }
         } catch (IOException ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }

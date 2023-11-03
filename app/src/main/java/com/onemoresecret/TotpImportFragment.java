@@ -28,6 +28,7 @@ import com.onemoresecret.crypto.TotpUriTransfer;
 import com.onemoresecret.databinding.FragmentTotpImportBinding;
 
 import java.security.interfaces.RSAPublicKey;
+import java.util.Objects;
 
 public class TotpImportFragment extends Fragment {
     private static final String TAG = TotpImportFragment.class.getSimpleName();
@@ -96,7 +97,7 @@ public class TotpImportFragment extends Fragment {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            Toast.makeText(getContext(), getString(R.string.malformed_message), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             NavHostFragment.findNavController(this).popBackStack();
         }
     }

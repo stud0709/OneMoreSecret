@@ -7,29 +7,68 @@
     android:orientation="vertical"
     tools:context=".QRFragment">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/linearLayout4"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_weight="1">
 
         <androidx.camera.view.PreviewView
             android:id="@+id/cameraPreview"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="411dp"
+            android:layout_height="366dp"
             android:clickable="false"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
         </androidx.camera.view.PreviewView>
 
-    </LinearLayout>
+        <ImageButton
+            android:id="@+id/imgBtnRotate"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:src="@drawable/baseline_cameraswitch_24"
+            app:layout_constraintBottom_toBottomOf="@+id/cameraPreview"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/txtViewResolution"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"
+            android:shadowColor="@color/black"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            android:text="--- x ---"
+            android:textColor="@android:color/holo_green_dark"
+            app:layout_constraintBottom_toBottomOf="@+id/cameraPreview"
+            app:layout_constraintStart_toStartOf="@+id/cameraPreview" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Switch
+                android:id="@+id/swZxing"
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="zxing" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/textView2"
