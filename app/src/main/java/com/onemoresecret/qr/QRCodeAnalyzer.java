@@ -39,24 +39,15 @@ import java.util.function.Supplier;
 
 public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
     private static final String TAG = QRCodeAnalyzer.class.getSimpleName();
-    public QRCodeAnalyzer(TextView tv, Supplier<Boolean> isZxingEnabled) {
-        this.resolutionTextView = tv;
+    public QRCodeAnalyzer(Supplier<Boolean> isZxingEnabled) {
         this.isZxingEnabled = isZxingEnabled;
     }
-
-    private final TextView resolutionTextView;
     private final Supplier<Boolean> isZxingEnabled;
-    private boolean b = false;
     private BarcodeScanner barcodeScanner;
     private Task<List<Barcode>> mlTask = null;
 
     @Override
     public void analyze(@NonNull ImageProxy imageProxy) {
-        if (!b) {
-            resolutionTextView.getContext().getMainExecutor().execute(() -> resolutionTextView.setText(String.format("%s x %s", imageProxy.getWidth(), imageProxy.getHeight())));
-        }
-        b = true;
-
         if (isZxingEnabled.get()) {
             useZxing(imageProxy);
         } else {

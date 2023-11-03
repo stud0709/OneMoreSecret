@@ -61,7 +61,7 @@ public class QRFragment extends Fragment {
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
-    private static String PROP_TARGET_ROTATION = "target_rotation", PROP_USE_ZXING = "use_zxing";
+    private static String PROP_USE_ZXING = "use_zxing";
 
     public static final String ARG_FILENAME = "FILENAME",
             ARG_FILESIZE = "FILESIZE",
@@ -130,29 +130,9 @@ public class QRFragment extends Fragment {
             }
         };
 
-        binding.imgBtnRotate.setOnClickListener(view1 -> onChangeRotationRequest());
-
         binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
 
         binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
-    }
-
-    private void onChangeRotationRequest() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        var currentValue = preferences.getInt(PROP_TARGET_ROTATION, Surface.ROTATION_0);
-        var newValue = (currentValue + 1) % 4;
-
-        builder.setTitle("Change Target Rotation?")
-                .setMessage(String.format("Current value: %s°, new value: %s°", currentValue * 90, newValue * 90))
-                .setPositiveButton("Yes", (dialogInterface, i) -> {
-                    preferences.edit().putInt(PROP_TARGET_ROTATION, newValue).apply();
-                    requireActivity().getMainExecutor().execute(() -> startCamera());
-                })
-                .setNegativeButton("No", (dialogInterface, i) -> {
-                    dialogInterface.dismiss();
-                });
-
-        requireActivity().getMainExecutor().execute(() -> builder.create().show());
     }
 
     @Override
@@ -288,17 +268,12 @@ public class QRFragment extends Fragment {
 
                 cameraProvider.unbindAll();
 
-                var targetRotation = preferences.getInt(PROP_TARGET_ROTATION, Surface.ROTATION_0);
-
-                Toast.makeText(getContext(), String.format("Target Rotation: %s°", targetRotation * 90), Toast.LENGTH_SHORT).show();
-
                 imageAnalysis =
                         new ImageAnalysis.Builder()
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .setTargetRotation(targetRotation)
                                 .build();
 
-                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer(binding.txtViewResolution, () -> binding.swZxing.isChecked()) {
+                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer(() -> binding.swZxing.isChecked()) {
                     @Override
                     public void onQRCodeFound(String barcodeValue) {
                         try {
