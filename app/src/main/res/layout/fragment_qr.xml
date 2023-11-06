@@ -32,18 +32,11 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <LinearLayout
+        <Switch
+            android:id="@+id/swZxing"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Switch
-                android:id="@+id/swZxing"
-                android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:text="zxing" />
-        </LinearLayout>
+            android:layout_height="50dp"
+            android:text="zxing" />
 
         <TextView
             android:id="@+id/textView2"

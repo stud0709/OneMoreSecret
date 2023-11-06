@@ -27,7 +27,6 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.KeyStoreException;
 import java.util.Objects;
 
 import com.onemoresecret.databinding.FragmentMessageBinding;
@@ -38,7 +37,6 @@ public class MessageFragment extends Fragment {
     private MutableLiveData<Boolean> hiddenState = new MutableLiveData<>(true);
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
-    private OutputFragment outputFragment;
     private MessageFragmentPlugin messageFragmentPlugin;
 
     @Override
@@ -72,17 +70,21 @@ public class MessageFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
 
-        outputFragment = ((OutputFragment) binding.messageOutputFragment.getFragment());
-        outputFragment.setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
-
         if (requireArguments().containsKey(QRFragment.ARG_MESSAGE)) {
             onMessage();
         } else if (requireArguments().containsKey(QRFragment.ARG_URI)) {
             onUri();
         }
 
-        //insert message view into fragment
-        this.getChildFragmentManager().beginTransaction().add(R.id.fragmentMessageView, messageFragmentPlugin.getMessageView()).commit();
+        if (messageFragmentPlugin.getOutputView() instanceof OutputFragment)
+            ((OutputFragment) messageFragmentPlugin.getOutputView()).setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
+
+        //insert message and output view into fragment
+        this.getChildFragmentManager()
+                .beginTransaction()
+                .add(R.id.fragmentMessageView, messageFragmentPlugin.getMessageView())
+                .add(R.id.fragmentOutputView, messageFragmentPlugin.getOutputView())
+                .commit();
 
         //request authentication
         try {
@@ -98,8 +100,6 @@ public class MessageFragment extends Fragment {
         var uri = (Uri) getArguments().getParcelable("URI");
         try {
             messageFragmentPlugin = new MsgPluginEncryptedFile(this,
-                    outputFragment,
-                    binding,
                     uri,
                     getArguments().getString(QRFragment.ARG_FILENAME),
                     getArguments().getInt(QRFragment.ARG_FILESIZE));
@@ -121,13 +121,13 @@ public class MessageFragment extends Fragment {
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER -> {
-                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, outputFragment, binding, messageData);
+                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
                 }
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {
-                    messageFragmentPlugin = new MsgPluginKeyRequest(this, outputFragment, binding, messageData);
+                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
                 }
                 case MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
-                    messageFragmentPlugin = new MsgPluginTotp(this, outputFragment, binding, messageData);
+                    messageFragmentPlugin = new MsgPluginTotp(this, messageData);
                 }
                 default ->
                         throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);

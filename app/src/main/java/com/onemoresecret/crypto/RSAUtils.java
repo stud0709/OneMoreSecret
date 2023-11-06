@@ -17,7 +17,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 public final class RSAUtils {
-    public static final String PROP_RSA_TRANSFORMATION_IDX = "rsa_transformation_idx", PROP_RSA_KEY_LENGTH = "rsa_key_length";
+    public static final String PROP_RSA_TRANSFORMATION_IDX = "rsa_transformation_idx";
 
     private RSAUtils() {
 
@@ -29,10 +29,6 @@ public final class RSAUtils {
 
     public static RsaTransformation getRsaTransformation(SharedPreferences preferences) {
         return RsaTransformation.values()[getRsaTransformationIdx(preferences)];
-    }
-
-    public static int getKeyLength(SharedPreferences preferences) {
-        return preferences.getInt(PROP_RSA_KEY_LENGTH, 2048);
     }
 
     public static byte[] getFingerprint(RSAPublicKey publicKey) throws NoSuchAlgorithmException {

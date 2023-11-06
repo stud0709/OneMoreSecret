@@ -37,8 +37,8 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     protected final SharedPreferences preferences;
     protected byte[] cipherText;
 
-    public MsgPluginKeyRequest(MessageFragment messageFragment, OutputFragment outputFragment, FragmentMessageBinding binding, byte[] messageData) throws IOException {
-        super(messageFragment, outputFragment, binding, messageData);
+    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws IOException {
+        super(messageFragment, messageData);
         preferences = activity.getPreferences(Context.MODE_PRIVATE);
     }
 
@@ -110,7 +110,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
                 var hiddenTextFragment = (HiddenTextFragment) messageView;
                 hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), description));
 
-                outputFragment.setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
+                ((OutputFragment) outputView).setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
 
                 activity.invalidateOptionsMenu();
             }

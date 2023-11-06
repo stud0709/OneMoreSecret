@@ -115,13 +115,6 @@ public class CryptographyManager {
         return keyStore.getCertificate(keyName);
     }
 
-
-    /**
-     * Creates a key pair in AndroidKeyStore. The key material will not be accessible!
-     *
-     * @return new {@link KeyPair}
-     * @see CryptographyManager#getDefaultSpecBuilder(String, SharedPreferences)
-     */
     public KeyPair generateKeyPair(KeyGenParameterSpec spec) throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -140,12 +133,10 @@ public class CryptographyManager {
     /**
      * Generate key pair by means of the BouncyCastle library to have access to the key material.
      */
-    public static KeyPair generateKeyPair(SharedPreferences preferences)
+    public static KeyPair generateKeyPair(int keyLength)
             throws IOException,
             NoSuchAlgorithmException,
             InvalidKeySpecException {
-
-        var keyLength = RSAUtils.getKeyLength(preferences);
 
         var rsaKeyPairGenerator = new RSAKeyPairGenerator();
         
@@ -160,14 +151,6 @@ public class CryptographyManager {
         var privateKeyMaterial = privateKeyInfo.getEncoded();
         var publicKeyMaterial = SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(asymmetricCipherKeyPair.getPublic()).getEncoded();
         return restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
-    }
-
-    public KeyGenParameterSpec.Builder getDefaultSpecBuilder(String keyName, SharedPreferences preferences) {
-        return new KeyGenParameterSpec.Builder(
-                keyName,
-                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                .setKeySize(RSAUtils.getKeyLength(preferences))
-                .setEncryptionPaddings(ENCRYPTION_PADDINGS);
     }
 
     public static X509Certificate restoreCertificate(byte[] certificateData) throws

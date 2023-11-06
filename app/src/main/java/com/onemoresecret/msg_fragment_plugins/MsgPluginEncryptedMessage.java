@@ -32,11 +32,9 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
     private String aesTransformation;
 
     public MsgPluginEncryptedMessage(MessageFragment messageFragment,
-                                     OutputFragment outputFragment,
-                                     FragmentMessageBinding binding,
                                      byte[] messageData) throws IOException {
 
-        super(messageFragment, outputFragment, binding, messageData);
+        super(messageFragment, messageData);
     }
 
     @Override
@@ -76,8 +74,9 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
 
         var hiddenTextFragment = (HiddenTextFragment) messageView;
         messageFragment.getHiddenState().observe(hiddenTextFragment, hidden -> hiddenTextFragment.setText(hidden ? context.getString(R.string.hidden_text) : message));
-        outputFragment.setMessage(message, context.getString(R.string.oms_secret_message));
+        ((OutputFragment) outputView).setMessage(message, context.getString(R.string.oms_secret_message));
     }
+
 
     @Override
     public Fragment getMessageView() {

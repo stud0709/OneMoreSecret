@@ -3,6 +3,7 @@ package com.onemoresecret.msg_fragment_plugins;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -11,6 +12,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.FileInfoFragment;
+import com.onemoresecret.FileOutputFragment;
 import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OmsDataInputStream;
 import com.onemoresecret.OmsFileProvider;
@@ -39,8 +41,8 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
     private final int filesize;
     private final Uri messageData;
 
-    public MsgPluginEncryptedFile(MessageFragment messageFragment, OutputFragment outputFragment, FragmentMessageBinding binding, Uri messageData, String filename, int filesize) throws IOException {
-        super(messageFragment, outputFragment, binding, messageData);
+    public MsgPluginEncryptedFile(MessageFragment messageFragment, Uri messageData, String filename, int filesize) throws IOException {
+        super(messageFragment, messageData);
         this.filename = filename;
         this.filesize = filesize;
         this.messageData = messageData;
@@ -62,6 +64,14 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
             context.getMainExecutor().execute(() -> fileInfoFragment.setValues(filename, filesize));
         }
         return messageView;
+    }
+
+    @Override
+    public Fragment getOutputView() {
+        if (outputView == null)
+            outputView = new FileOutputFragment();
+
+        return outputView;
     }
 
     private void readHeaderUri(OmsDataInputStream dataInputStream) throws IOException {
@@ -120,12 +130,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
                             aesTransformation);
                 }
 
-                var intent = new Intent(Intent.ACTION_SEND);
-                intent.setType("application/octet-stream");
-                intent.putExtra(Intent.EXTRA_STREAM, oFileRecord.uri());
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                activity.startActivity(intent);
+                ((FileOutputFragment)outputView).setUri(oFileRecord.uri());
             } catch (Exception ex) {
                 ex.printStackTrace();
                 activity.getMainExecutor().execute(() -> Toast.makeText(context,

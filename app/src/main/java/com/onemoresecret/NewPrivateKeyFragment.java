@@ -86,13 +86,13 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            var keyPair = CryptographyManager.generateKeyPair(preferences);
+            var keyPair = CryptographyManager.generateKeyPair(binding.sw4096bit.isChecked() ? 4096 : 2048);
             var publicKey = (RSAPublicKey) keyPair.getPublic();
             var fingerprint = RSAUtils.getFingerprint(publicKey);
             var iv = AESUtil.generateIv();
             var salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
             var aesKeyLength = AESUtil.getKeyLength(preferences);
-            var aesKeyspecIterations = AESUtil.getKeyspecIterations(preferences);
+            var aesKeySpecIterations = AESUtil.getKeyspecIterations(preferences);
             var aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
 
             var aesSecretKey = AESUtil.getKeyFromPassword(
@@ -100,7 +100,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     salt,
                     aesKeyAlgorithm,
                     aesKeyLength,
-                    aesKeyspecIterations);
+                    aesKeySpecIterations);
 
             var message = new AesEncryptedPrivateKeyTransfer(alias,
                     keyPair,
@@ -110,7 +110,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     AESUtil.getAesTransformationIdx(preferences),
                     AESUtil.getAesKeyAlgorithmIdx(preferences),
                     aesKeyLength,
-                    aesKeyspecIterations).getMessage();
+                    aesKeySpecIterations).getMessage();
 
             binding.checkBox.setEnabled(true);
             binding.checkBox.setChecked(false);

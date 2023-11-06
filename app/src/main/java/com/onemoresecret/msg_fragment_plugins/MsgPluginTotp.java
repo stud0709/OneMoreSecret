@@ -15,8 +15,8 @@ import com.onemoresecret.databinding.FragmentMessageBinding;
 import java.io.IOException;
 
 public class MsgPluginTotp extends MsgPluginEncryptedMessage {
-    public MsgPluginTotp(MessageFragment messageFragment, OutputFragment outputFragment, FragmentMessageBinding binding, byte[] messageData) throws IOException {
-        super(messageFragment, outputFragment, binding, messageData);
+    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) throws IOException {
+        super(messageFragment,  messageData);
     }
 
     @Override
@@ -30,7 +30,7 @@ public class MsgPluginTotp extends MsgPluginEncryptedMessage {
         var message = new String(bArr);
         var totpFragment = ((TotpFragment) messageView);
         totpFragment.init(new OneTimePassword(message), messageView, code -> {
-            outputFragment.setMessage(code, context.getString(R.string.one_time_password));
+            ((OutputFragment) outputView).setMessage(code, context.getString(R.string.one_time_password));
             totpFragment.setTotpText(messageFragment.getHiddenState().getValue() ? "●".repeat(code.length()) : code);
         });
 

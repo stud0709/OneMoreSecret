@@ -11,20 +11,19 @@
         android:id="@+id/fragmentMessageView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/messageOutputFragment"
+        app:layout_constraintBottom_toTopOf="@+id/fragmentOutputView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:layout="@layout/fragment_hidden_text" />
+        tools:layout="@layout/fragment_dummy" />
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/messageOutputFragment"
-        android:name="com.onemoresecret.OutputFragment"
+        android:id="@+id/fragmentOutputView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:layout="@layout/fragment_output" />
+        tools:layout="@layout/fragment_dummy" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

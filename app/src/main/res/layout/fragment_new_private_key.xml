@@ -53,6 +53,12 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <Switch
+        android:id="@+id/sw4096bit"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:text="4096 bit RSA" />
+
     <Button
         android:id="@+id/btnCreatePrivateKey"
         android:layout_width="wrap_content"

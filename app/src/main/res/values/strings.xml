@@ -26,7 +26,6 @@
     <string name="bt_not_available">not available</string>
     <string name="bt_off">off</string>
     <string name="bt_disconnected">disconnected</string>
-    <string name="bt_discoverable">discoverable</string>
     <string name="bt_connected">connected</string>
     <string name="select_bt_target">Select BT target</string>
     <string name="wrong_keyboard_layout">Wrong keyboard layout?</string>

@@ -15,32 +15,24 @@ import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.AuthenticationCallback {
-    protected final FragmentMessageBinding binding;
     protected final MessageFragment messageFragment;
-    protected final OutputFragment outputFragment;
     protected final Context context;
     protected final FragmentActivity activity;
     protected byte[] fingerprint;
     protected String rsaTransformation;
     protected final String TAG = getClass().getSimpleName();
-    protected Fragment messageView;
+    protected Fragment messageView, outputView;
 
     public MessageFragmentPlugin(MessageFragment messageFragment,
-                                 OutputFragment outputFragment,
-                                 FragmentMessageBinding binding,
                                  T messageData) throws IOException {
-        this.binding = binding;
         this.messageFragment = messageFragment;
-        this.outputFragment = outputFragment;
         this.context = messageFragment.requireContext();
         this.activity = messageFragment.requireActivity();
         init(messageData);
@@ -49,6 +41,11 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     protected abstract void init(T messageData) throws IOException;
 
     public abstract Fragment getMessageView();
+
+    public Fragment getOutputView() {
+        if (outputView == null) outputView = new OutputFragment();
+        return outputView;
+    }
 
     protected String getDescription() {
         return null;
@@ -78,9 +75,11 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         var cipher = new CryptographyManager().getInitializedCipherForDecryption(
                 alias, rsaTransformation);
 
-        biometricPrompt.authenticate(
-                promptInfo,
-                new BiometricPrompt.CryptoObject(cipher));
+        context.getMainExecutor().execute(() -> {
+            biometricPrompt.authenticate(
+                    promptInfo,
+                    new BiometricPrompt.CryptoObject(cipher));
+        });
     }
 
 

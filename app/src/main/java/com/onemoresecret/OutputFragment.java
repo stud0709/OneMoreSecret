@@ -275,8 +275,13 @@ public class OutputFragment extends Fragment {
         var device = selectedSpinnerItem.getBluetoothDevice();
         Log.d(TAG, String.format("Selected device: %s", device.getName()));
 
-        if (bluetoothController.getBluetoothHidDevice() != null //https://github.com/stud0709/OneMoreSecret/issues/11
-                && bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
+        //disconnect if anything connected
+        var proxy = bluetoothController.getBluetoothHidDevice();
+        if (proxy == null) return; //https://github.com/stud0709/OneMoreSecret/issues/11
+
+        proxy.getConnectedDevices().stream().filter(d -> !d.getAddress().equals(device.getAddress())).forEach(d -> proxy.disconnect(d));
+
+        if (bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
             Log.d(TAG, String.format("Trying to connect %s: %s",
                     device.getName(),
                     bluetoothController.getBluetoothHidDevice().connect(device)));
@@ -389,7 +394,7 @@ public class OutputFragment extends Fragment {
                         Collections.<BluetoothDevice>emptyList() :
                         bluetoothController.getBluetoothHidDevice().getConnectedDevices();
 
-                var bondedDevices = bluetoothAdapter.getBondedDevices()
+                var spinnerItems = bluetoothAdapter.getBondedDevices()
                         .stream()
                         .filter(d -> d.getBluetoothClass().getMajorDeviceClass() == BluetoothClass.Device.Major.COMPUTER)
                         .map(SpinnerItemDevice::new)
@@ -400,8 +405,7 @@ public class OutputFragment extends Fragment {
 
                             return s1.toString().compareTo(s2.toString());
                         })
-                        .collect(Collectors.toList()).toArray(new SpinnerItemDevice[]{});
-
+                        .collect(Collectors.toList());
 
                 requireContext().getMainExecutor().execute(() -> {
                     if (binding == null) return; //already being destroyed
@@ -419,11 +423,6 @@ public class OutputFragment extends Fragment {
                             drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
                         }
 
-                        if (discoverable) {
-                            status = getString(R.string.bt_discoverable);
-                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_discovering_24, getContext().getTheme());
-                        }
-
                         binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
 
                         //remember selection
@@ -435,7 +434,7 @@ public class OutputFragment extends Fragment {
 
                             //refreshing the list
                             arrayAdapterDevice.clear();
-                            arrayAdapterDevice.addAll(bondedDevices);
+                            arrayAdapterDevice.addAll(spinnerItems);
 
                             //restore selection
                             if (selectedBtAddress != null) {
@@ -570,12 +569,12 @@ public class OutputFragment extends Fragment {
                     return;
                 }
 
-                var pairedDevices = bluetoothController.getBluetoothHidDevice().getDevicesMatchingConnectionStates(
+                var compatibleDevices = bluetoothController.getBluetoothHidDevice().getDevicesMatchingConnectionStates(
                         new int[]{BluetoothProfile.STATE_CONNECTING,
                                 BluetoothProfile.STATE_CONNECTED,
                                 BluetoothProfile.STATE_DISCONNECTED,
                                 BluetoothProfile.STATE_DISCONNECTING});
-                Log.d(TAG, "paired devices: " + pairedDevices);
+                Log.d(TAG, "compatible devices: " + compatibleDevices);
 
                 checkConnectSelectedDevice();
                 refreshBluetoothControls();
