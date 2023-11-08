@@ -32,12 +32,12 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
 
 import com.onemoresecret.bt.BluetoothController;
 import com.onemoresecret.bt.layout.KeyboardLayout;
 import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.databinding.FragmentOutputBinding;
+import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,7 +47,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class OutputFragment extends Fragment {
+public class OutputFragment extends FragmentWithNotificationBeforePause {
     private static final String TAG = OutputFragment.class.getSimpleName();
     private static final String PROP_BT_DISCOVERABLE_DURATION = "bt_discoverable_duration_s",
             PROP_KEY_STROKE_DELAY_ON = "kbd_stroke_delay_on",
@@ -73,7 +73,7 @@ public class OutputFragment extends Fragment {
     private Runnable copyValue = null;
     private String message = null;
     private String shareTitle = null;
-    private Runnable beforePause = null;
+
 
     private final AtomicBoolean typing = new AtomicBoolean(false);
 
@@ -88,6 +88,7 @@ public class OutputFragment extends Fragment {
      * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
      * This is to notify the parent, that this is about to happen.
      */
+    @Override
     public void setBeforePause(Runnable r) {
         this.beforePause = r;
     }

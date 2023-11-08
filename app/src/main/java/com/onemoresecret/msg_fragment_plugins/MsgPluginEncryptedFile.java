@@ -67,7 +67,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
     }
 
     @Override
-    public Fragment getOutputView() {
+    public FragmentWithNotificationBeforePause getOutputView() {
         if (outputView == null)
             outputView = new FileOutputFragment();
 

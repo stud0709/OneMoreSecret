@@ -15,10 +15,11 @@ import android.webkit.MimeTypeMap;
 
 import com.onemoresecret.databinding.FragmentFileOutputBinding;
 import com.onemoresecret.databinding.FragmentMessageBinding;
+import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
 
 import java.util.Objects;
 
-public class FileOutputFragment extends Fragment {
+public class FileOutputFragment extends FragmentWithNotificationBeforePause {
     private FragmentFileOutputBinding binding;
 
     private Uri uri;
@@ -31,14 +32,27 @@ public class FileOutputFragment extends Fragment {
     }
 
     private final View.OnClickListener btnListener = btn -> {
+            if (beforePause != null) beforePause.run();
+
             var intent = new Intent(btn == binding.btnView ? Intent.ACTION_VIEW : Intent.ACTION_SEND);
             var extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
             String mimeType = Objects.requireNonNullElse(MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension), "application/octet-stream");
-            intent.setDataAndType(uri, mimeType);
+            if(btn== binding.btnView) {
+                intent.setDataAndType(uri, mimeType);
+            } else {
+                intent.setType(mimeType);
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+            }
+
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             requireActivity().startActivity(intent);
     };
+
+    @Override
+    public void setBeforePause(Runnable r) {
+        //not necessary
+    }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {

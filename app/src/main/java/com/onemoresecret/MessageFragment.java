@@ -76,8 +76,7 @@ public class MessageFragment extends Fragment {
             onUri();
         }
 
-        if (messageFragmentPlugin.getOutputView() instanceof OutputFragment)
-            ((OutputFragment) messageFragmentPlugin.getOutputView()).setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
+        messageFragmentPlugin.getOutputView().setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
 
         //insert message and output view into fragment
         this.getChildFragmentManager()

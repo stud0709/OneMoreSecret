@@ -28,7 +28,8 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     protected byte[] fingerprint;
     protected String rsaTransformation;
     protected final String TAG = getClass().getSimpleName();
-    protected Fragment messageView, outputView;
+    protected Fragment messageView;
+    protected FragmentWithNotificationBeforePause outputView;
 
     public MessageFragmentPlugin(MessageFragment messageFragment,
                                  T messageData) throws IOException {
@@ -42,7 +43,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
 
     public abstract Fragment getMessageView();
 
-    public Fragment getOutputView() {
+    public FragmentWithNotificationBeforePause getOutputView() {
         if (outputView == null) outputView = new OutputFragment();
         return outputView;
     }
