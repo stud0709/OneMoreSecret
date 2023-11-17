@@ -13,12 +13,26 @@ public final class Util {
     }
 
     public static String byteArrayToHex(byte[] a) {
+        return byteArrayToHex(a, true);
+    }
+
+    public static String byteArrayToHex(byte[] a, boolean spaces) {
         var sb = new StringBuilder();
 
         for (int i = 0; i < a.length; i++) {
-            sb.append(String.format("%02x", a[i])).append(i % 2 == 1 ? " " : "");
+            sb.append(String.format("%02x", a[i])).append(i % 2 == 1 && spaces ? " " : "");
         }
         return sb.toString().trim();
+    }
+
+    public static byte[] hexToByteArray(String s) {
+        var len = s.length();
+        var data = new byte[len / 2];
+        for (var i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
     }
 
     /**

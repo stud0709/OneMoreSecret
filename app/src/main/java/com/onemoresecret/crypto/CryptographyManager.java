@@ -1,7 +1,6 @@
 package com.onemoresecret.crypto;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
@@ -10,12 +9,12 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
-import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
-import org.bouncycastle.crypto.util.PrivateKeyInfoFactory;
-import org.bouncycastle.crypto.util.SubjectPublicKeyInfoFactory;
-import org.bouncycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator;
-import org.bouncycastle.operator.OperatorCreationException;
+import org.spongycastle.crypto.generators.RSAKeyPairGenerator;
+import org.spongycastle.crypto.params.RSAKeyGenerationParameters;
+import org.spongycastle.crypto.util.PrivateKeyInfoFactory;
+import org.spongycastle.crypto.util.SubjectPublicKeyInfoFactory;
+import org.spongycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator;
+import org.spongycastle.operator.OperatorCreationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
