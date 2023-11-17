@@ -1,5 +1,6 @@
 package com.onemoresecret.crypto;
 
+import android.security.keystore.KeyProperties;
 import android.util.Log;
 
 import com.onemoresecret.Util;
@@ -11,6 +12,8 @@ import org.spongycastle.jce.ECNamedCurveTable;
 
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,38 +22,46 @@ import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.function.Function;
 
 public class BTCAddress {
     private static final String TAG = BTCAddress.class.getSimpleName();
-    private static final Function<BigInteger, String> toHex64 = bi -> {
-        var s = bi.toString(16);
-        while (s.length() < 64) s = "0" + s;
-        return s;
+
+    private static Function<BigInteger, byte[]> toByte32 = bi -> {
+        var src = bi.toByteArray();
+        /* The byte representation can be either longer than 32 bytes - because of leading zeros -
+         * or shorter than 32 bytes. We must handle both cases */
+        var dest = new byte[32];
+        System.arraycopy(
+                src,
+                Math.max(0, src.length - dest.length), //skip leading zeros if longer than 32 bytes
+                dest,
+                Math.max(0, dest.length - src.length), //prepend with leading zeros if shorter than 32 bytes
+                Math.min(src.length, dest.length));
+        return dest;
     };
 
     private static final Function<byte[], byte[]> sha256 = bArr -> {
-        MessageDigest sha256 = null;
         try {
-            sha256 = MessageDigest.getInstance("SHA-256");
+            return MessageDigest.getInstance("SHA-256").digest(bArr);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        return sha256.digest(bArr);
     };
 
     private static final Function<byte[], byte[]> ripeMD160 = bArr -> {
-        MessageDigest sha256 = null;
         try {
-            sha256 = MessageDigest.getInstance("RipeMD160");
+            return MessageDigest.getInstance("RipeMD160").digest(bArr);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        return sha256.digest(bArr);
     };
 
-    public record ECDSAKeyPair(String privateKey, String btcAddressBase58) {
+    public record ECDSAKeyPair(byte[] privateKey, String btcAddressBase58) {
     }
 
     public static ECDSAKeyPair newECDSAKeyPair() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {
@@ -73,48 +84,96 @@ public class BTCAddress {
 
         //private key
         var s = ((ECPrivateKey) keyPair.getPrivate()).getS();
-        var privateKey = toHex64.apply(s);
+        var privateKey = toByte32.apply(s);
 
-//        Log.d(TAG, "0: " + privateKey);
+//        Log.d(TAG, "0: " + Util.byteArrayToHex(privateKey, false).toUpperCase());
 
         //public key
         var publicKey = (ECPublicKey) keyPair.getPublic();
         var ecPoint = publicKey.getW();
-        var x = toHex64.apply(ecPoint.getAffineX());
-        var y = toHex64.apply(ecPoint.getAffineY());
-        var btcPublicKey = "04" + x + y;
+        var x = toByte32.apply(ecPoint.getAffineX());
+        var y = toByte32.apply(ecPoint.getAffineY());
+        var btcPublicKey = new byte[65];
+        btcPublicKey[0] = 0x04;
+        System.arraycopy(x, 0, btcPublicKey, 1, x.length);
+        System.arraycopy(y, 0, btcPublicKey, x.length + 1, y.length);
 
-        Log.d(TAG, "1: " + btcPublicKey);
+        Log.d(TAG, "1: " + Util.byteArrayToHex(btcPublicKey, false).toUpperCase());
 
         //SHA-256 and RIPEMD digest
         var digest = ripeMD160.apply(
-                sha256.apply(Util.hexToByteArray(btcPublicKey)));
+                sha256.apply(btcPublicKey));
 
-        Log.d(TAG, "3: " + Util.byteArrayToHex(digest, false));
+        Log.d(TAG, "3: " + Util.byteArrayToHex(digest, false).toUpperCase());
 
         //prepend with version byte (0x00)
         var digestWithVersionByte = new byte[digest.length + 1];
         System.arraycopy(digest, 0, digestWithVersionByte, 1, digest.length);
 
-        Log.d(TAG, "4: " + Util.byteArrayToHex(digestWithVersionByte, false));
+        Log.d(TAG, "4: " + Util.byteArrayToHex(digestWithVersionByte, false).toUpperCase());
 
         //calculate checksum
         var checksum = sha256.apply(sha256.apply(digestWithVersionByte));
 
-        Log.d(TAG, "6: " + Util.byteArrayToHex(checksum, false));
+        Log.d(TAG, "6: " + Util.byteArrayToHex(checksum, false).toUpperCase());
 
         //BTC address = version byte + digest + first 4 bytes of the checksum
         var btcAddress = new byte[digestWithVersionByte.length + 4];
         System.arraycopy(digestWithVersionByte, 0, btcAddress, 0, digestWithVersionByte.length);
+        //append first 4 bytes of digest
         System.arraycopy(checksum, 0, btcAddress, digestWithVersionByte.length, 4);
 
-        Log.d(TAG, "8: " + Util.byteArrayToHex(btcAddress, false));
+        Log.d(TAG, "8: " + Util.byteArrayToHex(btcAddress, false).toUpperCase());
 
         var btcAddressBase58 = Base58.encode(btcAddress);
 
         Log.d(TAG, "9: " + btcAddressBase58);
 
         return new ECDSAKeyPair(privateKey, btcAddressBase58);
+    }
+
+    public static String toWIF(byte[] privateKey) {
+        //as of https://gobittest.appspot.com/PrivateKey
+
+        //prepend with 0x80
+        var withQualifier = new byte[privateKey.length + 1];
+        withQualifier[0] = (byte) 0x80;
+        System.arraycopy(privateKey, 0, withQualifier, 1, privateKey.length);
+
+        var digest = sha256.apply(sha256.apply(withQualifier));
+
+        var wif = new byte[withQualifier.length + 4];
+        System.arraycopy(withQualifier, 0, wif, 0, withQualifier.length);
+        //append first 4 bytes of digest
+        System.arraycopy(digest, 0, wif, withQualifier.length, 4);
+
+        //encode as Base58
+        return Base58.encode(wif);
+    }
+
+    public static boolean validateWIF(String wifString) {
+        //decode Base58
+        var wif = Base58.decode(wifString);
+
+        //drop last 4 bytes
+        var withQualifier = Arrays.copyOfRange(wif, 0, wif.length - 4);
+
+        //calculate dual sha256
+        var digest = sha256.apply(sha256.apply(withQualifier));
+
+        //compare checksums
+        return Arrays.equals(
+                Arrays.copyOfRange(digest, 0, 4), //first 4 bytes of the digest
+                Arrays.copyOfRange(wif, wif.length - 4, wif.length) //last 4 bytes of WIF byte array
+        );
+    }
+
+    public static byte[] toPrivateKey(String wifString) {
+        //decode Base58
+        var wif = Base58.decode(wifString);
+
+        //drop first and last 4 bytes
+        return Arrays.copyOfRange(wif, 1, wif.length - 4);
     }
 
     class Base58 {
