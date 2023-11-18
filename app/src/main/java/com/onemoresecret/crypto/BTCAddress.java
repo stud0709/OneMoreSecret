@@ -1,6 +1,5 @@
 package com.onemoresecret.crypto;
 
-import android.security.keystore.KeyProperties;
 import android.util.Log;
 
 import com.onemoresecret.Util;
@@ -9,22 +8,23 @@ import org.spongycastle.crypto.generators.ECKeyPairGenerator;
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECKeyGenerationParameters;
 import org.spongycastle.jce.ECNamedCurveTable;
+import org.spongycastle.jce.spec.ECPrivateKeySpec;
+import org.spongycastle.jce.spec.ECPublicKeySpec;
 
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.function.Function;
 
@@ -61,16 +61,37 @@ public class BTCAddress {
         }
     };
 
-    public record ECDSAKeyPair(byte[] privateKey, String btcAddressBase58) {
+    public record ECDSAKeyPair(ECPrivateKey privateKey, ECPublicKey publicKey){}
+
+    public static ECDSAKeyPair toKeyPair(byte[] privateKeyArr) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
+
+        var ecParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
+        var s = new BigInteger(1, privateKeyArr);
+
+        var privateKeySpec = new ECPrivateKeySpec(s,
+                new org.spongycastle.jce.spec.ECParameterSpec(
+                        ecParameterSpec.getCurve(),
+                        ecParameterSpec.getG(),
+                        ecParameterSpec.getN(),
+                        ecParameterSpec.getH()));
+
+        var publicKeySpec = new ECPublicKeySpec(ecParameterSpec.getG().multiply(s), ecParameterSpec);
+        var keyFactory = KeyFactory.getInstance("EC");
+        return new ECDSAKeyPair((ECPrivateKey) keyFactory.generatePrivate(privateKeySpec), (ECPublicKey) keyFactory.generatePublic(publicKeySpec));
     }
 
-    public static ECDSAKeyPair newECDSAKeyPair() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {
-        Log.d(TAG, "Generating bitcoin address, steps as of https://gobittest.appspot.com/Address");
-
+    public static ECDSAKeyPair newKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
+
         var keyGen = new ECKeyPairGenerator();
-        var curve = ECNamedCurveTable.getParameterSpec("secp256k1");
-        var domainParams = new ECDomainParameters(curve.getCurve(), curve.getG(), curve.getN(), curve.getH(), curve.getSeed());
+        var ecParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
+        var domainParams = new ECDomainParameters(
+                ecParameterSpec.getCurve(),
+                ecParameterSpec.getG(),
+                ecParameterSpec.getN(),
+                ecParameterSpec.getH(),
+                ecParameterSpec.getSeed());
         var keyGenParams = new ECKeyGenerationParameters(domainParams, new SecureRandom());
         keyGen.init(keyGenParams);
 
@@ -82,14 +103,23 @@ public class BTCAddress {
         //generate key pair
         var keyPair = keyPairGenerator.generateKeyPair();
 
+        return new ECDSAKeyPair((ECPrivateKey) keyPair.getPrivate(), (ECPublicKey) keyPair.getPublic());
+    }
+
+    public record BTCKeyPair(byte[] privateKey, String btcAddressBase58) {
+    }
+
+    public static BTCKeyPair toBTCKeyPair(ECDSAKeyPair keyPair) throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+        Log.d(TAG, "Generating bitcoin address, steps as of https://gobittest.appspot.com/Address");
+
         //private key
-        var s = ((ECPrivateKey) keyPair.getPrivate()).getS();
+        var s = keyPair.privateKey.getS();
         var privateKey = toByte32.apply(s);
 
 //        Log.d(TAG, "0: " + Util.byteArrayToHex(privateKey, false).toUpperCase());
 
         //public key
-        var publicKey = (ECPublicKey) keyPair.getPublic();
+        var publicKey = keyPair.publicKey;
         var ecPoint = publicKey.getW();
         var x = toByte32.apply(ecPoint.getAffineX());
         var y = toByte32.apply(ecPoint.getAffineY());
@@ -129,7 +159,7 @@ public class BTCAddress {
 
         Log.d(TAG, "9: " + btcAddressBase58);
 
-        return new ECDSAKeyPair(privateKey, btcAddressBase58);
+        return new BTCKeyPair(privateKey, btcAddressBase58);
     }
 
     public static String toWIF(byte[] privateKey) {
