@@ -1,8 +1,12 @@
 package com.onemoresecret.crypto;
 
 import android.util.Log;
+
+import androidx.annotation.NonNull;
+
 import com.onemoresecret.Util;
 
+import org.jetbrains.annotations.Contract;
 import org.spongycastle.crypto.generators.ECKeyPairGenerator;
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECKeyGenerationParameters;
@@ -58,11 +62,14 @@ public class BTCAddress {
     };
 
     public record ECKeyPair(ECPrivateKey privateKey, ECPublicKey publicKey){
+        @NonNull
         public  BTCKeyPair toBTCKeyPair() {
             return BTCAddress.toBTCKeyPair(this);
         }
     }
 
+    @NonNull
+    @Contract("_ -> new")
     public static ECKeyPair toKeyPair(byte[] privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
 
@@ -81,6 +88,8 @@ public class BTCAddress {
         return new ECKeyPair((ECPrivateKey) keyFactory.generatePrivate(privateKeySpec), (ECPublicKey) keyFactory.generatePublic(publicKeySpec));
     }
 
+    @NonNull
+    @Contract("_ -> new")
     public static ECKeyPair newKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
 
@@ -107,12 +116,15 @@ public class BTCAddress {
     }
 
     public record BTCKeyPair(String wif, String btcAddressBase58) {
+        @NonNull
+        @Contract(" -> new")
         public ECKeyPair toECKeyPair() throws NoSuchAlgorithmException, InvalidKeySpecException {
             return BTCAddress.toKeyPair(toPrivateKey(wif));
         }
     }
 
-    public static String toBTCAddress(ECPublicKey publicKey) {
+    @NonNull
+    public static String toBTCAddress(@NonNull ECPublicKey publicKey) {
         Log.d(TAG, "Generating bitcoin address, steps as of https://gobittest.appspot.com/Address");
 
         var ecPoint = publicKey.getW();
@@ -157,7 +169,8 @@ public class BTCAddress {
         return btcAddressBase58;
     }
 
-    public static BTCKeyPair toBTCKeyPair(ECKeyPair keyPair) {
+    @NonNull
+    public static BTCKeyPair toBTCKeyPair(@NonNull ECKeyPair keyPair) {
         //private key
         var s = keyPair.privateKey.getS();
         var privateKey = toByte32.apply(s);
@@ -165,7 +178,8 @@ public class BTCAddress {
         return new BTCKeyPair(toWIF(privateKey), toBTCAddress(keyPair.publicKey));
     }
 
-    public static String toWIF(byte[] privateKey) {
+    @NonNull
+    public static String toWIF(@NonNull byte[] privateKey) {
         //as of https://gobittest.appspot.com/PrivateKey
 
         //prepend with 0x80
@@ -203,6 +217,7 @@ public class BTCAddress {
         );
     }
 
+    @NonNull
     public static byte[] toPrivateKey(String wifString) {
         //decode Base58
         var wif = Base58.decode(wifString);
@@ -231,7 +246,8 @@ public class BTCAddress {
          * @param input the bytes to encode
          * @return the base58-encoded string
          */
-        public static String encode(byte[] input) {
+        @NonNull
+        public static String encode(@NonNull byte[] input) {
             if (input.length == 0) {
                 return "";
             }
@@ -261,7 +277,8 @@ public class BTCAddress {
             return new String(encoded, outputStart, encoded.length - outputStart);
         }
 
-        public static byte[] decode(String input) throws IllegalArgumentException {
+        @NonNull
+        public static byte[] decode(@NonNull String input) throws IllegalArgumentException {
             if (input.length() == 0) {
                 return new byte[0];
             }
@@ -309,7 +326,7 @@ public class BTCAddress {
          * @param divisor    the number to divide by (up to 256)
          * @return the remainder of the division operation
          */
-        private static byte divmod(byte[] number, int firstDigit, int base, int divisor) {
+        private static byte divmod(@NonNull byte[] number, int firstDigit, int base, int divisor) {
             // this is just long division which accounts for the base of the input digits
             int remainder = 0;
             for (int i = firstDigit; i < number.length; i++) {

@@ -429,8 +429,8 @@ public class QRFragment extends Fragment {
                 // on a null object reference
                 var clipData = clipboardManager.getPrimaryClip();
                 if (clipData != null) {
-                    ClipData.Item item = clipboardManager.getPrimaryClip().getItemAt(0);
-                    var text = (String) item.getText();
+                    var item = clipboardManager.getPrimaryClip().getItemAt(0);
+                    var text = item.getText().toString();
                     if (text != null) {
                         onMessage(text);
                     }
@@ -452,7 +452,7 @@ public class QRFragment extends Fragment {
                     }
                 };
 
-                AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+                var builder = new AlertDialog.Builder(requireContext());
                 builder.setTitle("Include logcat into feedback?")
                         .setPositiveButton("Yes", (dialogInterface, i) -> sendEmail.accept(true))
                         .setNegativeButton("No", (dialogInterface, i) -> {
