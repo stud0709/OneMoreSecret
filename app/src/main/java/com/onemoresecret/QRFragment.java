@@ -3,7 +3,6 @@ package com.onemoresecret;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
-import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -18,7 +18,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -34,7 +33,6 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.google.zxing.Result;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.databinding.FragmentQrBinding;
@@ -95,7 +93,11 @@ public class QRFragment extends Fragment {
 
         requireActivity().addMenuProvider(menuProvider);
 
-        binding.txtAppVersion.setText(BuildConfig.VERSION_NAME);
+        binding.txtAppVersion.setText(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
+
+        if(BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
+            binding.swZxing.setVisibility(View.GONE);
+        }
 
         Intent intent = requireActivity().getIntent();
         if (intent != null) {

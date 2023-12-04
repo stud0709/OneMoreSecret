@@ -28,6 +28,24 @@ android {
     buildFeatures {
         viewBinding true
     }
+
+    flavorDimensions = ["tier"]
+
+    productFlavors {
+        foss {
+            dimension "tier"
+        }
+
+        standard {
+            dimension "tier"
+        }
+    }
+
+    sourceSets {
+        foss {
+            main.java.exclude('**/MLKitBarcodeAnalyzer.java')
+        }
+    }
 }
 
 dependencies {
@@ -61,5 +79,6 @@ dependencies {
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
     //Google ML Kit
-    implementation 'com.google.mlkit:barcode-scanning:17.2.0'
+    //implementation 'com.google.mlkit:barcode-scanning:17.2.0'
+    standardImplementation 'com.google.mlkit:barcode-scanning:17.2.0'
 }

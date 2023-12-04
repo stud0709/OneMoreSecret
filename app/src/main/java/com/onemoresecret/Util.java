@@ -9,6 +9,7 @@ import android.provider.OpenableColumns;
 import java.util.Objects;
 
 public final class Util {
+    public static final String FLAVOR_FOSS = "foss";
     private Util() {
     }
 
