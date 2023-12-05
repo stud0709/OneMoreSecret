@@ -10,8 +10,8 @@ android {
         applicationId "com.onemoresecret"
         minSdk 31
         targetSdk 34
-        versionCode 26
-        versionName "alpha-0.26"
+        versionCode 27
+        versionName "0.27-alpha"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,6 +27,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
     flavorDimensions = ["tier"]
@@ -38,12 +39,6 @@ android {
 
         standard {
             dimension "tier"
-        }
-    }
-
-    sourceSets {
-        foss {
-            main.java.exclude('**/MLKitBarcodeAnalyzer.java')
         }
     }
 }
@@ -79,6 +74,5 @@ dependencies {
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
     //Google ML Kit
-    //implementation 'com.google.mlkit:barcode-scanning:17.2.0'
     standardImplementation 'com.google.mlkit:barcode-scanning:17.2.0'
 }

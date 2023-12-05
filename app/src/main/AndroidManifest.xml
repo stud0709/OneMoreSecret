@@ -20,9 +20,6 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.OneMoreSecret">
-        <meta-data
-            android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="barcode" />
         <activity
             android:name=".CrashReportActivity"
             android:exported="false"
@@ -47,11 +44,6 @@
                     android:host="oms-app-intent"
                     android:scheme="https" />
             </intent-filter>
-            <!--intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter-->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

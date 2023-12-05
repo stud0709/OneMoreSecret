@@ -36,6 +36,7 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
             analyzer.analyze(imageProxy, qr -> onQRCodeFound(qr));
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException ex) {
             ex.printStackTrace();
+            imageProxy.close();
         }
     }
 

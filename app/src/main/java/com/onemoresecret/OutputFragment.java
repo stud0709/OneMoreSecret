@@ -192,7 +192,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         Arrays.stream(KeyboardLayout.knownSubclasses)
                 .map(clazz -> {
                     try {
-                        return (KeyboardLayout) clazz.newInstance();
+                        return (KeyboardLayout) clazz.getDeclaredConstructor().newInstance();
                     } catch (Exception e) {
                         e.printStackTrace();
                         return null;
