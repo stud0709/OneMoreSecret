@@ -254,6 +254,7 @@ public class TotpManualEntryFragment extends Fragment {
             Log.e(TAG, e.getMessage());
             outputFragment.setMessage(null, null);
             requireActivity().getMainExecutor().execute(() -> {
+                if (binding == null) return; //fragment has been destroyed
                 binding.textViewTotp.setText("-".repeat(Integer.parseInt(binding.chipDigits.getText().toString())));
                 binding.textViewTimer.setText("");
             });

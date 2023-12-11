@@ -10,8 +10,8 @@ android {
         applicationId "com.onemoresecret"
         minSdk 31
         targetSdk 34
-        versionCode 27
-        versionName "0.27-alpha"
+        versionCode 28
+        versionName "0.28-alpha"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
