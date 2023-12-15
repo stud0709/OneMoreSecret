@@ -34,10 +34,10 @@ import com.onemoresecret.databinding.FragmentMessageBinding;
 public class MessageFragment extends Fragment {
     private static final String TAG = MessageFragment.class.getSimpleName();
     private com.onemoresecret.databinding.FragmentMessageBinding binding;
-    private MutableLiveData<Boolean> hiddenState = new MutableLiveData<>(true);
+    private final MutableLiveData<Boolean> hiddenState = new MutableLiveData<>(true);
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
-    private MessageFragmentPlugin messageFragmentPlugin;
+    private MessageFragmentPlugin<?> messageFragmentPlugin;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -50,10 +50,12 @@ public class MessageFragment extends Fragment {
     public void onPause() {
         super.onPause();
         var navController = NavHostFragment.findNavController(this);
-        if (navController.getCurrentDestination().getId() != R.id.MessageFragment) {
+        if (navController.getCurrentDestination() != null
+                && navController.getCurrentDestination().getId() != R.id.MessageFragment) {
             Log.d(TAG, String.format("Already navigating to %s", navController.getCurrentDestination()));
             return;
         }
+        Log.d(TAG, "onPause: going backward");
         if (navBackIfPaused) NavHostFragment.findNavController(this).popBackStack();
     }
 
