@@ -5,6 +5,10 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Log;
+
+import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import java.util.Objects;
 
@@ -60,5 +64,10 @@ public final class Util {
             var nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
             return new UriFileInfo(cursor.getString(nameIndex), cursor.getInt(sizeIndex));
         }
+    }
+
+    public static void discardBackStack(Fragment fragment) {
+        var navController = NavHostFragment.findNavController(fragment);
+        navController.popBackStack(navController.getGraph().getStartDestinationId(), false);
     }
 }

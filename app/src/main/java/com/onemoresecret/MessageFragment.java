@@ -56,7 +56,7 @@ public class MessageFragment extends Fragment {
             return;
         }
         Log.d(TAG, "onPause: going backward");
-        if (navBackIfPaused) NavHostFragment.findNavController(this).popBackStack();
+        if (navBackIfPaused) Util.discardBackStack(this);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class MessageFragment extends Fragment {
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            Util.discardBackStack(this);
         }
     }
 
@@ -108,7 +108,7 @@ public class MessageFragment extends Fragment {
         } catch (IOException ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            Util.discardBackStack(this);
         }
     }
 
@@ -136,7 +136,7 @@ public class MessageFragment extends Fragment {
         } catch (IOException ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            Util.discardBackStack(this);
         }
     }
 

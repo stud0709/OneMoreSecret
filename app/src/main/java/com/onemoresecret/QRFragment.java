@@ -10,7 +10,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -59,7 +58,7 @@ public class QRFragment extends Fragment {
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
-    private static String PROP_USE_ZXING = "use_zxing";
+    private static final String PROP_USE_ZXING = "use_zxing";
 
     public static final String ARG_FILENAME = "FILENAME",
             ARG_FILESIZE = "FILESIZE",
@@ -80,6 +79,11 @@ public class QRFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        if(requireActivity().getSupportFragmentManager().getBackStackEntryCount() != 0) {
+            Log.w(TAG, "Discarding back stack");
+            Util.discardBackStack(this);
+        }
 
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
 
@@ -106,11 +110,11 @@ public class QRFragment extends Fragment {
         }
 
         //enable camera
-        if (getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (requireContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera();
         } else {
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
-                if (getContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                if (requireContext().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                     startCamera();
                 } else {
                     Toast.makeText(getContext(), R.string.insufficient_permissions, Toast.LENGTH_LONG).show();
@@ -159,11 +163,11 @@ public class QRFragment extends Fragment {
                 var type = intent.getType();
                 Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
-                switch (intent.getAction()) {
+                switch (Objects.requireNonNull(intent.getAction())) {
                     case Intent.ACTION_VIEW -> {
                         Uri data = intent.getData();
                         if (data != null) {
-                            onMessage(data.getPath().substring(1));
+                            onMessage(Objects.requireNonNull(data.getPath()).substring(1));
                             return true;
                         } else {
                             Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
@@ -433,9 +437,7 @@ public class QRFragment extends Fragment {
                 if (clipData != null) {
                     var item = clipboardManager.getPrimaryClip().getItemAt(0);
                     var text = item.getText().toString();
-                    if (text != null) {
-                        onMessage(text);
-                    }
+                    onMessage(text);
                 }
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
                 var crashReportData = new CrashReportData(null);

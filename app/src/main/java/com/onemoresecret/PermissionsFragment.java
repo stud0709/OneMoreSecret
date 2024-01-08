@@ -56,7 +56,7 @@ public class PermissionsFragment extends Fragment {
         activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
                 result -> {
                     Log.d(TAG, String.format("Granted permissions: %s", result));
-                    NavHostFragment.findNavController(PermissionsFragment.this).popBackStack();
+                    Util.discardBackStack(PermissionsFragment.this);
                 });
 
         //request all app permissions

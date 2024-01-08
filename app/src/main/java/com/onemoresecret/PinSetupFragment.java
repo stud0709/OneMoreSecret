@@ -115,7 +115,7 @@ public class PinSetupFragment extends Fragment {
 
         requireContext().getMainExecutor().execute(() -> {
             Toast.makeText(getContext(), R.string.pin_preferences_saved, Toast.LENGTH_SHORT).show();
-            NavHostFragment.findNavController(PinSetupFragment.this).popBackStack();
+            Util.discardBackStack(PinSetupFragment.this);
         });
     }
 

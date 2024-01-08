@@ -14,6 +14,7 @@ import com.onemoresecret.OmsDataInputStream;
 import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
+import com.onemoresecret.Util;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.crypto.RsaTransformation;
@@ -120,7 +121,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
                 Toast.makeText(context,
                         e.getMessage() == null ? String.format(context.getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
                         Toast.LENGTH_SHORT).show();
-                NavHostFragment.findNavController(messageFragment).popBackStack();
+                Util.discardBackStack(messageFragment);
             });
         }
     }

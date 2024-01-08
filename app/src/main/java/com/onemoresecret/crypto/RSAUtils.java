@@ -37,10 +37,10 @@ public final class RSAUtils {
         return sha256.digest(publicKey.getPublicExponent().toByteArray());
     }
 
-    public static PublicKey restorePublicKey(byte[] encoded) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static RSAPublicKey restorePublicKey(byte[] encoded) throws NoSuchAlgorithmException, InvalidKeySpecException {
         var publicKeySpec = new X509EncodedKeySpec(encoded);
         var keyFactory = KeyFactory.getInstance("RSA");
-        return keyFactory.generatePublic(publicKeySpec);
+        return (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
     }
 
     public static byte[] process(int cipherMode, PublicKey rsaPublicKey, String transformation, byte[] data) throws

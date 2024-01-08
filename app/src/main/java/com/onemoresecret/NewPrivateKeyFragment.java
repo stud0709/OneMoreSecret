@@ -128,7 +128,7 @@ public class NewPrivateKeyFragment extends Fragment {
                             Toast.LENGTH_LONG).show();
 
                     //go back
-                    NavHostFragment.findNavController(this).popBackStack();
+                    Util.discardBackStack(this);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     Toast.makeText(requireContext(), ex.getMessage(), Toast.LENGTH_LONG).show();

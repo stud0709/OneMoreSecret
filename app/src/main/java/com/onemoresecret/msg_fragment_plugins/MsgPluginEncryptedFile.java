@@ -145,7 +145,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
                 Toast.makeText(context,
                         e.getMessage() == null ? String.format(context.getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
                         Toast.LENGTH_SHORT).show();
-                NavHostFragment.findNavController(messageFragment).popBackStack();
+                Util.discardBackStack(messageFragment);
             });
         }
     }

@@ -110,7 +110,7 @@ public class KeyImportFragment extends Fragment {
         } catch (IOException ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            Util.discardBackStack(this);
         }
     }
 
@@ -190,7 +190,7 @@ public class KeyImportFragment extends Fragment {
                                                 Toast.makeText(this.getContext(),
                                                         "Private key '" + keyAlias + "' successfully imported",
                                                         Toast.LENGTH_LONG).show();
-                                                NavHostFragment.findNavController(KeyImportFragment.this).popBackStack();
+                                                Util.discardBackStack(this);
                                             });
 
                                 } catch (Exception ex) {

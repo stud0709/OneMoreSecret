@@ -98,7 +98,7 @@ public class TotpImportFragment extends Fragment {
         } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            NavHostFragment.findNavController(this).popBackStack();
+            Util.discardBackStack(this);
         }
     }
 

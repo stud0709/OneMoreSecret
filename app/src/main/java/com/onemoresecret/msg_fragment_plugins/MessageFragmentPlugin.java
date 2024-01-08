@@ -89,7 +89,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
         context.getMainExecutor().execute(() -> {
             Toast.makeText(context, errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
-            NavHostFragment.findNavController(messageFragment).popBackStack();
+            Util.discardBackStack(messageFragment);
         });
     }
 
@@ -99,7 +99,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
                 "User biometrics rejected");
         context.getMainExecutor().execute(() -> {
             Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
-            NavHostFragment.findNavController(messageFragment).popBackStack();
+            Util.discardBackStack(messageFragment);
         });
     }
 }
