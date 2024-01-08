@@ -18,6 +18,11 @@
         android:id="@+id/menuItemPwdGenerator"
         android:title="@string/password_generator" />
     <item
+        android:id="@+id/menuItemCryptoAdrGen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:title="@string/crypto_address_generator" />
+    <item
         android:id="@+id/menuItemTotp"
         android:title="@string/time_based_otp" />
     <item

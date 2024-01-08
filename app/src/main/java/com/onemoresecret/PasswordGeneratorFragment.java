@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -48,10 +49,6 @@ public class PasswordGeneratorFragment extends Fragment {
     private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
     private final AtomicBoolean textChangeListenerActive = new AtomicBoolean(true);
-    private Runnable runOnce = () -> {
-        newPassword();
-        runOnce = null;
-    };
     private static final String
             PROP_UCASE = "pwgen_ucase",
             PROP_UCASE_LIST = "pwgen_ucase_list",
@@ -139,9 +136,6 @@ public class PasswordGeneratorFragment extends Fragment {
 
         preferences.registerOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
 
-        setPwd = getSetPwd("", true);
-        encryptPwd = getEncryptPwd("");
-
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
                         .getSelectionTracker()
@@ -178,12 +172,8 @@ public class PasswordGeneratorFragment extends Fragment {
                 encryptPwd = getEncryptPwd(s.toString());
             }
         });
-    }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        if (runOnce != null) runOnce.run();
+        requireActivity().getMainExecutor().execute(this::newPassword);
     }
 
     private void changePwdLen() {
@@ -366,7 +356,7 @@ public class PasswordGeneratorFragment extends Fragment {
 
     private Runnable getSetPwd(String pwd, boolean updateEditTextPassword) {
         return () -> {
-            if(updateEditTextPassword) {
+            if (updateEditTextPassword) {
                 textChangeListenerActive.set(false);
                 binding.editTextPassword.setText(pwd);
                 textChangeListenerActive.set(true);

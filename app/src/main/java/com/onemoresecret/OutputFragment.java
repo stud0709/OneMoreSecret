@@ -72,25 +72,16 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
     private final OutputMenuProvider menuProvider = new OutputMenuProvider();
     private Runnable copyValue = null;
     private String message = null;
-    private String shareTitle = null;
+    private String shareTitle = "";
 
 
     private final AtomicBoolean typing = new AtomicBoolean(false);
 
     public void setMessage(@Nullable String message, @Nullable String shareTitle) {
         this.message = message;
-        this.shareTitle = shareTitle;
+        this.shareTitle = Objects.requireNonNullElse(shareTitle, "");
         refreshBluetoothControls();
         requireActivity().invalidateOptionsMenu();
-    }
-
-    /**
-     * A fragment is paused when the confirmation dialog is raised ("send to" or "BT discovery").
-     * This is to notify the parent, that this is about to happen.
-     */
-    @Override
-    public void setBeforePause(Runnable r) {
-        this.beforePause = r;
     }
 
     public KeyboardLayout getSelectedLayout() {
@@ -151,7 +142,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
             type(strokes);
         });
 
-        binding.textTyping.setVisibility(View.INVISIBLE);
+        binding.textTyping.setText(shareTitle);
 
         copyValue = () -> {
             var extra_is_sensitive = "android.content.extra.IS_SENSITIVE"; /* replace with  ClipDescription.EXTRA_IS_SENSITIVE for API Level 33+ */
@@ -370,7 +361,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                             binding.btnType.setEnabled(false);
                             binding.imgButtonDiscoverable.setEnabled(false);
                             binding.swDelayedStrokes.setEnabled(false);
-                            binding.textTyping.setVisibility(View.INVISIBLE);
+                            binding.textTyping.setText(shareTitle);
                         } catch (IllegalStateException ex) {
                             //things are happening outside the context
                             Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
@@ -473,7 +464,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
 
                         binding.btnType.setText(typing.get() ? getString(R.string.cancel) : getString(R.string.type));
 
-                        binding.textTyping.setVisibility(typing.get() ? View.VISIBLE : View.INVISIBLE);
+                        binding.textTyping.setText(typing.get() ? getText(R.string.typing_please_wait) : shareTitle);
                     } catch (IllegalStateException ex) {
                         //things are happening outside the context
                         Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));

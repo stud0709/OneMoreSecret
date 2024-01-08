@@ -42,6 +42,9 @@
         <action
             android:id="@+id/action_QRFragment_to_fileEncryptionFragment"
             app:destination="@id/fileEncryptionFragment" />
+        <action
+            android:id="@+id/action_QRFragment_to_cryptoCurrencyAddressGenerator"
+            app:destination="@id/cryptoCurrencyAddressGenerator" />
     </fragment>
     <fragment
         android:id="@+id/MessageFragment"
@@ -101,4 +104,8 @@
         android:id="@+id/fileEncryptionFragment"
         android:name="com.onemoresecret.FileEncryptionFragment"
         android:label="@string/encrypt_file" />
+    <fragment
+        android:id="@+id/cryptoCurrencyAddressGenerator"
+        android:name="com.onemoresecret.CryptoCurrencyAddressGenerator"
+        android:label="BTC Address Generator" />
 </navigation>

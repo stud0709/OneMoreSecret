@@ -174,4 +174,10 @@
     <string name="support_amp_feedback"><![CDATA[Support & Feedback]]></string>
     <string name="logcat">Logcat</string>
     <string name="could_not_decode">Could not decode message</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="btc_address">BTC Address:</string>
+    <string name="wif_encrypted">WIF (encrypted)</string>
+    <string name="public_btc_address">Public BTC Address</string>
+    <string name="crypto_address_generator">BTC Address Generator</string>
 </resources>

@@ -500,6 +500,9 @@ public class QRFragment extends Fragment {
                     NavHostFragment.findNavController(QRFragment.this)
                             .navigate(R.id.action_QRFragment_to_pinSetupFragment);
                 }
+            }else if(menuItem.getItemId() == R.id.menuItemCryptoAdrGen) {
+                NavHostFragment.findNavController(QRFragment.this)
+                        .navigate(R.id.action_QRFragment_to_cryptoCurrencyAddressGenerator);
             } else {
                 return false;
             }

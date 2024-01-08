@@ -13,6 +13,7 @@ import org.spongycastle.crypto.params.ECKeyGenerationParameters;
 import org.spongycastle.jce.ECNamedCurveTable;
 import org.spongycastle.jce.spec.ECPrivateKeySpec;
 import org.spongycastle.jce.spec.ECPublicKeySpec;
+
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
@@ -61,9 +62,9 @@ public class BTCAddress {
         }
     };
 
-    public record ECKeyPair(ECPrivateKey privateKey, ECPublicKey publicKey){
+    public record ECKeyPair(ECPrivateKey privateKey, ECPublicKey publicKey) {
         @NonNull
-        public  BTCKeyPair toBTCKeyPair() {
+        public BTCKeyPair toBTCKeyPair() {
             return BTCAddress.toBTCKeyPair(this);
         }
     }
@@ -89,7 +90,6 @@ public class BTCAddress {
     }
 
     @NonNull
-    @Contract("_ -> new")
     public static ECKeyPair newKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
 
@@ -115,16 +115,24 @@ public class BTCAddress {
         return new ECKeyPair((ECPrivateKey) keyPair.getPrivate(), (ECPublicKey) keyPair.getPublic());
     }
 
-    public record BTCKeyPair(String wif, String btcAddressBase58) {
+    public record BTCKeyPair(byte[] wif, byte[] btcAddress) {
         @NonNull
         @Contract(" -> new")
         public ECKeyPair toECKeyPair() throws NoSuchAlgorithmException, InvalidKeySpecException {
             return BTCAddress.toKeyPair(toPrivateKey(wif));
         }
+
+        public String getWifBase58() {
+            return Base58.encode(wif);
+        }
+
+        public String getBtcAddressBase58() {
+            return Base58.encode(btcAddress);
+        }
     }
 
     @NonNull
-    public static String toBTCAddress(@NonNull ECPublicKey publicKey) {
+    public static byte[] toBTCAddress(@NonNull ECPublicKey publicKey) {
         Log.d(TAG, "Generating bitcoin address, steps as of https://gobittest.appspot.com/Address");
 
         var ecPoint = publicKey.getW();
@@ -166,7 +174,7 @@ public class BTCAddress {
 
         Log.d(TAG, "9: " + btcAddressBase58);
 
-        return btcAddressBase58;
+        return btcAddress;
     }
 
     @NonNull
@@ -178,8 +186,14 @@ public class BTCAddress {
         return new BTCKeyPair(toWIF(privateKey), toBTCAddress(keyPair.publicKey));
     }
 
+    /**
+     * Convert private key to WIF format.
+     *
+     * @param privateKey Private Key to encode
+     * @return WIF byte array. Encrypt it with {@link Base58#encode(byte[])} for the readable representation.
+     */
     @NonNull
-    public static String toWIF(@NonNull byte[] privateKey) {
+    public static byte[] toWIF(@NonNull byte[] privateKey) {
         //as of https://gobittest.appspot.com/PrivateKey
 
         //prepend with 0x80
@@ -194,8 +208,7 @@ public class BTCAddress {
         //append first 4 bytes of digest
         System.arraycopy(digest, 0, wif, withQualifier.length, 4);
 
-        //encode as Base58
-        return Base58.encode(wif);
+        return wif;
     }
 
     public static boolean validateWIF(String wifString) {
@@ -217,12 +230,15 @@ public class BTCAddress {
         );
     }
 
-    @NonNull
-    public static byte[] toPrivateKey(String wifString) {
-        //decode Base58
-        var wif = Base58.decode(wifString);
+    /**
+     * Restore private key from WIF
+     *
+     * @param wif Wallet Interchange Format as byte array (apply {@link Base58#decode(String)} to WIF string first)
+     * @return
+     */
 
-        //drop first and last 4 bytes
+    public static byte[] toPrivateKey(byte[] wif) {
+        //drop first one and last 4 bytes
         return Arrays.copyOfRange(wif, 1, wif.length - 4);
     }
 
