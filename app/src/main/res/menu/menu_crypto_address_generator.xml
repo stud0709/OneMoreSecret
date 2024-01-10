@@ -9,4 +9,9 @@
         android:icon="@drawable/baseline_auto_fix_high_24"
         android:title="New Address"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menuItemCryptoAdrGenHelp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:title="@string/help" />
 </menu>

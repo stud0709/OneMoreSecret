@@ -18,7 +18,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.zxing.WriterException;
 import com.onemoresecret.crypto.AESUtil;
@@ -38,7 +37,6 @@ import java.util.Base64;
 import java.util.Objects;
 
 public class NewPrivateKeyFragment extends Fragment {
-    public static final int BASE64_LINE_LENGTH = 75;
     private FragmentNewPrivateKeyBinding binding;
     private CryptographyManager cryptographyManager = new CryptographyManager();
 
@@ -140,6 +138,7 @@ public class NewPrivateKeyFragment extends Fragment {
             var fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
             var fileRecord = OmsFileProvider.create(requireContext(), "pk_" + fingerprintString + ".html", true);
             Files.write(fileRecord.path(), html.getBytes(StandardCharsets.UTF_8));
+            fileRecord.path().toFile().deleteOnExit();
 
             var intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
@@ -189,7 +188,7 @@ public class NewPrivateKeyFragment extends Fragment {
 
         for (int i = 0; i < list.size(); i++) {
             var bitmap = list.get(i);
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try (var baos = new ByteArrayOutputStream()) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
                 baos.flush();
                 stringBuilder.append("<table style=\"display: inline-block;\"><tr style=\"vertical-align: bottom;\"><td>")
@@ -211,9 +210,9 @@ public class NewPrivateKeyFragment extends Fragment {
         var offset = 0;
 
         while (offset < messageAsUrl.length()) {
-            var s = messageAsUrl.substring(offset, Math.min(offset + BASE64_LINE_LENGTH, messageAsUrl.length()));
+            var s = messageAsUrl.substring(offset, Math.min(offset + Util.BASE64_LINE_LENGTH, messageAsUrl.length()));
             stringBuilder.append(s).append("<br>");
-            offset += BASE64_LINE_LENGTH;
+            offset += Util.BASE64_LINE_LENGTH;
         }
 
         stringBuilder.append("</p><p>")

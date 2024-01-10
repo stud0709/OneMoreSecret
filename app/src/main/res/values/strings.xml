@@ -82,7 +82,7 @@
     <string name="similar">Similar…</string>
     <string name="encrypt_with">Encrypt With:</string>
     <string name="share">Share</string>
-    <string name="oms_secret_message">OneMoreSecret Secret Message</string>
+    <string name="decrypted_message">Decrypted Message</string>
     <string name="auth_successful">Authentication was successful</string>
     <string name="cannot_apply_layout_filter">Cannot apply layout filter - no layout selected</string>
     <string name="no_symbols_available">No symbols available, check settings</string>
@@ -98,6 +98,7 @@
     <string name="decrypted_message_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/decrypted_message.md</string>
     <string name="key_import_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_import.md</string>
     <string name="new_private_key_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/new_private_key.md</string>
+    <string name="crypto_address_generator_url">https://github.com/stud0709/OneMoreSecret/blob/master/TODO.md</string>
     <string name="pin_setup_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/pin_setup.md</string>
     <string name="encrypt_file_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/encrypt_file.md</string>
     <string name="help_auto_type">Help (Auto-Type)</string>
@@ -174,8 +175,6 @@
     <string name="support_amp_feedback"><![CDATA[Support & Feedback]]></string>
     <string name="logcat">Logcat</string>
     <string name="could_not_decode">Could not decode message</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="btc_address">BTC Address:</string>
     <string name="wif_encrypted">WIF (encrypted)</string>
     <string name="public_btc_address">Public BTC Address</string>

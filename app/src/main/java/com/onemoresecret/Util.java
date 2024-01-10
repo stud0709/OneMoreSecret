@@ -14,6 +14,8 @@ import java.util.Objects;
 
 public final class Util {
     public static final String FLAVOR_FOSS = "foss";
+    public static final int BASE64_LINE_LENGTH = 75;
+
     private Util() {
     }
 

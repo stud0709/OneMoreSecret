@@ -74,7 +74,7 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
 
         var hiddenTextFragment = (HiddenTextFragment) messageView;
         messageFragment.getHiddenState().observe(hiddenTextFragment, hidden -> hiddenTextFragment.setText(hidden ? context.getString(R.string.hidden_text) : message));
-        ((OutputFragment) outputView).setMessage(message, context.getString(R.string.oms_secret_message));
+        ((OutputFragment) outputView).setMessage(message, context.getString(R.string.decrypted_message));
     }
 
 

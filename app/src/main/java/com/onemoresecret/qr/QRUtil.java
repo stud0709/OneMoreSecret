@@ -28,7 +28,6 @@ public final class QRUtil {
      *     <li>data length in this chunk (padding is added to the last code)</li>
      *     <li>data</li>
      * </ul>
-     *
      */
 
     public static List<Bitmap> getQrSequence(String message, int chunkSize, int barcodeSize)
@@ -62,10 +61,17 @@ public final class QRUtil {
         return list;
     }
 
+    public static Bitmap getQr(String message, int barcodeSize)
+            throws WriterException {
+        var writer = new QRCodeWriter();
+        var bitMatrix = writer.encode(message, BarcodeFormat.QR_CODE, barcodeSize, barcodeSize);
+        return toBitmap(bitMatrix);
+    }
+
     private static Bitmap toBitmap(BitMatrix bitMatrix) {
-        int height = bitMatrix.getHeight();
-        int width = bitMatrix.getWidth();
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        var height = bitMatrix.getHeight();
+        var width = bitMatrix.getWidth();
+        var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);

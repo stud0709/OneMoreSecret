@@ -1,7 +1,9 @@
 package com.onemoresecret;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -25,9 +27,15 @@ import com.onemoresecret.crypto.EncryptedCryptoCurrencyAddress;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentCryptoCurrencyAddressGeneratorBinding;
+import com.onemoresecret.qr.QRUtil;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class CryptoCurrencyAddressGenerator extends Fragment {
     private FragmentCryptoCurrencyAddressGeneratorBinding binding;
@@ -38,7 +46,8 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
     private final CryptographyManager cryptographyManager = new CryptographyManager();
 
     private Consumer<String> encryptWif;
-    private Runnable setBitcoinAddress;
+    private Supplier<String> backupSupplier;
+    private String address;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -52,9 +61,28 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+        binding.btnBackup.setEnabled(false);
 
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
         outputFragment = binding.fragmentContainerView4.getFragment();
+
+        binding.btnBackup.setOnClickListener(btn -> {
+            try {
+                var html = backupSupplier.get();
+                var fileRecord = OmsFileProvider.create(requireContext(), address + "_backup.html", true);
+                Files.write(fileRecord.path(), html.getBytes(StandardCharsets.UTF_8));
+                fileRecord.path().toFile().deleteOnExit();
+
+                var intent = new Intent();
+                intent.setAction(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.setType("text/html");
+                startActivity(Intent.createChooser(intent, String.format(getString(R.string.backup_file), address)));
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        });
 
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
@@ -66,9 +94,12 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
                                     var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
                                     encryptWif.accept(selectedAlias);
+
                                 } else {
-                                    setBitcoinAddress.run();
+                                    setBitcoinAddress();
                                 }
+
+                                binding.btnBackup.setEnabled(keyStoreListFragment.getSelectionTracker().hasSelection());
                             }
                         }));
 
@@ -78,8 +109,8 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
     private void newBitcoinAddress() {
         try {
             var btcKeyPair = BTCAddress.newKeyPair().toBTCKeyPair();
-            setBitcoinAddress = getSetBitcoinAddress(btcKeyPair.getBtcAddressBase58());
-            encryptWif = getEncryptWif(btcKeyPair.wif());
+            address = btcKeyPair.getBtcAddressBase58();
+            encryptWif = getEncryptWif(btcKeyPair);
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(requireContext(),
@@ -88,7 +119,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
         }
 
         requireActivity().getMainExecutor().execute(() -> {
-            setBitcoinAddress.run();
+            setBitcoinAddress();
 
             if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
                 var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
@@ -97,30 +128,97 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
         });
     }
 
-    private Consumer<String> getEncryptWif(byte[] wif) {
+    private Consumer<String> getEncryptWif(BTCAddress.BTCKeyPair btcKeyPair) {
         return alias -> {
             try {
-                var encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedCryptoCurrencyAddress(
-                                MessageComposer.APPLICATION_BITCOIN_ADDRESS,
-                                wif,
-                                (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
-                                RSAUtils.getRsaTransformationIdx(preferences),
-                                AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
+                var encrypted = new EncryptedCryptoCurrencyAddress(
+                        MessageComposer.APPLICATION_BITCOIN_ADDRESS,
+                        btcKeyPair.wif(),
+                        (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
+                        RSAUtils.getRsaTransformationIdx(preferences),
+                        AESUtil.getKeyLength(preferences),
+                        AESUtil.getAesTransformationIdx(preferences)).getMessage();
 
-                outputFragment.setMessage(encrypted, getString(R.string.wif_encrypted));
+                outputFragment.setMessage(MessageComposer.encodeAsOmsText(encrypted), getString(R.string.wif_encrypted));
+                backupSupplier = getBackupSupplier(btcKeyPair.getBtcAddressBase58(), encrypted);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         };
     }
 
-    private Runnable getSetBitcoinAddress(String address) {
+    private Supplier<String> getBackupSupplier(String btcAddress, byte[] message) {
         return () -> {
-            binding.textViewAddress.setText(address);
-            outputFragment.setMessage(address, getString(R.string.public_btc_address));
+            var stringBuilder = new StringBuilder();
+            try {
+                var list = QRUtil.getQrSequence(Base64.getEncoder().encodeToString(message),
+                        QRUtil.getChunkSize(preferences),
+                        QRUtil.getBarcodeSize(preferences));
+
+                stringBuilder
+                        .append("<html><body><h1>")
+                        .append("OneMoreSecret Crypto Wallet")
+                        .append("</h1>")
+                        .append("<p>This is a hard copy of your Bitcoin Address <b>")
+                        .append(btcAddress)
+                        .append("</b>:</p><p>");
+
+                try (var baos = new ByteArrayOutputStream()) {
+                    var bitmap = QRUtil.getQr(btcAddress, QRUtil.getBarcodeSize(preferences));
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                    baos.flush();
+                    stringBuilder.append("<img src=\"data:image/png;base64,")
+                            .append(Base64.getEncoder().encodeToString(baos.toByteArray()))
+                            .append("\" style=\"width:200px;height:200px;\">");
+                }
+
+                stringBuilder.append("</p>")
+                        .append("The private key is encrypted, scan the following QR code sequence to access it:")
+                        .append("</p><p>");
+
+                for (int i = 0; i < list.size(); i++) {
+                    var bitmap = list.get(i);
+                    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                        baos.flush();
+                        stringBuilder.append("<table style=\"display: inline-block;\"><tr style=\"vertical-align: bottom;\"><td>")
+                                .append(i + 1)
+                                .append("</td><td><img src=\"data:image/png;base64,")
+                                .append(Base64.getEncoder().encodeToString(baos.toByteArray()))
+                                .append("\" style=\"width:200px;height:200px;\"></td></tr></table>");
+                    }
+                }
+                stringBuilder
+                        .append("</p><p>")
+                        .append("Base64 Encoded Private Key:")
+                        .append("&nbsp;")
+                        .append("</p><p style=\"font-family:monospace;\">");
+
+                var messageAsUrl = MessageComposer.encodeAsOmsText(message);
+                var offset = 0;
+
+                while (offset < messageAsUrl.length()) {
+                    var s = messageAsUrl.substring(offset, Math.min(offset + Util.BASE64_LINE_LENGTH, messageAsUrl.length()));
+                    stringBuilder.append(s).append("<br>");
+                    offset += Util.BASE64_LINE_LENGTH;
+                }
+
+                stringBuilder.append("</p><p>")
+                        .append("Message format: oms00_[base64 encoded data]")
+                        .append("</p><p>")
+                        .append("Data format: see https://github.com/stud0709/OneMoreSecret/blob/master/app/src/main/java/com/onemoresecret/crypto/EncryptedCryptoCurrencyAddress.java")
+                        .append("</p></body></html>");
+
+                return stringBuilder.toString();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         };
+    }
+
+    private void setBitcoinAddress() {
+        binding.textViewAddress.setText(address);
+        outputFragment.setMessage(address, getString(R.string.public_btc_address));
     }
 
     @Override
@@ -134,13 +232,15 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
 
         @Override
         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_btc_address_generator, menu);
+            menuInflater.inflate(R.menu.menu_crypto_address_generator, menu);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemNewAddress) {
                 newBitcoinAddress();
+            } else if (menuItem.getItemId() == R.id.menuItemCryptoAdrGenHelp) {
+                Util.openUrl(R.string.crypto_address_generator_url, requireContext());
             } else {
                 return false;
             }
