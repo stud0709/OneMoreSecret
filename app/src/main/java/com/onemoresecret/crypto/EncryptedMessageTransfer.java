@@ -26,44 +26,12 @@ public class EncryptedMessageTransfer extends MessageComposer {
             BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         super();
 
-        // init AES
-        var iv = AESUtil.generateIv();
-        var secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
-
-        // encrypt AES secret key with RSA
-        var cipher = Cipher.getInstance(RsaTransformation.values()[rsaTransformationIdx].transformation);
-        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
-
-        var encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
-
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-
-            // (1) application-ID
-            dataOutputStream.writeUnsignedShort(getApplicationId());
-
-            // (2) RSA transformation index
-            dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
-
-            // (3) fingerprint
-            dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey));
-
-            // (4) AES transformation index
-            dataOutputStream.writeUnsignedShort(aesTransformationIdx);
-
-            // (5) IV
-            dataOutputStream.writeByteArray(iv.getIV());
-
-            // (6) RSA-encrypted AES secret key
-            dataOutputStream.writeByteArray(encryptedSecretKey);
-
-            // (7) AES-encrypted message
-            dataOutputStream.writeByteArray(AESUtil.process(Cipher.ENCRYPT_MODE, message, secretKey, iv,
-                    AesTransformation.values()[aesTransformationIdx].transformation));
-
-            this.message = baos.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        this.message = createRsaAesEnvelope(getApplicationId(),
+                rsaPublicKey,
+                rsaTransformationIdx,
+                aesKeyLength,
+                aesTransformationIdx,
+                message);
     }
 
     protected int getApplicationId() {

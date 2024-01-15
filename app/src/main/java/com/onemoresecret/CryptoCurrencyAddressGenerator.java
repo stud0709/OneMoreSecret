@@ -68,9 +68,8 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
 
         binding.btnBackup.setOnClickListener(btn -> {
             try {
-                var html = backupSupplier.get();
                 var fileRecord = OmsFileProvider.create(requireContext(), address + "_backup.html", true);
-                Files.write(fileRecord.path(), html.getBytes(StandardCharsets.UTF_8));
+                Files.write(fileRecord.path(), backupSupplier.get().getBytes(StandardCharsets.UTF_8));
                 fileRecord.path().toFile().deleteOnExit();
 
                 var intent = new Intent();
@@ -150,14 +149,15 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
     private Supplier<String> getBackupSupplier(String btcAddress, byte[] message) {
         return () -> {
             var stringBuilder = new StringBuilder();
+            var omsText = MessageComposer.encodeAsOmsText(message);
             try {
-                var list = QRUtil.getQrSequence(Base64.getEncoder().encodeToString(message),
+                var list = QRUtil.getQrSequence(omsText,
                         QRUtil.getChunkSize(preferences),
                         QRUtil.getBarcodeSize(preferences));
 
                 stringBuilder
                         .append("<html><body><h1>")
-                        .append("OneMoreSecret Crypto Wallet")
+                        .append("OneMoreSecret &quot;Paper Wallet&quot;")
                         .append("</h1>")
                         .append("<p>This is a hard copy of your Bitcoin Address <b>")
                         .append(btcAddress)
@@ -172,9 +172,9 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                             .append("\" style=\"width:200px;height:200px;\">");
                 }
 
-                stringBuilder.append("</p>")
-                        .append("The private key is encrypted, scan the following QR code sequence to access it:")
-                        .append("</p><p>");
+                stringBuilder.append("</p>The above QR code contains the public bitcoin address, ")
+                        .append("use a regular QR code scanner to read it.</p><p>The private key is encrypted, ")
+                        .append("scan the following QR code sequence <b>with OneMoreSecret</b> to access it:</p><p>");
 
                 for (int i = 0; i < list.size(); i++) {
                     var bitmap = list.get(i);
@@ -194,11 +194,10 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                         .append("&nbsp;")
                         .append("</p><p style=\"font-family:monospace;\">");
 
-                var messageAsUrl = MessageComposer.encodeAsOmsText(message);
                 var offset = 0;
 
-                while (offset < messageAsUrl.length()) {
-                    var s = messageAsUrl.substring(offset, Math.min(offset + Util.BASE64_LINE_LENGTH, messageAsUrl.length()));
+                while (offset < omsText.length()) {
+                    var s = omsText.substring(offset, Math.min(offset + Util.BASE64_LINE_LENGTH, omsText.length()));
                     stringBuilder.append(s).append("<br>");
                     offset += Util.BASE64_LINE_LENGTH;
                 }

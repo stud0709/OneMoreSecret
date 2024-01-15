@@ -7,9 +7,6 @@ import androidx.annotation.NonNull;
 import com.onemoresecret.Util;
 
 import org.jetbrains.annotations.Contract;
-import org.spongycastle.crypto.generators.ECKeyPairGenerator;
-import org.spongycastle.crypto.params.ECDomainParameters;
-import org.spongycastle.crypto.params.ECKeyGenerationParameters;
 import org.spongycastle.jce.ECNamedCurveTable;
 import org.spongycastle.jce.spec.ECPrivateKeySpec;
 import org.spongycastle.jce.spec.ECPublicKeySpec;
@@ -20,7 +17,6 @@ import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -30,9 +26,22 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 public class BTCAddress {
+    private static KeyPairGenerator keyPairGenerator;
+
+    static {
+        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
+        var parameterSpec = new ECGenParameterSpec("secp256k1");
+        try {
+            keyPairGenerator = KeyPairGenerator.getInstance("EC");
+            keyPairGenerator.initialize(parameterSpec);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static final String TAG = BTCAddress.class.getSimpleName();
 
-    private static Function<BigInteger, byte[]> toByte32 = bi -> {
+    private static final Function<BigInteger, byte[]> toByte32 = bi -> {
         var src = bi.toByteArray();
         /* The byte representation can be either longer than 32 bytes - because of leading zeros -
          * or shorter than 32 bytes. We must handle both cases */
@@ -72,8 +81,6 @@ public class BTCAddress {
     @NonNull
     @Contract("_ -> new")
     public static ECKeyPair toKeyPair(byte[] privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-
         var ecParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
         var s = new BigInteger(1, privateKey);
 
@@ -91,24 +98,6 @@ public class BTCAddress {
 
     @NonNull
     public static ECKeyPair newKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-
-        var keyGen = new ECKeyPairGenerator();
-        var ecParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
-        var domainParams = new ECDomainParameters(
-                ecParameterSpec.getCurve(),
-                ecParameterSpec.getG(),
-                ecParameterSpec.getN(),
-                ecParameterSpec.getH(),
-                ecParameterSpec.getSeed());
-        var keyGenParams = new ECKeyGenerationParameters(domainParams, new SecureRandom());
-        keyGen.init(keyGenParams);
-
-        //initialize elliptic curve cryptography
-        var parameterSpec = new ECGenParameterSpec("secp256k1");
-        var keyPairGenerator = KeyPairGenerator.getInstance("EC");
-        keyPairGenerator.initialize(parameterSpec);
-
         //generate key pair
         var keyPair = keyPairGenerator.generateKeyPair();
 
@@ -234,7 +223,6 @@ public class BTCAddress {
      * Restore private key from WIF
      *
      * @param wif Wallet Interchange Format as byte array (apply {@link Base58#decode(String)} to WIF string first)
-     * @return
      */
 
     public static byte[] toPrivateKey(byte[] wif) {
@@ -242,116 +230,4 @@ public class BTCAddress {
         return Arrays.copyOfRange(wif, 1, wif.length - 4);
     }
 
-    class Base58 {
-        //as of https://github.com/bitcoinj/bitcoinj/blob/master/core/src/main/java/org/bitcoinj/base/Base58.java
-
-        public static final char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-        private static final char ENCODED_ZERO = ALPHABET[0];
-        private static final int[] INDEXES = new int[128];
-
-        static {
-            Arrays.fill(INDEXES, -1);
-            for (int i = 0; i < ALPHABET.length; i++) {
-                INDEXES[ALPHABET[i]] = i;
-            }
-        }
-
-        /**
-         * Encodes the given bytes as a base58 string (no checksum is appended).
-         *
-         * @param input the bytes to encode
-         * @return the base58-encoded string
-         */
-        @NonNull
-        public static String encode(@NonNull byte[] input) {
-            if (input.length == 0) {
-                return "";
-            }
-            // Count leading zeros.
-            int zeros = 0;
-            while (zeros < input.length && input[zeros] == 0) {
-                ++zeros;
-            }
-            // Convert base-256 digits to base-58 digits (plus conversion to ASCII characters)
-            input = Arrays.copyOf(input, input.length); // since we modify it in-place
-            char[] encoded = new char[input.length * 2]; // upper bound
-            int outputStart = encoded.length;
-            for (int inputStart = zeros; inputStart < input.length; ) {
-                encoded[--outputStart] = ALPHABET[divmod(input, inputStart, 256, 58)];
-                if (input[inputStart] == 0) {
-                    ++inputStart; // optimization - skip leading zeros
-                }
-            }
-            // Preserve exactly as many leading encoded zeros in output as there were leading zeros in input.
-            while (outputStart < encoded.length && encoded[outputStart] == ENCODED_ZERO) {
-                ++outputStart;
-            }
-            while (--zeros >= 0) {
-                encoded[--outputStart] = ENCODED_ZERO;
-            }
-            // Return encoded string (including encoded leading zeros).
-            return new String(encoded, outputStart, encoded.length - outputStart);
-        }
-
-        @NonNull
-        public static byte[] decode(@NonNull String input) throws IllegalArgumentException {
-            if (input.length() == 0) {
-                return new byte[0];
-            }
-            // Convert the base58-encoded ASCII chars to a base58 byte sequence (base58 digits).
-            byte[] input58 = new byte[input.length()];
-            for (int i = 0; i < input.length(); ++i) {
-                char c = input.charAt(i);
-                int digit = c < 128 ? INDEXES[c] : -1;
-                if (digit < 0) {
-                    throw new IllegalArgumentException("Invalid character");
-                }
-                input58[i] = (byte) digit;
-            }
-            // Count leading zeros.
-            int zeros = 0;
-            while (zeros < input58.length && input58[zeros] == 0) {
-                ++zeros;
-            }
-            // Convert base-58 digits to base-256 digits.
-            byte[] decoded = new byte[input.length()];
-            int outputStart = decoded.length;
-            for (int inputStart = zeros; inputStart < input58.length; ) {
-                decoded[--outputStart] = divmod(input58, inputStart, 58, 256);
-                if (input58[inputStart] == 0) {
-                    ++inputStart; // optimization - skip leading zeros
-                }
-            }
-            // Ignore extra leading zeroes that were added during the calculation.
-            while (outputStart < decoded.length && decoded[outputStart] == 0) {
-                ++outputStart;
-            }
-            // Return decoded data (including original number of leading zeros).
-            return Arrays.copyOfRange(decoded, outputStart - zeros, decoded.length);
-        }
-
-        /**
-         * Divides a number, represented as an array of bytes each containing a single digit
-         * in the specified base, by the given divisor. The given number is modified in-place
-         * to contain the quotient, and the return value is the remainder.
-         *
-         * @param number     the number to divide
-         * @param firstDigit the index within the array of the first non-zero digit
-         *                   (this is used for optimization by skipping the leading zeros)
-         * @param base       the base in which the number's digits are represented (up to 256)
-         * @param divisor    the number to divide by (up to 256)
-         * @return the remainder of the division operation
-         */
-        private static byte divmod(@NonNull byte[] number, int firstDigit, int base, int divisor) {
-            // this is just long division which accounts for the base of the input digits
-            int remainder = 0;
-            for (int i = firstDigit; i < number.length; i++) {
-                int digit = (int) number[i] & 0xFF;
-                int temp = remainder * base + digit;
-                number[i] = (byte) (temp / divisor);
-                remainder = temp % divisor;
-            }
-            return (byte) remainder;
-        }
-    }
 }

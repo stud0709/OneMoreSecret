@@ -24,6 +24,7 @@ import android.widget.Toast;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.biometric.BiometricPrompt;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
@@ -32,6 +33,8 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.onemoresecret.crypto.AESUtil;
+import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
 import com.onemoresecret.databinding.FragmentQrBinding;
@@ -39,12 +42,19 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.KeyStoreException;
 import java.util.BitSet;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
@@ -80,7 +90,7 @@ public class QRFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        if(requireActivity().getSupportFragmentManager().getBackStackEntryCount() != 0) {
+        if (requireActivity().getSupportFragmentManager().getBackStackEntryCount() != 0) {
             Log.w(TAG, "Discarding back stack");
             Util.discardBackStack(this);
         }
@@ -99,7 +109,7 @@ public class QRFragment extends Fragment {
 
         binding.txtAppVersion.setText(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
 
-        if(BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
+        if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
             binding.swZxing.setVisibility(View.GONE);
         }
 
@@ -317,6 +327,9 @@ public class QRFragment extends Fragment {
         try (var bais = new ByteArrayInputStream(bArr);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
+            var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
+            var cipherText = dataInputStream.readByteArray();
+
             var bundle = new Bundle();
             bundle.putByteArray(ARG_MESSAGE, bArr);
             var navController = NavHostFragment.findNavController(QRFragment.this);
@@ -329,11 +342,9 @@ public class QRFragment extends Fragment {
                     navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
                 };
             } else {
-                //(1) application ID
-                var applicationId = dataInputStream.readUnsignedShort();
-                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
+                Log.d(TAG, "Application-ID: " + Integer.toHexString(rsaAesEnvelope.applicationId()));
 
-                switch (applicationId) {
+                switch (rsaAesEnvelope.applicationId()) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
                         //key import is not PIN protected
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
@@ -347,9 +358,14 @@ public class QRFragment extends Fragment {
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         };
                     }
-                    default -> Log.d(TAG,
+                    case MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                        showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
+                                rsaAesEnvelope.rsaTransormation(),
+                                getAuthenticationCallback(rsaAesEnvelope, cipherText));
+                    }
+                    default -> Log.e(TAG,
                             "No processor defined for application ID " +
-                                    Integer.toHexString(applicationId)
+                                    Integer.toHexString(rsaAesEnvelope.applicationId())
                     );
                 }
             }
@@ -500,7 +516,7 @@ public class QRFragment extends Fragment {
                     NavHostFragment.findNavController(QRFragment.this)
                             .navigate(R.id.action_QRFragment_to_pinSetupFragment);
                 }
-            }else if(menuItem.getItemId() == R.id.menuItemCryptoAdrGen) {
+            } else if (menuItem.getItemId() == R.id.menuItemCryptoAdrGen) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_cryptoCurrencyAddressGenerator);
             } else {
@@ -508,6 +524,116 @@ public class QRFragment extends Fragment {
             }
 
             return true;
+        }
+    }
+
+    public void showBiometricPromptForDecryption(byte[] fingerprint,
+                                                 String rsaTransformation,
+                                                 BiometricPrompt.AuthenticationCallback authenticationCallback) throws KeyStoreException {
+        var cryptographyManager = new CryptographyManager();
+        var aliases = cryptographyManager.getByFingerprint(fingerprint);
+
+        if (aliases.isEmpty())
+            throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
+
+        if (aliases.size() > 1)
+            throw new NoSuchElementException(requireContext().getString(R.string.multiple_keys_found));
+
+        var biometricPrompt = new BiometricPrompt(requireActivity(), authenticationCallback);
+        var alias = aliases.get(0);
+
+        var promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle(requireContext().getString(R.string.prompt_info_title))
+                .setSubtitle(String.format(requireContext().getString(R.string.prompt_info_subtitle), alias))
+                .setDescription(requireContext().getString(R.string.prompt_info_description))
+                .setNegativeButtonText(requireContext().getString(android.R.string.cancel))
+                .setConfirmationRequired(false)
+                .build();
+
+        var cipher = new CryptographyManager().getInitializedCipherForDecryption(
+                alias, rsaTransformation);
+
+        requireContext().getMainExecutor().execute(() -> {
+            biometricPrompt.authenticate(
+                    promptInfo,
+                    new BiometricPrompt.CryptoObject(cipher));
+        });
+    }
+
+    private BiometricPrompt.AuthenticationCallback getAuthenticationCallback(MessageComposer.RsaAesEnvelope rsaAesEnvelope,
+                                                                             byte[] cipherText) {
+        return new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                messageReceived.set(false);
+                nextPinRequestTimestamp = 0;
+                Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode));
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(requireContext(), errString + " (" + errorCode + ")", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+
+                try {
+                    assert cipher != null;
+                    var aesSecretKeyData = cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey());
+                    var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+
+                    var payload = AESUtil.process(Cipher.DECRYPT_MODE, cipherText,
+                            aesSecretKey,
+                            new IvParameterSpec(rsaAesEnvelope.iv()),
+                            rsaAesEnvelope.aesTransformation());
+
+                    //payload starts with its own application identifier.
+                    afterDecrypt(rsaAesEnvelope, payload);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    Toast.makeText(requireActivity(),
+                            ex.getMessage() == null ?
+                                    String.format(requireContext().getString(R.string.authentication_failed_s), ex.getClass().getName()) :
+                                    ex.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                messageReceived.set(false);
+                nextPinRequestTimestamp = 0;
+                Log.d(TAG,
+                        "User biometrics rejected");
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(requireContext(), requireContext().getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
+                });
+            }
+        };
+    }
+
+    private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope, byte[] payload) throws IOException {
+        try (var bais = new ByteArrayInputStream(payload);
+             var dataInputStream = new OmsDataInputStream(bais)) {
+
+            switch (rsaAesEnvelope.applicationId()) {
+                case MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                    //(1) - application identifier Payload
+                    var applicationId = dataInputStream.readUnsignedShort();
+
+                    Log.d(TAG, "payload AI " + applicationId);
+
+                    switch (applicationId) {
+                        case MessageComposer.APPLICATION_BITCOIN_ADDRESS -> {
+                            //TODO
+                        }
+                    }
+                }
+                default -> {
+                    //legacy formats - TODO
+                }
+            }
+
         }
     }
 }

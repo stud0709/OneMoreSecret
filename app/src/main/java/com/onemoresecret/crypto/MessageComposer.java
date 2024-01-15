@@ -1,7 +1,12 @@
 package com.onemoresecret.crypto;
 
-import com.onemoresecret.OmsDataOutputStream;
+import android.util.Log;
 
+import com.onemoresecret.OmsDataInputStream;
+import com.onemoresecret.OmsDataOutputStream;
+import com.onemoresecret.Util;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -18,6 +23,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 public abstract class MessageComposer {
+    private static final String TAG = MessageComposer.class.getSimpleName();
     public static final int
             APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER = 0,
             APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1,
@@ -100,6 +106,27 @@ public abstract class MessageComposer {
             InvalidKeyException,
             InvalidAlgorithmParameterException {
 
+        return createRsaAesEnvelope(MessageComposer.APPLICATION_RSA_AES_GENERIC,
+                rsaPublicKey,
+                rsaTransformationIdx,
+                aesKeyLength,
+                aesTransformationIdx,
+                payload);
+    }
+
+    public static byte[] createRsaAesEnvelope(int applicationId,
+                                              RSAPublicKey rsaPublicKey,
+                                              int rsaTransformationIdx,
+                                              int aesKeyLength,
+                                              int aesTransformationIdx,
+                                              byte[] payload) throws
+            NoSuchAlgorithmException,
+            NoSuchPaddingException,
+            IllegalBlockSizeException,
+            BadPaddingException,
+            InvalidKeyException,
+            InvalidAlgorithmParameterException {
+
         // init AES
         var iv = AESUtil.generateIv();
         var secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
@@ -113,7 +140,7 @@ public abstract class MessageComposer {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
             // (1) application-ID
-            dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_RSA_AES_GENERIC);
+            dataOutputStream.writeUnsignedShort(applicationId);
 
             // (2) RSA transformation index
             dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
@@ -138,5 +165,37 @@ public abstract class MessageComposer {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public record RsaAesEnvelope(int applicationId, String rsaTransormation, byte[] fingerprint,
+                                 String aesTransformation, byte[] iv, byte[] encryptedAesSecretKey) {
+    }
+
+    public static RsaAesEnvelope readRsaAesEnvelope(OmsDataInputStream dataInputStream) throws IOException {
+        //(1) Application ID
+        var applicationId = dataInputStream.readUnsignedShort();
+
+        //(2) RSA transformation index
+        var rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+        Log.d(TAG, "RSA transformation: " + rsaTransformation);
+
+        //(3) RSA fingerprint
+        var fingerprint = dataInputStream.readByteArray();
+        Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
+
+        // (4) AES transformation index
+        var aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+        Log.d(TAG, "AES transformation: " + aesTransformation);
+
+        //(5) IV
+        var iv = dataInputStream.readByteArray();
+        Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
+
+        //(6) RSA-encrypted AES secret key
+        var encryptedAesSecretKey = dataInputStream.readByteArray();
+
+        //(7) AES-encrypted message <= leave here
+
+        return new RsaAesEnvelope(applicationId, rsaTransformation, fingerprint, aesTransformation, iv, encryptedAesSecretKey);
     }
 }

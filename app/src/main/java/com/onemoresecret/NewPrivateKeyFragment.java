@@ -156,7 +156,9 @@ public class NewPrivateKeyFragment extends Fragment {
     private String getKeyBackupHtml(String alias, byte[] fingerprint, byte[] message) throws WriterException, IOException {
         var stringBuilder = new StringBuilder();
 
-        var list = QRUtil.getQrSequence(MessageComposer.encodeAsOmsText(message), QRUtil.getChunkSize(preferences), QRUtil.getBarcodeSize(preferences));
+        var list = QRUtil.getQrSequence(MessageComposer.encodeAsOmsText(message),
+                QRUtil.getChunkSize(preferences),
+                QRUtil.getBarcodeSize(preferences));
 
         stringBuilder
                 .append("<html><body><h1>")
