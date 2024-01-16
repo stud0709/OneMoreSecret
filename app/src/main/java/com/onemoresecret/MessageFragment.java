@@ -25,7 +25,6 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -114,20 +113,19 @@ public class MessageFragment extends Fragment {
 
     private void onMessage() {
         byte[] messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE);
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(requireArguments().getByteArray(QRFragment.ARG_MESSAGE));
-             var dataInputStream = new OmsDataInputStream(bais)) {
+        int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
 
-            //(1) Application ID
-            var applicationId = dataInputStream.readUnsignedShort();
-
+        try {
             switch (applicationId) {
-                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER -> {
+                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                        MessageComposer.APPLICATION_ENCRYPTED_MESSAGE -> {
                     messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
                 }
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {
                     messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
                 }
-                case MessageComposer.APPLICATION_TOTP_URI_TRANSFER -> {
+                case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
+                        MessageComposer.APPLICATION_TOTP_URI -> {
                     messageFragmentPlugin = new MsgPluginTotp(this, messageData);
                 }
                 default ->

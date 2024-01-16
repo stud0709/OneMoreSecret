@@ -20,7 +20,7 @@ import androidx.recyclerview.selection.SelectionTracker;
 
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedMessageTransfer;
+import com.onemoresecret.crypto.EncryptedMessage;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentEncryptTextBinding;
@@ -120,7 +120,7 @@ public class EncryptTextFragment extends Fragment {
         return alias -> {
             try {
                 var encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedMessageTransfer(phrase.getBytes(StandardCharsets.UTF_8),
+                        new EncryptedMessage(phrase.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),

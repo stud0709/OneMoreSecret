@@ -6,7 +6,6 @@ import com.onemoresecret.OmsDataInputStream;
 import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.Util;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -21,13 +20,15 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 
 public abstract class MessageComposer {
     private static final String TAG = MessageComposer.class.getSimpleName();
     public static final int
             APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER = 0,
-            APPLICATION_ENCRYPTED_MESSAGE_TRANSFER = 1,
-            APPLICATION_TOTP_URI_TRANSFER = 2,
+            APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED = 1,
+            APPLICATION_TOTP_URI_DEPRECATED = 2,
             APPLICATION_ENCRYPTED_FILE = 3,
             APPLICATION_KEY_REQUEST = 4,
             APPLICATION_KEY_RESPONSE = 5,
@@ -36,7 +37,9 @@ public abstract class MessageComposer {
      * The generic message will only allow to decrypt it, all other information will be found inside.
      */
     APPLICATION_RSA_AES_GENERIC = 6,
-            APPLICATION_BITCOIN_ADDRESS = 7;
+            APPLICATION_BITCOIN_ADDRESS = 7,
+            APPLICATION_ENCRYPTED_MESSAGE = 8,
+            APPLICATION_TOTP_URI = 9;
 
     /**
      * Prefix of a text encoded message.
@@ -127,6 +130,44 @@ public abstract class MessageComposer {
             InvalidKeyException,
             InvalidAlgorithmParameterException {
 
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
+
+            var aesEncryptionParameters = prepareRsaAesEnvelope(
+                    dataOutputStream,
+                    applicationId,
+                    rsaPublicKey,
+                    rsaTransformationIdx,
+                    aesKeyLength,
+                    aesTransformationIdx);
+
+            // (7) AES-encrypted message
+            dataOutputStream.writeByteArray(
+                    AESUtil.process(
+                            Cipher.ENCRYPT_MODE,
+                            payload,
+                            aesEncryptionParameters.secretKey(),
+                            aesEncryptionParameters.iv(),
+                            AesTransformation.values()[aesTransformationIdx].transformation));
+
+            return baos.toByteArray();
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public record AesEncryptionParameters(SecretKey secretKey, IvParameterSpec iv) {
+    }
+
+    public static AesEncryptionParameters prepareRsaAesEnvelope(OmsDataOutputStream dataOutputStream,
+                                                                int applicationId,
+                                                                RSAPublicKey rsaPublicKey,
+                                                                int rsaTransformationIdx,
+                                                                int aesKeyLength,
+                                                                int aesTransformationIdx) throws
+            NoSuchAlgorithmException,
+            IOException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+
         // init AES
         var iv = AESUtil.generateIv();
         var secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
@@ -137,38 +178,33 @@ public abstract class MessageComposer {
 
         var encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
 
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-            // (1) application-ID
-            dataOutputStream.writeUnsignedShort(applicationId);
+        // (1) application-ID
+        dataOutputStream.writeUnsignedShort(applicationId);
 
-            // (2) RSA transformation index
-            dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
+        // (2) RSA transformation index
+        dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
 
-            // (3) fingerprint
-            dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey));
+        // (3) fingerprint
+        dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey));
 
-            // (4) AES transformation index
-            dataOutputStream.writeUnsignedShort(aesTransformationIdx);
+        // (4) AES transformation index
+        dataOutputStream.writeUnsignedShort(aesTransformationIdx);
 
-            // (5) IV
-            dataOutputStream.writeByteArray(iv.getIV());
+        // (5) IV
+        dataOutputStream.writeByteArray(iv.getIV());
 
-            // (6) RSA-encrypted AES secret key
-            dataOutputStream.writeByteArray(encryptedSecretKey);
+        // (6) RSA-encrypted AES secret key
+        dataOutputStream.writeByteArray(encryptedSecretKey);
 
-            // (7) AES-encrypted message
-            dataOutputStream.writeByteArray(AESUtil.process(Cipher.ENCRYPT_MODE, payload, secretKey, iv,
-                    AesTransformation.values()[aesTransformationIdx].transformation));
-
-            return baos.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        return new AesEncryptionParameters(secretKey, iv);
     }
 
-    public record RsaAesEnvelope(int applicationId, String rsaTransormation, byte[] fingerprint,
-                                 String aesTransformation, byte[] iv, byte[] encryptedAesSecretKey) {
+    public record RsaAesEnvelope(int applicationId,
+                                 String rsaTransormation,
+                                 byte[] fingerprint,
+                                 String aesTransformation,
+                                 byte[] iv,
+                                 byte[] encryptedAesSecretKey) {
     }
 
     public static RsaAesEnvelope readRsaAesEnvelope(OmsDataInputStream dataInputStream) throws IOException {

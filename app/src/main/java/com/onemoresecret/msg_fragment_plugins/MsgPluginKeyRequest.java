@@ -6,7 +6,6 @@ import android.widget.Toast;
 
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.HiddenTextFragment;
 import com.onemoresecret.MessageFragment;
@@ -18,7 +17,6 @@ import com.onemoresecret.Util;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.crypto.RsaTransformation;
-import com.onemoresecret.databinding.FragmentMessageBinding;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,12 +26,11 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 
 public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
-    protected String description;
+    protected String reference;
     protected PublicKey rsaPublicKey;
     protected final SharedPreferences preferences;
     protected byte[] cipherText;
@@ -50,8 +47,8 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     }
 
     @Override
-    public String getDescription() {
-        return String.format(context.getString(R.string.reference), description);
+    public String getReference() {
+        return String.format(context.getString(R.string.reference), reference);
     }
 
     @Override
@@ -64,7 +61,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
             assert applicationId == MessageComposer.APPLICATION_KEY_REQUEST;
 
             //(2) reference (e.g. file name)
-            description = dataInputStream.readString();
+            reference = dataInputStream.readString();
 
             //(3) RSA public key
             rsaPublicKey = RSAUtils.restorePublicKey(dataInputStream.readByteArray());
@@ -109,7 +106,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
                 var base64Message = Base64.getEncoder().encodeToString(baos.toByteArray());
 
                 var hiddenTextFragment = (HiddenTextFragment) messageView;
-                hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), description));
+                hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
 
                 ((OutputFragment) outputView).setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
 

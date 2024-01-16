@@ -13,40 +13,43 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class EncryptedCryptoCurrencyAddress {
+public class EncryptedMessage {
     private final byte[] message;
 
-    public EncryptedCryptoCurrencyAddress(int ai,
-                                          byte[] privateKey,
-                                          RSAPublicKey rsaPublicKey,
-                                          int rsaTransformationIdx,
-                                          int aesKeyLength,
-                                          int aesTransformationIdx)
+    public EncryptedMessage(byte[] message,
+                            RSAPublicKey rsaPublicKey,
+                            int rsaTransformationIdx,
+                            int aesKeyLength,
+                            int aesTransformationIdx)
             throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
-        super();
 
-        this.message = MessageComposer.createRsaAesEnvelope(rsaPublicKey,
+        this.message = MessageComposer.createRsaAesEnvelope(
+                rsaPublicKey,
                 rsaTransformationIdx,
                 aesKeyLength,
                 aesTransformationIdx,
-                createPayload(ai, privateKey));
+                createPayload(getApplicationId(), message));
     }
 
-    private byte[] createPayload(int ai, byte[] privateKey) {
+    private byte[] createPayload(int ai, byte[] message) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
 
             // (1) the real Application Identifier
             dataOutputStream.writeUnsignedShort(ai);
 
-            // (2) private key as byte array
-            dataOutputStream.writeByteArray(privateKey);
+            // (2) message key as byte array
+            dataOutputStream.writeByteArray(message);
 
             return baos.toByteArray();
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    protected int getApplicationId() {
+        return MessageComposer.APPLICATION_ENCRYPTED_MESSAGE;
     }
 
     public byte[] getMessage() {

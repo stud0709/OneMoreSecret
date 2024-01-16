@@ -42,7 +42,6 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.security.KeyStoreException;
 import java.util.BitSet;
 import java.util.NoSuchElementException;
@@ -74,8 +73,8 @@ public class QRFragment extends Fragment {
             ARG_FILESIZE = "FILESIZE",
             ARG_URI = "URI",
             ARG_MESSAGE = "MESSAGE",
-            ARG_TEXT = "TEXT";
-
+            ARG_TEXT = "TEXT",
+            ARG_APPLICATION_ID = "AI";
 
     @Override
     public View onCreateView(
@@ -322,62 +321,58 @@ public class QRFragment extends Fragment {
             return;
         }
 
-        Runnable pinProtectedRunnable = null;
-
         try (var bais = new ByteArrayInputStream(bArr);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
-            var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
-            var cipherText = dataInputStream.readByteArray();
+            var applicationId = dataInputStream.readUnsignedShort();
 
             var bundle = new Bundle();
             bundle.putByteArray(ARG_MESSAGE, bArr);
+            bundle.putInt(ARG_APPLICATION_ID, applicationId);
             var navController = NavHostFragment.findNavController(QRFragment.this);
 
             //other supported formats?
             if (new OneTimePassword(message).isValid()) {
                 //time based OTP
-                pinProtectedRunnable = () -> {
-                    Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
-                    navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
-                };
+                Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
+                navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
             } else {
-                Log.d(TAG, "Application-ID: " + Integer.toHexString(rsaAesEnvelope.applicationId()));
+                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
-                switch (rsaAesEnvelope.applicationId()) {
+                switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
                         //key import is not PIN protected
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
-                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_TRANSFER,
-                            MessageComposer.APPLICATION_TOTP_URI_TRANSFER,
-                            MessageComposer.APPLICATION_KEY_REQUEST -> {
-                        pinProtectedRunnable = () -> {
-                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                            navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                        };
+                    case MessageComposer.APPLICATION_KEY_REQUEST -> {
+                        //this one uses a custom header, therefore it cannot be adapted to the generic procedure
+                        runPinProtected(() -> {
+                                    Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                                    navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                                }, () -> messageReceived.set(false) /* enable message processing again */,
+                                true);
                     }
-                    case MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                    case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                            MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
+                            MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                        dataInputStream.reset();
+                        var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
+                        //(7) - cipher text
+                        var cipherText = dataInputStream.readByteArray();
                         showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
                                 rsaAesEnvelope.rsaTransormation(),
                                 getAuthenticationCallback(rsaAesEnvelope, cipherText));
                     }
                     default -> Log.e(TAG,
                             "No processor defined for application ID " +
-                                    Integer.toHexString(rsaAesEnvelope.applicationId())
+                                    Integer.toHexString(applicationId)
                     );
                 }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
-        //PIN protected functions
-        if (pinProtectedRunnable != null)
-            runPinProtected(pinProtectedRunnable,
-                    () -> messageReceived.set(false) /* enable message processing again */,
-                    true);
     }
 
     private void runPinProtected(Runnable onSuccess,
@@ -612,9 +607,15 @@ public class QRFragment extends Fragment {
         };
     }
 
-    private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope, byte[] payload) throws IOException {
+    private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope, byte[] payload) throws Exception {
         try (var bais = new ByteArrayInputStream(payload);
              var dataInputStream = new OmsDataInputStream(bais)) {
+
+            Runnable pinProtectedRunnable;
+
+            var bundle = new Bundle();
+            bundle.putByteArray(ARG_MESSAGE, payload);
+            var navController = NavHostFragment.findNavController(QRFragment.this);
 
             switch (rsaAesEnvelope.applicationId()) {
                 case MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
@@ -622,18 +623,39 @@ public class QRFragment extends Fragment {
                     var applicationId = dataInputStream.readUnsignedShort();
 
                     Log.d(TAG, "payload AI " + applicationId);
+                    bundle.putInt(ARG_APPLICATION_ID, applicationId);
 
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS -> {
-                            //TODO
+                            pinProtectedRunnable = () -> {
+                                //TODO
+                            };
                         }
+                        default ->
+                                throw new IllegalArgumentException("No processor defined for application ID " +
+                                        Integer.toHexString(rsaAesEnvelope.applicationId())
+                                );
                     }
                 }
-                default -> {
-                    //legacy formats - TODO
+                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                        MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
+                    //support for legacy formats
+                    bundle.putInt(ARG_APPLICATION_ID, rsaAesEnvelope.applicationId());
+                    pinProtectedRunnable = () -> {
+                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                        navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                    };
                 }
+                default ->
+                        throw new IllegalArgumentException("No processor defined for application ID " +
+                                Integer.toHexString(rsaAesEnvelope.applicationId())
+                        );
             }
 
+            //PIN protected functions
+            runPinProtected(pinProtectedRunnable,
+                    () -> messageReceived.set(false) /* enable message processing again */,
+                    true);
         }
     }
 }

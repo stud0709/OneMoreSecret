@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,7 +25,7 @@ import androidx.recyclerview.selection.SelectionTracker;
 
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedMessageTransfer;
+import com.onemoresecret.crypto.EncryptedMessage;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentPasswordGeneratorBinding;
@@ -371,7 +370,7 @@ public class PasswordGeneratorFragment extends Fragment {
         return alias -> {
             try {
                 var encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedMessageTransfer(pwd.getBytes(StandardCharsets.UTF_8),
+                        new EncryptedMessage(pwd.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),

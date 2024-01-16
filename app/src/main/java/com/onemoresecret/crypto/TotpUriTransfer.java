@@ -9,7 +9,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class TotpUriTransfer extends EncryptedMessageTransfer {
+public class TotpUriTransfer extends EncryptedMessage {
     public TotpUriTransfer(byte[] message,
                            RSAPublicKey rsaPublicKey,
                            int rsaTransformationIdx,
@@ -27,6 +27,6 @@ public class TotpUriTransfer extends EncryptedMessageTransfer {
 
     @Override
     protected int getApplicationId() {
-        return APPLICATION_TOTP_URI_TRANSFER;
+        return MessageComposer.APPLICATION_TOTP_URI;
     }
 }

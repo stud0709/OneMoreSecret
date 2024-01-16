@@ -8,7 +8,6 @@ import androidx.annotation.NonNull;
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OutputFragment;
@@ -48,7 +47,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         return outputView;
     }
 
-    protected String getDescription() {
+    protected String getReference() {
         return null;
     }
 
@@ -68,7 +67,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         var promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(context.getString(R.string.prompt_info_title))
                 .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), alias))
-                .setDescription(Objects.requireNonNullElse(getDescription(), context.getString(R.string.prompt_info_description)))
+                .setDescription(Objects.requireNonNullElse(getReference(), context.getString(R.string.prompt_info_description)))
                 .setNegativeButtonText(context.getString(android.R.string.cancel))
                 .setConfirmationRequired(false)
                 .build();
