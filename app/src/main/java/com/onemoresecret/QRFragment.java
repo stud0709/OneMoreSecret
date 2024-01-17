@@ -44,6 +44,7 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 import java.io.ByteArrayInputStream;
 import java.security.KeyStoreException;
 import java.util.BitSet;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -360,9 +361,12 @@ public class QRFragment extends Fragment {
                         var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
                         //(7) - cipher text
                         var cipherText = dataInputStream.readByteArray();
-                        showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
-                                rsaAesEnvelope.rsaTransormation(),
-                                getAuthenticationCallback(rsaAesEnvelope, cipherText));
+                        runPinProtected(() -> {
+                                    showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
+                                            rsaAesEnvelope.rsaTransormation(),
+                                            getAuthenticationCallback(rsaAesEnvelope, cipherText));
+                                }, () -> messageReceived.set(false) /* enable message processing again */,
+                                true);
                     }
                     default -> Log.e(TAG,
                             "No processor defined for application ID " +
@@ -524,15 +528,20 @@ public class QRFragment extends Fragment {
 
     public void showBiometricPromptForDecryption(byte[] fingerprint,
                                                  String rsaTransformation,
-                                                 BiometricPrompt.AuthenticationCallback authenticationCallback) throws KeyStoreException {
+                                                 BiometricPrompt.AuthenticationCallback authenticationCallback)  {
         var cryptographyManager = new CryptographyManager();
-        var aliases = cryptographyManager.getByFingerprint(fingerprint);
+        List<String> aliases;
+        try {
+            aliases = cryptographyManager.getByFingerprint(fingerprint);
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
 
         if (aliases.isEmpty())
             throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
 
         if (aliases.size() > 1)
-            throw new NoSuchElementException(requireContext().getString(R.string.multiple_keys_found));
+            throw new IllegalStateException(requireContext().getString(R.string.multiple_keys_found));
 
         var biometricPrompt = new BiometricPrompt(requireActivity(), authenticationCallback);
         var alias = aliases.get(0);
@@ -611,8 +620,6 @@ public class QRFragment extends Fragment {
         try (var bais = new ByteArrayInputStream(payload);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
-            Runnable pinProtectedRunnable;
-
             var bundle = new Bundle();
             bundle.putByteArray(ARG_MESSAGE, payload);
             var navController = NavHostFragment.findNavController(QRFragment.this);
@@ -627,9 +634,7 @@ public class QRFragment extends Fragment {
 
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS -> {
-                            pinProtectedRunnable = () -> {
-                                //TODO
-                            };
+                            //TODO
                         }
                         default ->
                                 throw new IllegalArgumentException("No processor defined for application ID " +
@@ -641,21 +646,13 @@ public class QRFragment extends Fragment {
                         MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
                     //support for legacy formats
                     bundle.putInt(ARG_APPLICATION_ID, rsaAesEnvelope.applicationId());
-                    pinProtectedRunnable = () -> {
-                        Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                        navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                    };
+                    Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                    navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                 }
                 default ->
                         throw new IllegalArgumentException("No processor defined for application ID " +
-                                Integer.toHexString(rsaAesEnvelope.applicationId())
-                        );
+                                Integer.toHexString(rsaAesEnvelope.applicationId()));
             }
-
-            //PIN protected functions
-            runPinProtected(pinProtectedRunnable,
-                    () -> messageReceived.set(false) /* enable message processing again */,
-                    true);
         }
     }
 }
