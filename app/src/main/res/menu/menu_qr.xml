@@ -55,6 +55,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:title="@string/logcat" />
+            <item
+                android:id="@+id/menuItemScreenshot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checkable="true"
+                android:checked="false"
+                android:title="@string/allow_screenshots" />
         </menu>
     </item>
     <item

@@ -19,6 +19,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -518,6 +519,23 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemCryptoAdrGen) {
                 NavHostFragment.findNavController(QRFragment.this)
                         .navigate(R.id.action_QRFragment_to_cryptoCurrencyAddressGenerator);
+            } else if (menuItem.getItemId() == R.id.menuItemScreenshot) {
+                menuItem.setChecked(!menuItem.isChecked());
+                if (menuItem.isChecked()) {
+                    requireActivity().
+                            getWindow().
+                            clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } else {
+                    requireActivity().
+                            getWindow().
+                            addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                }
+
+                requireContext().getMainExecutor().execute(
+                        () -> Toast.makeText(
+                                getContext(),
+                                String.format("Screenshots %s", menuItem.isChecked() ? "enabled" : "disabled"),
+                                Toast.LENGTH_LONG).show());
             } else {
                 return false;
             }
@@ -528,7 +546,7 @@ public class QRFragment extends Fragment {
 
     public void showBiometricPromptForDecryption(byte[] fingerprint,
                                                  String rsaTransformation,
-                                                 BiometricPrompt.AuthenticationCallback authenticationCallback)  {
+                                                 BiometricPrompt.AuthenticationCallback authenticationCallback) {
         var cryptographyManager = new CryptographyManager();
         List<String> aliases;
         try {
@@ -635,7 +653,9 @@ public class QRFragment extends Fragment {
                     bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());
 
                     switch (applicationId) {
-                        case MessageComposer.APPLICATION_BITCOIN_ADDRESS -> {
+                        case MessageComposer.APPLICATION_BITCOIN_ADDRESS,
+                                MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
+                                MessageComposer.APPLICATION_TOTP_URI -> {
                             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         }

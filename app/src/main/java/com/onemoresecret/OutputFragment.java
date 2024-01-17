@@ -84,6 +84,15 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         requireActivity().invalidateOptionsMenu();
     }
 
+    @Override
+    public void setBeforePause(@Nullable Runnable r) {
+        super.setBeforePause(() -> {
+            typing.set(false);
+            if (r != null)
+                r.run();
+        });
+    }
+
     public KeyboardLayout getSelectedLayout() {
         return (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
     }
@@ -300,12 +309,18 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                     .filter(s -> typing.get())
                     .flatMap(s -> s.get().stream())
                     .forEach(r -> {
-                        bluetoothController
-                                .getBluetoothHidDevice()
-                                .sendReport(
-                                        bluetoothDevice,
-                                        0,
-                                        r.report);
+                        try {
+                            bluetoothController
+                                    .getBluetoothHidDevice()
+                                    .sendReport(
+                                            bluetoothDevice,
+                                            0,
+                                            r.report);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            typing.set(false);
+                            return;
+                        }
 
                         try {
                             Thread.sleep(binding.swDelayedStrokes.isChecked() ? getKeyStrokeDelayOn() : getKeyStrokeDelayOff());

@@ -179,4 +179,5 @@
     <string name="public_address">Public Address</string>
     <string name="crypto_address_generator">BTC Address Generator</string>
     <string name="private_key_wif">"Private Key (WIF)"</string>
+    <string name="allow_screenshots">Allow Screenshots</string>
 </resources>
