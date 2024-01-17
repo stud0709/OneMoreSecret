@@ -35,8 +35,8 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     protected final SharedPreferences preferences;
     protected byte[] cipherText;
 
-    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws IOException {
-        super(messageFragment, messageData);
+    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData, int applicationId) throws Exception {
+        super(messageFragment, messageData, applicationId);
         preferences = activity.getPreferences(Context.MODE_PRIVATE);
     }
 
@@ -52,7 +52,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     }
 
     @Override
-    protected void init(byte[] messageData) throws IOException {
+    protected void init(byte[] messageData, int _applicationId) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(messageData);
              var dataInputStream = new OmsDataInputStream(bais)) {
 

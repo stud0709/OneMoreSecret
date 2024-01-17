@@ -31,14 +31,15 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     protected FragmentWithNotificationBeforePause outputView;
 
     public MessageFragmentPlugin(MessageFragment messageFragment,
-                                 T messageData) throws IOException {
+                                 T messageData,
+                                 int applicationId) throws Exception {
         this.messageFragment = messageFragment;
         this.context = messageFragment.requireContext();
         this.activity = messageFragment.requireActivity();
-        init(messageData);
+        init(messageData, applicationId);
     }
 
-    protected abstract void init(T messageData) throws IOException;
+    protected abstract void init(T messageData, int applicationId) throws Exception;
 
     public abstract Fragment getMessageView();
 

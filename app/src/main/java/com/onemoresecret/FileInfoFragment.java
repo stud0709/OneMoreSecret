@@ -23,11 +23,6 @@ public class FileInfoFragment extends Fragment {
         return binding.getRoot();
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-    }
-
     public void setValues(String filename, int filesize) {
         if (binding == null) return;
         binding.textViewFilenameValue.setText(filename);

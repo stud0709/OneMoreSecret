@@ -31,15 +31,19 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
     private final int filesize;
     private final Uri uri;
 
-    public MsgPluginEncryptedFile(MessageFragment messageFragment, Uri messageData, String filename, int filesize) throws IOException {
-        super(messageFragment, messageData);
+    public MsgPluginEncryptedFile(MessageFragment messageFragment,
+                                  Uri messageData,
+                                  int applicationId,
+                                  String filename,
+                                  int filesize) throws Exception {
+        super(messageFragment, messageData, applicationId);
         this.filename = filename;
         this.filesize = filesize;
         this.uri = messageData;
     }
 
     @Override
-    protected void init(Uri uri) throws IOException {
+    protected void init(Uri uri, int applicationId) throws IOException {
         try (InputStream is = context.getContentResolver().openInputStream(uri);
              var dataInputStream = new OmsDataInputStream(is)) {
             //read file header

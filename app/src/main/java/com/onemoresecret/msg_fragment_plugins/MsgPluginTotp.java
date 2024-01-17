@@ -12,8 +12,8 @@ import com.onemoresecret.crypto.OneTimePassword;
 import java.io.IOException;
 
 public class MsgPluginTotp extends MsgPluginEncryptedMessage {
-    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) throws IOException {
-        super(messageFragment, messageData);
+    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData, int applicationId) throws Exception {
+        super(messageFragment, messageData, applicationId);
     }
 
     @Override
@@ -23,7 +23,7 @@ public class MsgPluginTotp extends MsgPluginEncryptedMessage {
     }
 
     @Override
-    protected void init(byte[] bArr) {
+    protected void init(byte[] bArr, int applicationId) {
         context.getMainExecutor().execute(() -> {
             var message = new String(bArr);
             var totpFragment = ((TotpFragment) messageView);

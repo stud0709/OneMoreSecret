@@ -630,11 +630,14 @@ public class QRFragment extends Fragment {
                     var applicationId = dataInputStream.readUnsignedShort();
 
                     Log.d(TAG, "payload AI " + applicationId);
+
                     bundle.putInt(ARG_APPLICATION_ID, applicationId);
+                    bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());
 
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS -> {
-                            //TODO
+                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                            navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         }
                         default ->
                                 throw new IllegalArgumentException("No processor defined for application ID " +

@@ -20,12 +20,12 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.msg_fragment_plugins.MessageFragmentPlugin;
+import com.onemoresecret.msg_fragment_plugins.MsgPluginCryptoCurrencyAddress;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 
-import java.io.IOException;
 import java.util.Objects;
 
 import com.onemoresecret.databinding.FragmentMessageBinding;
@@ -97,14 +97,16 @@ public class MessageFragment extends Fragment {
     }
 
     private void onUri() {
+        int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
         var uri = (Uri) getArguments().getParcelable("URI");
         try {
             messageFragmentPlugin = new MsgPluginEncryptedFile(this,
                     uri,
+                    applicationId,
                     getArguments().getString(QRFragment.ARG_FILENAME),
                     getArguments().getInt(QRFragment.ARG_FILESIZE));
 
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             Util.discardBackStack(this);
@@ -118,20 +120,23 @@ public class MessageFragment extends Fragment {
         try {
             switch (applicationId) {
                 case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                        MessageComposer.APPLICATION_ENCRYPTED_MESSAGE -> {
-                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
-                }
-                case MessageComposer.APPLICATION_KEY_REQUEST -> {
-                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
-                }
+                        MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
+                        messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData, applicationId);
+
+                case MessageComposer.APPLICATION_KEY_REQUEST ->
+                        messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData, applicationId);
+
                 case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
-                        MessageComposer.APPLICATION_TOTP_URI -> {
-                    messageFragmentPlugin = new MsgPluginTotp(this, messageData);
-                }
+                        MessageComposer.APPLICATION_TOTP_URI ->
+                        messageFragmentPlugin = new MsgPluginTotp(this, messageData, applicationId);
+
+                case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
+                        messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData, applicationId);
+
                 default ->
                         throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             Util.discardBackStack(this);
@@ -155,14 +160,16 @@ public class MessageFragment extends Fragment {
         @Override
         public void onPrepareMenu(@NonNull Menu menu) {
             MenuProvider.super.onPrepareMenu(menu);
+            //visibility switch will only be shown if there are active observers
             menu.findItem(R.id.menuItemMsgVisibility).setVisible(hiddenState.hasActiveObservers());
+            menu.findItem(R.id.menuItemMsgVisibility).setIcon(hiddenState.getValue() ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
                 hiddenState.setValue(!hiddenState.getValue());
-                menuItem.setIcon(hiddenState.getValue() ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
+                requireActivity().invalidateOptionsMenu();
             } else if (menuItem.getItemId() == R.id.menuItemMsgHelp) {
                 Util.openUrl(R.string.decrypted_message_md_url, requireContext());
             } else {

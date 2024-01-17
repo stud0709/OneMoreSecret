@@ -122,7 +122,7 @@ public class BTCAddress {
 
     @NonNull
     public static byte[] toBTCAddress(@NonNull ECPublicKey publicKey) {
-        Log.d(TAG, "Generating bitcoin address, steps as of https://gobittest.appspot.com/Address");
+        // https://gobittest.appspot.com/Address
 
         var ecPoint = publicKey.getW();
         var x = toByte32.apply(ecPoint.getAffineX());
@@ -132,36 +132,22 @@ public class BTCAddress {
         System.arraycopy(x, 0, btcPublicKey, 1, x.length);
         System.arraycopy(y, 0, btcPublicKey, x.length + 1, y.length);
 
-        Log.d(TAG, "1: " + Util.byteArrayToHex(btcPublicKey, false).toUpperCase());
-
         //SHA-256 and RIPEMD digest
         var digest = ripeMD160.apply(
                 sha256.apply(btcPublicKey));
-
-        Log.d(TAG, "3: " + Util.byteArrayToHex(digest, false).toUpperCase());
 
         //prepend with version byte (0x00)
         var digestWithVersionByte = new byte[digest.length + 1];
         System.arraycopy(digest, 0, digestWithVersionByte, 1, digest.length);
 
-        Log.d(TAG, "4: " + Util.byteArrayToHex(digestWithVersionByte, false).toUpperCase());
-
         //calculate checksum
         var checksum = sha256.apply(sha256.apply(digestWithVersionByte));
-
-        Log.d(TAG, "6: " + Util.byteArrayToHex(checksum, false).toUpperCase());
 
         //BTC address = version byte + digest + first 4 bytes of the checksum
         var btcAddress = new byte[digestWithVersionByte.length + 4];
         System.arraycopy(digestWithVersionByte, 0, btcAddress, 0, digestWithVersionByte.length);
         //append first 4 bytes of digest
         System.arraycopy(checksum, 0, btcAddress, digestWithVersionByte.length, 4);
-
-        Log.d(TAG, "8: " + Util.byteArrayToHex(btcAddress, false).toUpperCase());
-
-        var btcAddressBase58 = Base58.encode(btcAddress);
-
-        Log.d(TAG, "9: " + btcAddressBase58);
 
         return btcAddress;
     }

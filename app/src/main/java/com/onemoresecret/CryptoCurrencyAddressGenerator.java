@@ -157,7 +157,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
 
                 stringBuilder
                         .append("<html><body><h1>")
-                        .append("OneMoreSecret &quot;Paper Wallet&quot;")
+                        .append("OneMoreSecret Cold Wallet")
                         .append("</h1>")
                         .append("<p>This is a hard copy of your Bitcoin Address <b>")
                         .append(btcAddress)
@@ -190,7 +190,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                 }
                 stringBuilder
                         .append("</p><p>")
-                        .append("Base64 Encoded Private Key:")
+                        .append("The same as text:")
                         .append("&nbsp;")
                         .append("</p><p style=\"font-family:monospace;\">");
 
@@ -217,7 +217,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
 
     private void setBitcoinAddress() {
         binding.textViewAddress.setText(address);
-        outputFragment.setMessage(address, getString(R.string.public_btc_address));
+        outputFragment.setMessage(address, getString(R.string.public_address));
     }
 
     @Override

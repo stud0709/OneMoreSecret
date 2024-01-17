@@ -1,6 +1,9 @@
 package com.onemoresecret.crypto;
 
+import android.util.Log;
+
 import com.onemoresecret.OmsDataOutputStream;
+import com.onemoresecret.Util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,6 +17,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 public class EncryptedCryptoCurrencyAddress {
+    private static final String TAG = EncryptedCryptoCurrencyAddress.class.getSimpleName();
     private final byte[] message;
 
     public EncryptedCryptoCurrencyAddress(int ai,
@@ -24,7 +28,6 @@ public class EncryptedCryptoCurrencyAddress {
                                           int aesTransformationIdx)
             throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
-        super();
 
         this.message = MessageComposer.createRsaAesEnvelope(rsaPublicKey,
                 rsaTransformationIdx,
