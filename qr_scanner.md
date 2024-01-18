@@ -13,3 +13,4 @@ Some smartphones (e.g. newer OnePlus devices) seem to be incompatible with the [
 - [Password Generator](password_generator.md)
 - [Encrypt Text](encrypt_text.md)
 - [PIN Setup and Phone Lock](pin_setup.md) (🔒)
+- [Bitcoin Address Generator](crypto_address_generator.md)

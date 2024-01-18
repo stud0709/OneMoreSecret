@@ -1,5 +1,5 @@
 # ![App Icon](/app/src/main/res/mipmap-xhdpi/ic_launcher.png) OneMoreSecret
-OneMoreSecret is a standalone security layer for your data (e.g. passwords, TOTP tokens, and files). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
+OneMoreSecret is a standalone security layer for your data (e.g. passwords, TOTP tokens, files, and Bitcoin private keys). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
 
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
