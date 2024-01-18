@@ -4,7 +4,7 @@ Personally, I am not into crypto currency, but nevertheless, it is a fascinating
 
 Anyway: if you need a Bitcoin Cold Wallet, you can now use *OneMoreSecret* for that. It will generate a Bitcoin key pair and protect the private key in the same manner as all other secrets, so you will need your mobile phone to [access](./crypto_address.md) it again. 
 
-Apart from that, you can also generate a backup file, ~~print it out and dig it in your garden~~.
+Apart from that, you can also generate a backup file (the private key data in it is also encrypted), ~~print it out and dig it in your garden~~.
 
 Before you ask: **NO, *OneMoreSecret* is not a crypto wallet**, it does not store your crypto currency keys on the device. 
 

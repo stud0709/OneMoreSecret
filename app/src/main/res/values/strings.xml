@@ -98,7 +98,7 @@
     <string name="decrypted_message_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/decrypted_message.md</string>
     <string name="key_import_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/key_import.md</string>
     <string name="new_private_key_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/new_private_key.md</string>
-    <string name="crypto_address_generator_url">https://github.com/stud0709/OneMoreSecret/blob/master/TODO.md</string>
+    <string name="crypto_address_generator_url">https://github.com/stud0709/OneMoreSecret/blob/master/crypto_address_generator.md</string>
     <string name="pin_setup_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/pin_setup.md</string>
     <string name="encrypt_file_md_url">https://github.com/stud0709/OneMoreSecret/blob/master/encrypt_file.md</string>
     <string name="help_auto_type">Help (Auto-Type)</string>
