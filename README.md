@@ -1,5 +1,5 @@
 # ![App Icon](/app/src/main/res/mipmap-xhdpi/ic_launcher.png) OneMoreSecret
-OneMoreSecret is a standalone security layer for your data (e.g. passwords, TOTP tokens, files, and Bitcoin private keys). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
+OneMoreSecret is a standalone security layer for your data (e.g. [passwords](password_generator.md), [TOTP tokens](totp_import.md), [files](encrypt_file.md), and [Bitcoin private keys](crypto_address_generator.md)). It leverages the Android Keystore system, turning your phone into a  [hardware security module](https://source.android.com/docs/security/features/keystore). In other words: with OneMoreSecret, you decrypt your secrets with your phone and your fingerprint. 
 
 ### Disclaimer
 This is a very early version of the software. Use it at your own risk. We'll do our best to keep the message formats unchanged and guarantee the backward compatibility. 
@@ -13,6 +13,8 @@ This is a very early version of the software. Use it at your own risk. We'll do 
 <a href="https://apt.izzysoft.de/fdroid/index/apk/com.onemoresecret/"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" style="width:200px;height:auto;" alt="Get it on IzzyOnDroid"></img></a>
 
 Try our ["Hello, World!" Tutorial](hello_world.md).
+
+👉 For every screen of the app there is a help page! See the context menu in the upper right corner.
 
 For feature requests and bug report, please open a [GitHub Issue](https://github.com/stud0709/OneMoreSecret/issues). 
 
