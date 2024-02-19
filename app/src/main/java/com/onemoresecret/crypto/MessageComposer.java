@@ -39,7 +39,8 @@ public abstract class MessageComposer {
     APPLICATION_RSA_AES_GENERIC = 6,
             APPLICATION_BITCOIN_ADDRESS = 7,
             APPLICATION_ENCRYPTED_MESSAGE = 8,
-            APPLICATION_TOTP_URI = 9;
+            APPLICATION_TOTP_URI = 9,
+            APPLICATION_WIFI_PAIRING = 10;
 
     /**
      * Prefix of a text encoded message.

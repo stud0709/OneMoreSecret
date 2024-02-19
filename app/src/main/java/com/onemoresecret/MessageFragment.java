@@ -29,6 +29,7 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 import java.util.Objects;
 
 import com.onemoresecret.databinding.FragmentMessageBinding;
+import com.onemoresecret.msg_fragment_plugins.MsgPluginWiFiPairing;
 
 public class MessageFragment extends Fragment {
     private static final String TAG = MessageFragment.class.getSimpleName();
@@ -70,24 +71,24 @@ public class MessageFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         requireActivity().addMenuProvider(menuProvider);
-
-        if (requireArguments().containsKey(QRFragment.ARG_MESSAGE)) {
-            onMessage();
-        } else if (requireArguments().containsKey(QRFragment.ARG_URI)) {
-            onUri();
-        }
-
-        messageFragmentPlugin.getOutputView().setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
-
-        //insert message and output view into fragment
-        this.getChildFragmentManager()
-                .beginTransaction()
-                .add(R.id.fragmentMessageView, messageFragmentPlugin.getMessageView())
-                .add(R.id.fragmentOutputView, messageFragmentPlugin.getOutputView())
-                .commit();
-
-        //request authentication
         try {
+            if (requireArguments().containsKey(QRFragment.ARG_MESSAGE)) {
+                onMessage();
+            } else if (requireArguments().containsKey(QRFragment.ARG_URI)) {
+                onUri();
+            }
+
+            messageFragmentPlugin.getOutputView().setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
+
+            //insert message and output view into fragment
+            this.getChildFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.fragmentMessageView, messageFragmentPlugin.getMessageView())
+                    .add(R.id.fragmentOutputView, messageFragmentPlugin.getOutputView())
+                    .commit();
+
+            //request authentication
+
             messageFragmentPlugin.showBiometricPromptForDecryption();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -96,50 +97,40 @@ public class MessageFragment extends Fragment {
         }
     }
 
-    private void onUri() {
+    private void onUri() throws Exception {
         int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
         var uri = (Uri) getArguments().getParcelable("URI");
-        try {
-            messageFragmentPlugin = new MsgPluginEncryptedFile(this,
-                    uri,
-                    applicationId,
-                    getArguments().getString(QRFragment.ARG_FILENAME),
-                    getArguments().getInt(QRFragment.ARG_FILESIZE));
 
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            Util.discardBackStack(this);
-        }
+        messageFragmentPlugin = new MsgPluginEncryptedFile(this,
+                uri,
+                applicationId,
+                getArguments().getString(QRFragment.ARG_FILENAME),
+                getArguments().getInt(QRFragment.ARG_FILESIZE));
     }
 
-    private void onMessage() {
+    private void onMessage() throws Exception {
         byte[] messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE);
         int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
 
-        try {
-            switch (applicationId) {
-                case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                        MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
-                        messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData, applicationId);
+        switch (applicationId) {
+            case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                    MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
+                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData, applicationId);
 
-                case MessageComposer.APPLICATION_KEY_REQUEST ->
-                        messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData, applicationId);
+            case MessageComposer.APPLICATION_KEY_REQUEST ->
+                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData, applicationId);
 
-                case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
-                        MessageComposer.APPLICATION_TOTP_URI ->
-                        messageFragmentPlugin = new MsgPluginTotp(this, messageData, applicationId);
+            case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
+                    MessageComposer.APPLICATION_TOTP_URI ->
+                    messageFragmentPlugin = new MsgPluginTotp(this, messageData, applicationId);
 
-                case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
-                        messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData, applicationId);
+            case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
+                    messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData, applicationId);
 
-                default ->
-                        throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            Util.discardBackStack(this);
+            case MessageComposer.APPLICATION_WIFI_PAIRING ->
+                    messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData, applicationId);
+            default ->
+                    throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
         }
     }
 

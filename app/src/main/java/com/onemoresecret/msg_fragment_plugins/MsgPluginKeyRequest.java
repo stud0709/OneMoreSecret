@@ -32,12 +32,10 @@ import javax.crypto.Cipher;
 public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     protected String reference;
     protected PublicKey rsaPublicKey;
-    protected final SharedPreferences preferences;
     protected byte[] cipherText;
 
     public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData, int applicationId) throws Exception {
         super(messageFragment, messageData, applicationId);
-        preferences = activity.getPreferences(Context.MODE_PRIVATE);
     }
 
     @Override

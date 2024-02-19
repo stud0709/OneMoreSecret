@@ -7,17 +7,22 @@ import androidx.annotation.NonNull;
 import com.onemoresecret.Util;
 
 import org.jetbrains.annotations.Contract;
+import org.spongycastle.asn1.DERSequence;
 import org.spongycastle.jce.ECNamedCurveTable;
 import org.spongycastle.jce.spec.ECPrivateKeySpec;
 import org.spongycastle.jce.spec.ECPublicKeySpec;
 
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Security;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
@@ -216,4 +221,26 @@ public class BTCAddress {
         return Arrays.copyOfRange(wif, 1, wif.length - 4);
     }
 
+    public static byte[] sign(byte[] data, ECPrivateKey privateKey) throws
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            SignatureException {
+        var signer = Signature.getInstance("SHA256withECDSA", "BC");
+        signer.initSign(privateKey);
+        signer.update(data);
+
+        return signer.sign();
+    }
+
+    public static boolean validate(ECPublicKey publicKey, byte[] data, byte[] signature) throws
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            SignatureException {
+        var signer = Signature.getInstance("SHA256withECDSA", "BC");
+        signer.initVerify(publicKey);
+        signer.update(data);
+        return signer.verify(signature);
+    }
 }

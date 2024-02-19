@@ -1,6 +1,7 @@
 package com.onemoresecret.msg_fragment_plugins;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -25,6 +26,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     protected final Context context;
     protected final FragmentActivity activity;
     protected byte[] fingerprint;
+    protected final SharedPreferences preferences;
     protected String rsaTransformation;
     protected final String TAG = getClass().getSimpleName();
     protected Fragment messageView;
@@ -36,6 +38,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
         this.messageFragment = messageFragment;
         this.context = messageFragment.requireContext();
         this.activity = messageFragment.requireActivity();
+        this.preferences = activity.getPreferences(Context.MODE_PRIVATE);
         init(messageData, applicationId);
     }
 

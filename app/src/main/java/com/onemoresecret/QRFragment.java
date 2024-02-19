@@ -43,7 +43,10 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
-import java.security.KeyStoreException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -78,6 +81,7 @@ public class QRFragment extends Fragment {
             ARG_TEXT = "TEXT",
             ARG_APPLICATION_ID = "AI";
 
+
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater, ViewGroup container,
@@ -109,10 +113,6 @@ public class QRFragment extends Fragment {
         requireActivity().addMenuProvider(menuProvider);
 
         binding.txtAppVersion.setText(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
-
-        if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
-            binding.swZxing.setVisibility(View.GONE);
-        }
 
         Intent intent = requireActivity().getIntent();
         if (intent != null) {
@@ -147,9 +147,20 @@ public class QRFragment extends Fragment {
             }
         };
 
-        binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
+        if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
+            binding.swZxing.setVisibility(View.GONE);
+        } else {
+            binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
+            binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
+        }
 
-        binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
+        ((MainActivity) requireActivity()).enableWiFiListener(this::onMessage);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        ((MainActivity) requireActivity()).destroyWiFiListener();
     }
 
     @Override
@@ -165,6 +176,8 @@ public class QRFragment extends Fragment {
         Log.d(TAG, "resuming...");
         //get ready to receive new messages
         messageReceived.set(false);
+
+        ((MainActivity) requireActivity()).enableWiFiListener(this::onMessage);
     }
 
     private boolean processIntent(Intent intent) {
@@ -421,6 +434,7 @@ public class QRFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        ((MainActivity) requireActivity()).destroyWiFiListener();
         requireActivity().removeMenuProvider(menuProvider);
         if (cameraProvider != null) cameraProvider.unbindAll();
         binding = null;
@@ -551,35 +565,41 @@ public class QRFragment extends Fragment {
         List<String> aliases;
         try {
             aliases = cryptographyManager.getByFingerprint(fingerprint);
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
+
+            if (aliases.isEmpty())
+                throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
+
+            if (aliases.size() > 1)
+                throw new IllegalStateException(requireContext().getString(R.string.multiple_keys_found));
+
+            var biometricPrompt = new BiometricPrompt(requireActivity(), authenticationCallback);
+            var alias = aliases.get(0);
+
+            var promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(requireContext().getString(R.string.prompt_info_title))
+                    .setSubtitle(String.format(requireContext().getString(R.string.prompt_info_subtitle), alias))
+                    .setDescription(requireContext().getString(R.string.prompt_info_description))
+                    .setNegativeButtonText(requireContext().getString(android.R.string.cancel))
+                    .setConfirmationRequired(false)
+                    .build();
+
+            var cipher = new CryptographyManager().getInitializedCipherForDecryption(
+                    alias, rsaTransformation);
+
+            requireContext().getMainExecutor().execute(() -> {
+                biometricPrompt.authenticate(
+                        promptInfo,
+                        new BiometricPrompt.CryptoObject(cipher));
+            });
+        } catch (Exception ex) {
+            messageReceived.set(false);
+            ex.printStackTrace();
+            requireContext().getMainExecutor().execute(() -> {
+                Toast.makeText(getContext(),
+                        Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                        Toast.LENGTH_LONG).show();
+            });
         }
-
-        if (aliases.isEmpty())
-            throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
-
-        if (aliases.size() > 1)
-            throw new IllegalStateException(requireContext().getString(R.string.multiple_keys_found));
-
-        var biometricPrompt = new BiometricPrompt(requireActivity(), authenticationCallback);
-        var alias = aliases.get(0);
-
-        var promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle(requireContext().getString(R.string.prompt_info_title))
-                .setSubtitle(String.format(requireContext().getString(R.string.prompt_info_subtitle), alias))
-                .setDescription(requireContext().getString(R.string.prompt_info_description))
-                .setNegativeButtonText(requireContext().getString(android.R.string.cancel))
-                .setConfirmationRequired(false)
-                .build();
-
-        var cipher = new CryptographyManager().getInitializedCipherForDecryption(
-                alias, rsaTransformation);
-
-        requireContext().getMainExecutor().execute(() -> {
-            biometricPrompt.authenticate(
-                    promptInfo,
-                    new BiometricPrompt.CryptoObject(cipher));
-        });
     }
 
     private BiometricPrompt.AuthenticationCallback getAuthenticationCallback(MessageComposer.RsaAesEnvelope rsaAesEnvelope,
@@ -613,6 +633,7 @@ public class QRFragment extends Fragment {
                     afterDecrypt(rsaAesEnvelope, payload);
                 } catch (Exception ex) {
                     ex.printStackTrace();
+                    messageReceived.set(false);
                     Toast.makeText(requireActivity(),
                             ex.getMessage() == null ?
                                     String.format(requireContext().getString(R.string.authentication_failed_s), ex.getClass().getName()) :
@@ -650,12 +671,22 @@ public class QRFragment extends Fragment {
                     Log.d(TAG, "payload AI " + applicationId);
 
                     bundle.putInt(ARG_APPLICATION_ID, applicationId);
-                    bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());
 
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                                 MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
                                 MessageComposer.APPLICATION_TOTP_URI -> {
+                            //(2) message
+                            bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());
+                            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                            navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+                        }
+                        case MessageComposer.APPLICATION_WIFI_PAIRING -> {
+                            //(2)...(n) structured data to be read from the remaining bytes
+                            var bArr = new byte[dataInputStream.available()];
+                            dataInputStream.read(bArr);
+                            bundle.putByteArray(ARG_MESSAGE, bArr);
+
                             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         }

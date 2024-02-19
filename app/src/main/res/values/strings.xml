@@ -180,4 +180,12 @@
     <string name="crypto_address_generator">BTC Address Generator</string>
     <string name="private_key_wif">"Private Key (WIF)"</string>
     <string name="allow_screenshots">Allow Screenshots</string>
+    <string name="pairing_info_request">This is a request to pair your OneMoreSecret with a PC. As you initiated the request, you entered a Request ID. Please make sure that the value shown below is the same:</string>
+    <string name="pairing_info_response">To confirm the connection, you will need the following response code. Please enter it into the QR pop-up on your PC (you can also use the TYPE button below):</string>
+    <string name="wifi_pairing_md_url">TODO</string>
+    <string name="wifi_is_disabled">WiFi is disabled</string>
+    <string name="no_network">No network</string>
+    <string name="not_on_wifi_network">Not on WiFi network</string>
+    <string name="accept_pairing">Accept Pairing</string>
+    <string name="pairing_accepted">Pairing Accepted</string>
 </resources>
