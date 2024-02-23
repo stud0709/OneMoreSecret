@@ -1,9 +1,11 @@
 package com.onemoresecret;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.Navigation;
@@ -11,30 +13,47 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.BTCAddress;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.ActivityMainBinding;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Objects;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private AppBarConfiguration appBarConfiguration;
-    public record WiFiComm(byte[] ipAdr, int port, RSAPrivateKey privateKey) {
+
+    public record WiFiComm(byte[] ipAdr, int port, RSAPrivateKey privateKey,
+                           RSAPublicKey publicKey) {
     }
+
     private WiFiComm wiFiComm = null;
+
     public void setWiFiComm(WiFiComm wiFiComm) {
+        destroyWiFiListener();
         this.wiFiComm = wiFiComm;
     }
+
     public WiFiComm getWiFiComm() {
         return wiFiComm;
     }
+
     private Thread wifiListener = null;
     private Socket socketWaitingForReply = null;
 
@@ -77,12 +96,49 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public Socket getSocketWaitingForReply() {
-        return socketWaitingForReply;
+    public boolean isSocketWaitingForReply() {
+        synchronized (MainActivity.class) {
+            return socketWaitingForReply != null && !socketWaitingForReply.isClosed();
+        }
     }
 
-    public void setSocketWaitingForReply(Socket socketWaitingForReply) {
-        this.socketWaitingForReply = socketWaitingForReply;
+    public void sendReplyViaSocket(byte[] data) {
+        synchronized (MainActivity.class) {
+            if (socketWaitingForReply == null || socketWaitingForReply.isClosed()) {
+                Log.w(TAG, "Socket waiting for reply not set or closed");
+                return;
+            }
+
+            Log.d(TAG, String.format("Sending %s bytes via socket waiting for reply", data.length));
+
+            var preferences = getPreferences(Context.MODE_PRIVATE);
+            try {
+                var reply = MessageComposer.createRsaAesEnvelope(
+                        wiFiComm.publicKey,
+                        RSAUtils.getRsaTransformationIdx(preferences),
+                        AESUtil.getKeyLength(preferences),
+                        AESUtil.getAesTransformationIdx(preferences),
+                        data);
+
+                var outputStream = socketWaitingForReply.getOutputStream();
+                outputStream.write(reply);
+                outputStream.flush();
+                outputStream.close();
+
+                Log.d(TAG, "Data successfully sent");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    socketWaitingForReply.close();
+                } catch (IOException ignored) {
+
+                } finally {
+                    socketWaitingForReply = null;
+                    Log.d(TAG, "Socket closed");
+                }
+            }
+        }
     }
 
     public void destroyWiFiListener() {
@@ -94,17 +150,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void enableWiFiListener(Consumer<String> messageConsumer) {
+    public void startWiFiListener(Consumer<String> messageConsumer) {
 
         synchronized (MainActivity.class) {
-            var socket = getSocketWaitingForReply();
-            if (socket != null && !socket.isClosed()) {
-                try {
-                    socket.close();
-                } catch (IOException ignored) {
-                } finally {
-                    setSocketWaitingForReply(null);
-                }
+            if (socketWaitingForReply != null && !socketWaitingForReply.isClosed()) {
+                Log.d(TAG, "Closing socket waiting for reply...");
+                //If we have gotten here, the message processing was cancelled.
+                //Notify the client sending an empty (though valid) reply
+
+                sendReplyViaSocket(new byte[]{});
             }
 
             destroyWiFiListener();
@@ -114,20 +168,27 @@ public class MainActivity extends AppCompatActivity {
                 var wiFiComm = getWiFiComm();
                 if (wiFiComm == null) return;
 
-                Log.d(TAG, "Starting WiFi Listener...");
+                Log.d(TAG, String.format("Starting WiFi Listener on port %s...", wiFiComm.port));
 
-                while (!Thread.currentThread().isInterrupted()) {
-                    try (ServerSocket serverSocket = new ServerSocket(wiFiComm.port())) {
-                        while (!Thread.currentThread().isInterrupted()) {
-                            try {
-                                onWiFiConnection(serverSocket.accept(), messageConsumer);
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
+                try (ServerSocket serverSocket = new ServerSocket()) {
+                    serverSocket.setReuseAddress(true); //get ready to reuse this socket
+                    serverSocket.bind(new InetSocketAddress(wiFiComm.port));
+
+                    while (!Thread.currentThread().isInterrupted()) {
+                        try {
+                            onWiFiConnection(serverSocket.accept(), messageConsumer);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
                         }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
                     }
+                } catch (Exception ex) {
+                    //server socket is broken
+                    ex.printStackTrace();
+                    this.getMainExecutor().execute(() -> {
+                        Toast.makeText(this,
+                                Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                                Toast.LENGTH_LONG).show();
+                    });
                 }
                 Log.d(TAG, "WiFi Listener has exited");
             });
@@ -139,39 +200,45 @@ public class MainActivity extends AppCompatActivity {
 
     private void onWiFiConnection(Socket socket, Consumer<String> messageConsumer) {
         Thread t = new Thread(() -> {
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Log.d(TAG, "Incoming socket connection");
+            try (OmsDataInputStream dataInputStream = new OmsDataInputStream(socket.getInputStream())) {
                 //a transaction consists of a request and a response. End of request is signalled by shutdownOutput on the socket
-                var bArr = new byte[1024];
-                int cnt;
-
-                while ((cnt = socket.getInputStream().read(bArr)) != -1) {
-                    baos.write(bArr, 0, cnt);
-                }
+                var envelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
 
                 //stream has been shut down
-                var msgBytes = baos.toByteArray();
-                var text = new String(msgBytes);
-                if (MessageComposer.decode(text) == null) {
-                    Log.d(TAG, "Received a valid message via WiFi");
-                    //it is an OMS message
-                    synchronized (MainActivity.class) {
-                        if (wifiListener == null)
-                            return; //smth. already happened, this process is obsolete
-                        setSocketWaitingForReply(socket);
-                        destroyWiFiListener();
-                    }
-                    messageConsumer.accept(text);
-                } else {
-                    Log.d(TAG, String.format("%d bytes received via WiFi, not a valid message", msgBytes.length));
-                    socket.close();
+                var encryptedMessage = dataInputStream.readByteArray();
+
+                Log.d(TAG, String.format("Message has been received, %s bytes", encryptedMessage.length));
+
+                synchronized (MainActivity.class) {
+                    if (wifiListener == null)
+                        return; //smth. already happened, this process is obsolete
+
+                    // decrypt AES key
+                    var aesSecretKeyData = RSAUtils.process(Cipher.DECRYPT_MODE, getWiFiComm().privateKey,
+                            envelope.rsaTransormation(), envelope.encryptedAesSecretKey());
+                    var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+
+                    // (7) AES-encrypted message
+                    var decryptedMessage = AESUtil.process(Cipher.DECRYPT_MODE, encryptedMessage, aesSecretKey,
+                            new IvParameterSpec(envelope.iv()), envelope.aesTransformation());
+
+                    //keep socket open, wait for the reply
+                    socketWaitingForReply = socket;
+
+                    messageConsumer.accept(MessageComposer.encodeAsOmsText(decryptedMessage));
                 }
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 ex.printStackTrace();
-                if (!socket.isClosed()) {
-                    try {
-                        socket.close();
-                    } catch (IOException ignored) {
-                    }
+                this.getMainExecutor().execute(() -> {
+                    Toast.makeText(this,
+                            Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                            Toast.LENGTH_LONG).show();
+                });
+                Log.d(TAG, "Closing socket");
+                try {
+                    socket.close();
+                } catch (IOException ignored) {
                 }
             }
         });

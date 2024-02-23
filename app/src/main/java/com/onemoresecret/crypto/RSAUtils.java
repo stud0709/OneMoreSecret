@@ -3,6 +3,7 @@ package com.onemoresecret.crypto;
 import android.content.SharedPreferences;
 
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -17,6 +18,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 public final class RSAUtils {
     public static final String PROP_RSA_TRANSFORMATION_IDX = "rsa_transformation_idx";
@@ -45,7 +47,7 @@ public final class RSAUtils {
         return (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
     }
 
-    public static byte[] process(int cipherMode, PublicKey rsaPublicKey, String transformation, byte[] data) throws
+    public static byte[] process(int cipherMode, Key key, String transformation, byte[] data) throws
             NoSuchPaddingException,
             NoSuchAlgorithmException,
             InvalidKeyException,
@@ -53,7 +55,7 @@ public final class RSAUtils {
             BadPaddingException {
 
         var cipher = Cipher.getInstance(transformation);
-        cipher.init(cipherMode, rsaPublicKey);
+        cipher.init(cipherMode, key);
 
         return cipher.doFinal(data);
     }

@@ -103,7 +103,6 @@ public class MessageFragment extends Fragment {
 
         messageFragmentPlugin = new MsgPluginEncryptedFile(this,
                 uri,
-                applicationId,
                 getArguments().getString(QRFragment.ARG_FILENAME),
                 getArguments().getInt(QRFragment.ARG_FILESIZE));
     }
@@ -115,20 +114,20 @@ public class MessageFragment extends Fragment {
         switch (applicationId) {
             case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                     MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
-                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData, applicationId);
+                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
 
             case MessageComposer.APPLICATION_KEY_REQUEST ->
-                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData, applicationId);
+                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
 
             case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                     MessageComposer.APPLICATION_TOTP_URI ->
-                    messageFragmentPlugin = new MsgPluginTotp(this, messageData, applicationId);
+                    messageFragmentPlugin = new MsgPluginTotp(this, messageData);
 
             case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
-                    messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData, applicationId);
+                    messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData);
 
             case MessageComposer.APPLICATION_WIFI_PAIRING ->
-                    messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData, applicationId);
+                    messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData);
             default ->
                     throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
         }
@@ -138,6 +137,7 @@ public class MessageFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
+        messageFragmentPlugin.onDestroyView();
         binding = null;
     }
 

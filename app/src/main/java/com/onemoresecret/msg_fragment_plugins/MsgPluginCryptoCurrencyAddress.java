@@ -21,13 +21,8 @@ public class MsgPluginCryptoCurrencyAddress extends MessageFragmentPlugin<byte[]
     private BTCAddress.BTCKeyPair keyPair;
 
     public MsgPluginCryptoCurrencyAddress(MessageFragment messageFragment,
-                                          byte[] messageData, int applicationId) throws Exception {
-
-        super(messageFragment, messageData, applicationId);
-    }
-
-    @Override
-    protected void init(byte[] wif, int applicationId) throws Exception {
+                                          byte[] wif) throws Exception {
+        super(messageFragment);
         keyPair = BTCAddress.toKeyPair(BTCAddress.toPrivateKey(wif)).toBTCKeyPair();
     }
 

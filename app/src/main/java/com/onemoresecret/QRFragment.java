@@ -153,8 +153,6 @@ public class QRFragment extends Fragment {
             binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
             binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
         }
-
-        ((MainActivity) requireActivity()).enableWiFiListener(this::onMessage);
     }
 
     @Override
@@ -177,7 +175,7 @@ public class QRFragment extends Fragment {
         //get ready to receive new messages
         messageReceived.set(false);
 
-        ((MainActivity) requireActivity()).enableWiFiListener(this::onMessage);
+        ((MainActivity) requireActivity()).startWiFiListener(this::onMessage);
     }
 
     private boolean processIntent(Intent intent) {

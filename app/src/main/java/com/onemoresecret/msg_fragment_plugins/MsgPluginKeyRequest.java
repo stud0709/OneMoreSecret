@@ -34,23 +34,8 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
     protected PublicKey rsaPublicKey;
     protected byte[] cipherText;
 
-    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData, int applicationId) throws Exception {
-        super(messageFragment, messageData, applicationId);
-    }
-
-    @Override
-    public Fragment getMessageView() {
-        if (messageView == null) messageView = new HiddenTextFragment();
-        return messageView;
-    }
-
-    @Override
-    public String getReference() {
-        return String.format(context.getString(R.string.reference), reference);
-    }
-
-    @Override
-    protected void init(byte[] messageData, int _applicationId) throws IOException {
+    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws Exception {
+        super(messageFragment);
         try (ByteArrayInputStream bais = new ByteArrayInputStream(messageData);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
@@ -75,6 +60,17 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Fragment getMessageView() {
+        if (messageView == null) messageView = new HiddenTextFragment();
+        return messageView;
+    }
+
+    @Override
+    public String getReference() {
+        return String.format(context.getString(R.string.reference), reference);
     }
 
     @Override

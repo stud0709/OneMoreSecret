@@ -71,7 +71,7 @@ public abstract class MessageComposer {
         var m = OMS_PATTERN.matcher(omsText);
 
         if (!m.find()) {
-            //TOT?
+            //TOTP?
             if (new OneTimePassword(omsText).isValid()) {
                 //this is a time based OTP, pass unchanged
                 return omsText.getBytes();

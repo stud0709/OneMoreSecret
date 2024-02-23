@@ -32,17 +32,12 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     protected Fragment messageView;
     protected FragmentWithNotificationBeforePause outputView;
 
-    public MessageFragmentPlugin(MessageFragment messageFragment,
-                                 T messageData,
-                                 int applicationId) throws Exception {
+    public MessageFragmentPlugin(MessageFragment messageFragment) {
         this.messageFragment = messageFragment;
         this.context = messageFragment.requireContext();
         this.activity = messageFragment.requireActivity();
         this.preferences = activity.getPreferences(Context.MODE_PRIVATE);
-        init(messageData, applicationId);
     }
-
-    protected abstract void init(T messageData, int applicationId) throws Exception;
 
     public abstract Fragment getMessageView();
 
@@ -104,5 +99,12 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
             Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
             Util.discardBackStack(messageFragment);
         });
+    }
+
+    /**
+     * Logic at {@link Fragment#onDestroyView()}
+     */
+    public void onDestroyView() {
+
     }
 }

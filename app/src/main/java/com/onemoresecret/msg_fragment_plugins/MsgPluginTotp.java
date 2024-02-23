@@ -12,20 +12,10 @@ import com.onemoresecret.crypto.OneTimePassword;
 import java.io.IOException;
 
 public class MsgPluginTotp extends MsgPluginEncryptedMessage {
-    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData, int applicationId) throws Exception {
-        super(messageFragment, messageData, applicationId);
-    }
-
-    @Override
-    public Fragment getMessageView() {
-        if (messageView == null) messageView = new TotpFragment();
-        return messageView;
-    }
-
-    @Override
-    protected void init(byte[] bArr, int applicationId) {
+    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) throws Exception {
+        super(messageFragment, messageData);
         context.getMainExecutor().execute(() -> {
-            var message = new String(bArr);
+            var message = new String(messageData);
             var totpFragment = ((TotpFragment) messageView);
             totpFragment.init(new OneTimePassword(message), messageView, code -> {
                 ((OutputFragment) outputView).setMessage(code, context.getString(R.string.one_time_password));
@@ -35,5 +25,11 @@ public class MsgPluginTotp extends MsgPluginEncryptedMessage {
             //observe hidden state
             messageFragment.getHiddenState().observe(messageView, hidden -> totpFragment.refresh());
         });
+    }
+
+    @Override
+    public Fragment getMessageView() {
+        if (messageView == null) messageView = new TotpFragment();
+        return messageView;
     }
 }

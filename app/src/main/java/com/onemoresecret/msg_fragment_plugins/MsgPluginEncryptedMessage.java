@@ -16,13 +16,9 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
     private byte[] messageData;
 
     public MsgPluginEncryptedMessage(MessageFragment messageFragment,
-                                     byte[] messageData, int applicationId) throws Exception {
+                                     byte[] messageData) {
 
-        super(messageFragment, messageData, applicationId);
-    }
-
-    @Override
-    protected void init(byte[] messageData, int applicationId) throws IOException {
+        super(messageFragment);
         this.messageData = messageData;
     }
 
