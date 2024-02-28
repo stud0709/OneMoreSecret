@@ -24,6 +24,21 @@
 
         </androidx.camera.view.PreviewView>
 
+        <TextView
+            android:id="@+id/txtPairing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"
+            android:outlineAmbientShadowColor="@color/purple_200"
+            android:outlineProvider="none"
+            android:outlineSpotShadowColor="@color/purple_200"
+            android:shadowColor="@color/purple_200"
+            android:shadowRadius="1"
+            android:text="WiFi Pairing enabled"
+            app:layout_constraintBottom_toBottomOf="@+id/cameraPreview"
+            app:layout_constraintStart_toStartOf="@+id/cameraPreview" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout

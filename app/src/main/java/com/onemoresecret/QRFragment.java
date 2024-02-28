@@ -136,8 +136,6 @@ public class QRFragment extends Fragment {
         parser = new MessageParser() {
             @Override
             public void onMessage(String message) {
-                if (messageReceived.get()) return;
-                messageReceived.set(true);
                 QRFragment.this.onMessage(message);
             }
 
@@ -153,6 +151,8 @@ public class QRFragment extends Fragment {
             binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
             binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
         }
+
+        binding.txtPairing.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -175,7 +175,14 @@ public class QRFragment extends Fragment {
         //get ready to receive new messages
         messageReceived.set(false);
 
-        ((MainActivity) requireActivity()).startWiFiListener(this::onMessage);
+        ((MainActivity) requireActivity()).startWiFiListener(
+                this::onMessage,
+                () -> requireActivity()
+                        .getMainExecutor()
+                        .execute(() -> {
+                            if (binding == null) return;
+                            binding.txtPairing.setVisibility(View.VISIBLE);
+                        }));
     }
 
     private boolean processIntent(Intent intent) {
@@ -327,10 +334,13 @@ public class QRFragment extends Fragment {
      * @see MessageComposer
      */
     private void onMessage(String message) {
+        if (messageReceived.get()) return;
+        messageReceived.set(true);
 
         var bArr = MessageComposer.decode(message);
         if (bArr == null) {
             Toast.makeText(getContext(), getString(R.string.could_not_decode), Toast.LENGTH_LONG).show();
+            messageReceived.set(false);
             return;
         }
 
@@ -388,6 +398,7 @@ public class QRFragment extends Fragment {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
+            messageReceived.set(false);
         }
     }
 
