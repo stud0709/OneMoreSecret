@@ -98,7 +98,6 @@ public class MessageFragment extends Fragment {
     }
 
     private void onUri() throws Exception {
-        int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
         var uri = (Uri) getArguments().getParcelable("URI");
 
         messageFragmentPlugin = new MsgPluginEncryptedFile(this,
@@ -137,6 +136,7 @@ public class MessageFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         requireActivity().removeMenuProvider(menuProvider);
+        new Thread(() -> ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true)).start();
         messageFragmentPlugin.onDestroyView();
         binding = null;
     }

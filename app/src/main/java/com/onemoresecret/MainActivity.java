@@ -174,7 +174,9 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
-                    Log.d(TAG, String.format("Starting WiFi Listener on %s:%s...", serverSocket.getInetAddress().getHostAddress(), wiFiComm.port));
+                    Log.d(TAG, String.format("Starting WiFi Listener on %s:%s...",
+                            Inet4Address.getByAddress(wiFiComm.ipAdr),
+                            wiFiComm.port));
 
                     serverSocket = new ServerSocket();
                 }

@@ -10,6 +10,7 @@ import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
+import com.onemoresecret.MainActivity;
 import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
