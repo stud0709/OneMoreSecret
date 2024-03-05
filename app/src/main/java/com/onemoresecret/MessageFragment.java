@@ -135,8 +135,9 @@ public class MessageFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        new Thread(() -> ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true)).start();
+        var activity = (MainActivity)requireActivity();
+        activity.removeMenuProvider(menuProvider);
+        new Thread(() -> activity.sendReplyViaSocket(new byte[]{}, true)).start();
         messageFragmentPlugin.onDestroyView();
         binding = null;
     }

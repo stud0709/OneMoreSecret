@@ -28,6 +28,8 @@ import java.util.Arrays;
 public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
     private static String TAG = MsgPluginWiFiPairing.class.getSimpleName();
     private static final String PROP_WIFI_PORT = "wifi_pairing_port";
+    private static final long ttl_default = 12L * 3600_000L; //12 hours
+    //TODO: define TTL in the desktop client and transfer with the message
 
     public MsgPluginWiFiPairing(MessageFragment messageFragment, byte[] messageData) throws Exception {
         super(messageFragment);
@@ -89,7 +91,7 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
                                 () -> {
                                     ((OutputFragment) getOutputView()).setMessage(responseCode + "\n" /* Hit ENTER to close the pop-up */, "Response Code");
                                     ((MainActivity) context).setWiFiComm(
-                                            new MainActivity.WiFiComm(ipAddress, port, rsaPrivateKeyComm, rsaPublicKeyComm));
+                                            new MainActivity.WiFiComm(ipAddress, port, rsaPrivateKeyComm, rsaPublicKeyComm, System.currentTimeMillis() + ttl_default));
                                 });
                     });
                 }

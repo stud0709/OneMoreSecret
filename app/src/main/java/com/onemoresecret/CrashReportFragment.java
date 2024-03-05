@@ -85,6 +85,7 @@ public class CrashReportFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+        requireActivity().finish();
     }
 
     private void displayCrashReport() {

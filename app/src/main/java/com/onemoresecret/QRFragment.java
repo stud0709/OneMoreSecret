@@ -617,6 +617,8 @@ public class QRFragment extends Fragment {
             @Override
             public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                 messageReceived.set(false);
+                var activity = (MainActivity)requireActivity();
+                new Thread(()->activity.sendReplyViaSocket(new byte[]{}, true)).start();
                 nextPinRequestTimestamp = 0;
                 Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode));
                 requireContext().getMainExecutor().execute(() -> {
