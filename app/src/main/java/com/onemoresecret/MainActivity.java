@@ -30,6 +30,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.prefs.Preferences;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -90,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //it is possible that we have read outdated settings
-        if (!_wiFiComm.isValid()) {
+        if (_wiFiComm != null && !_wiFiComm.isValid()) {
             setWiFiComm(null);
         }
 
@@ -101,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Thread.setDefaultUncaughtExceptionHandler(new OmsUncaughtExceptionHandler(this));
-
+        preferences = getPreferences(MODE_PRIVATE);
 
         var binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
