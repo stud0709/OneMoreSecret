@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.onemoresecret.MainActivity;
 import com.onemoresecret.MessageFragment;
+import com.onemoresecret.OmsFileProvider;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
@@ -86,6 +87,7 @@ public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.Authentic
     @Override
     public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
         Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
+        new Thread(() -> OmsFileProvider.purgeTmp(context)).start();
         context.getMainExecutor().execute(() -> {
             Toast.makeText(context, errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
             Util.discardBackStack(messageFragment);

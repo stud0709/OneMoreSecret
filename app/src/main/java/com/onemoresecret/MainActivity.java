@@ -116,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         //prevent screenshots
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+
+        new Thread(() -> OmsFileProvider.purgeTmp(MainActivity.this)).start();
     }
 
     @Override
@@ -313,3 +315,4 @@ public class MainActivity extends AppCompatActivity {
         t.start();
     }
 }
+

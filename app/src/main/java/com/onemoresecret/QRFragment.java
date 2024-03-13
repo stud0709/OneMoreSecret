@@ -530,6 +530,7 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemPanic) {
                 if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
                     nextPinRequestTimestamp = 0;
+                    new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), R.string.locked, Toast.LENGTH_LONG).show());
                 } else {
@@ -617,9 +618,10 @@ public class QRFragment extends Fragment {
             @Override
             public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                 messageReceived.set(false);
-                var activity = (MainActivity)requireActivity();
-                new Thread(()->activity.sendReplyViaSocket(new byte[]{}, true)).start();
+                var activity = (MainActivity) requireActivity();
+                new Thread(() -> activity.sendReplyViaSocket(new byte[]{}, true)).start();
                 nextPinRequestTimestamp = 0;
+                new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
                 Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode));
                 requireContext().getMainExecutor().execute(() -> {
                     Toast.makeText(requireContext(), errString + " (" + errorCode + ")", Toast.LENGTH_SHORT).show();

@@ -92,7 +92,7 @@ public class PinEntryFragment extends DialogFragment {
 
         //set listeners
         for (var btn : bArr) {
-            btn.setOnClickListener(v -> onDigit(v));
+            btn.setOnClickListener(this::onDigit);
         }
 
         binding.imageButtonDel.setOnClickListener(v -> {
@@ -157,6 +157,7 @@ public class PinEntryFragment extends DialogFragment {
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
         super.onDismiss(dialog);
+        new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
         if (this.runOnCancel != null) {
             requireContext().getMainExecutor().execute(runOnCancel);
         }
