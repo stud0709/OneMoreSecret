@@ -137,6 +137,8 @@ public class PinEntryFragment extends DialogFragment {
     }
 
     private void panic() {
+        new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
+        
         var cryptographyManager = new CryptographyManager();
 
         try {

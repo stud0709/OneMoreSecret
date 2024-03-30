@@ -1,6 +1,7 @@
 package com.onemoresecret;
 
 import android.os.Build;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,21 +15,28 @@ public class CrashReportData implements Serializable {
     private final Throwable throwable;
     private final String logcat;
 
+    private static final String TAG = CrashReportData.class.getSimpleName();
+
     public CrashReportData(Throwable throwable) {
         this.throwable = throwable;
         logcat = getLogcat();
     }
 
     public static String getLogcat() {
+        Log.d(TAG, "Collecting logcat data...");
         try {
             var s = "logcat -b all -d";
             var p = Runtime.getRuntime().exec(s);
 
-            try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream())); StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+            try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                 StringWriter sw = new StringWriter();
+                 PrintWriter pw = new PrintWriter(sw)) {
+
                 String line;
                 while ((line = bais.readLine()) != null) {
                     pw.println(line);
                 }
+                Log.d(TAG, "Logcat data collected");
                 return sw.toString();
             }
         } catch (IOException e) {

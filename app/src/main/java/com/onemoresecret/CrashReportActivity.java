@@ -27,6 +27,7 @@ public class CrashReportActivity extends AppCompatActivity {
         var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_crash_report);
         appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        new Thread(() -> OmsFileProvider.purgeTmp(this)).start();
     }
 
     @Override

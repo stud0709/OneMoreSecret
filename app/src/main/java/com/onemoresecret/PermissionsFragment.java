@@ -12,7 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
 
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,8 +25,6 @@ import java.util.Arrays;
 public class PermissionsFragment extends Fragment {
     public static final String PROP_PERMISSIONS_REQUESTED = "permissions_requested";
     private static final String TAG = PermissionsFragment.class.getSimpleName();
-
-    private SharedPreferences preferences;
 
     public static final String[] REQUIRED_PERMISSIONS = {
             android.Manifest.permission.BLUETOOTH_CONNECT,
@@ -51,8 +48,8 @@ public class PermissionsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
-        preferences.edit().putBoolean(PROP_PERMISSIONS_REQUESTED, true).commit();
+        SharedPreferences preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+        preferences.edit().putBoolean(PROP_PERMISSIONS_REQUESTED, true).apply();
         activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
                 result -> {
                     Log.d(TAG, String.format("Granted permissions: %s", result));

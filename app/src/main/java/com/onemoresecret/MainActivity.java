@@ -28,6 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.prefs.Preferences;
@@ -61,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
     public void setWiFiComm(WiFiComm wiFiComm) {
         destroyWiFiListener();
         this._wiFiComm = wiFiComm;
+
+        if (preferences == null)
+            preferences = getPreferences(MODE_PRIVATE);
 
         if (wiFiComm == null) {
             preferences.edit()
@@ -102,7 +106,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Thread.setDefaultUncaughtExceptionHandler(new OmsUncaughtExceptionHandler(this));
-        preferences = getPreferences(MODE_PRIVATE);
+        if (preferences == null)
+            preferences = getPreferences(MODE_PRIVATE);
 
         var binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -118,6 +123,21 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
 
         new Thread(() -> OmsFileProvider.purgeTmp(MainActivity.this)).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        new Thread(() -> {
+            OmsFileProvider.purgeTmp(MainActivity.this);
+            destroyWiFiListener();
+        }).start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        new Thread(this::destroyWiFiListener).start();
     }
 
     @Override
@@ -198,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startWiFiListener(Consumer<String> messageConsumer, Runnable onSuccess) {
+        Log.d(TAG, "startWiFiListener caller: " + Thread.currentThread().getStackTrace()[3].toString());
 
         var thread = new Thread(() -> {
             var invalidateWiFiCommOnError = true;

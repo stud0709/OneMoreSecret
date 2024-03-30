@@ -174,6 +174,7 @@ public class QRFragment extends Fragment {
         Log.d(TAG, "resuming...");
         //get ready to receive new messages
         messageReceived.set(false);
+        binding.txtPairing.setVisibility(View.INVISIBLE);
 
         ((MainActivity) requireActivity()).startWiFiListener(
                 this::onMessage,
@@ -194,39 +195,22 @@ public class QRFragment extends Fragment {
 
                 switch (Objects.requireNonNull(intent.getAction())) {
                     case Intent.ACTION_VIEW -> {
-                        Uri data = intent.getData();
-                        if (data != null) {
-                            onMessage(Objects.requireNonNull(data.getPath()).substring(1));
-                            return true;
-                        } else {
+                        Uri uri = intent.getData();
+                        if (uri == null) {
                             Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
+                        } else {
+                            onUri(uri);
                         }
                     }
                     case Intent.ACTION_SEND -> {
                         //a piece of text has been sent to the app using Android "send to" functionality
                         var text = intent.getStringExtra(Intent.EXTRA_TEXT);
 
-                        if (text == null) {
+                        if (text == null || text.isEmpty()) {
                             var uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                            Log.d(TAG, "URI: " + uri);
-
-                            var bundle = new Bundle();
-                            bundle.putParcelable(ARG_URI, uri);
-
-                            var fileInfo = Util.getFileInfo(requireContext(), uri);
-
-                            bundle.putString(ARG_FILENAME, fileInfo.filename());
-                            bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
-
-                            if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
-                                Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                                NavHostFragment.findNavController(QRFragment.this)
-                                        .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                            } else {
-                                //pass URI to file encoder
-                                Log.d(TAG, "calling " + FileEncryptionFragment.class.getSimpleName());
-                                NavHostFragment.findNavController(QRFragment.this)
-                                        .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+                            if (uri != null) {
+                                Log.d(TAG, "URI: " + uri);
+                                onUri(uri);
                             }
                         } else {
                             if (MessageComposer.decode(text) == null) {
@@ -251,6 +235,27 @@ public class QRFragment extends Fragment {
                     Toast.LENGTH_LONG).show();
         }
         return false;
+    }
+
+    private void onUri(Uri uri) {
+        var bundle = new Bundle();
+        bundle.putParcelable(ARG_URI, uri);
+
+        var fileInfo = Util.getFileInfo(requireContext(), uri);
+
+        bundle.putString(ARG_FILENAME, fileInfo.filename());
+        bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
+
+        if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
+            Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+            NavHostFragment.findNavController(QRFragment.this)
+                    .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+        } else {
+            //pass URI to file encoder
+            Log.d(TAG, "calling " + FileEncryptionFragment.class.getSimpleName());
+            NavHostFragment.findNavController(QRFragment.this)
+                    .navigate(R.id.action_QRFragment_to_fileEncryptionFragment, bundle);
+        }
     }
 
     private void checkBiometrics() {
