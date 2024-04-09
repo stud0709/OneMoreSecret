@@ -200,6 +200,7 @@ public class QRFragment extends Fragment {
                             Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
                         } else {
                             onUri(uri);
+                            return true;
                         }
                     }
                     case Intent.ACTION_SEND -> {
@@ -211,6 +212,7 @@ public class QRFragment extends Fragment {
                             if (uri != null) {
                                 Log.d(TAG, "URI: " + uri);
                                 onUri(uri);
+                                return true;
                             }
                         } else {
                             if (MessageComposer.decode(text) == null) {
@@ -223,8 +225,8 @@ public class QRFragment extends Fragment {
                             } else {
                                 onMessage(text);
                             }
+                            return true;
                         }
-                        return true;
                     }
                 }
             }
