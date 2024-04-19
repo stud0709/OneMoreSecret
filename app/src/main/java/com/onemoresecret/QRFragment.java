@@ -375,7 +375,8 @@ public class QRFragment extends Fragment {
                         Log.d(TAG, "calling " + KeyImportFragment.class.getSimpleName());
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
-                    case MessageComposer.APPLICATION_KEY_REQUEST -> {
+                    case MessageComposer.APPLICATION_KEY_REQUEST,
+                            MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
                         //this one uses a custom header, therefore it cannot be adapted to the generic procedure
                         runPinProtected(() -> {
                                     Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());

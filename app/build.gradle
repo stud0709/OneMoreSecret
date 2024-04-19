@@ -73,6 +73,6 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.1.0'
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
-    //Google ML Kit
+    //Google ML Kit - flavor 'standard' only
     standardImplementation 'com.google.mlkit:barcode-scanning:17.2.0'
 }

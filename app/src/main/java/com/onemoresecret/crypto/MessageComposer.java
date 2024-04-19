@@ -40,7 +40,8 @@ public abstract class MessageComposer {
             APPLICATION_BITCOIN_ADDRESS = 7,
             APPLICATION_ENCRYPTED_MESSAGE = 8,
             APPLICATION_TOTP_URI = 9,
-            APPLICATION_WIFI_PAIRING = 10;
+            APPLICATION_WIFI_PAIRING = 10,
+            APPLICATION_KEY_REQUEST_PAIRING = 11;
 
     /**
      * Prefix of a text encoded message.

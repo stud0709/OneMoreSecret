@@ -76,7 +76,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private SharedPreferences.OnSharedPreferenceChangeListener onSharedPreferenceChangeListener;
 
     private Consumer<String> encryptPwd;
-    private Runnable setPwd;
+    private Consumer<Boolean> setPwd;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -143,10 +143,14 @@ public class PasswordGeneratorFragment extends Fragment {
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
                                 if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+                                    var selectedAlias = keyStoreListFragment
+                                            .getSelectionTracker()
+                                            .getSelection()
+                                            .iterator()
+                                            .next();
                                     encryptPwd.accept(selectedAlias);
                                 } else {
-                                    setPwd.run();
+                                    setPwd.accept(false);
                                 }
                             }
                         }));
@@ -166,8 +170,8 @@ public class PasswordGeneratorFragment extends Fragment {
             public void afterTextChanged(Editable s) {
                 if (!textChangeListenerActive.get()) return;
 
-                setPwd = getSetPwd(s.toString(), false);
-                setPwd.run();
+                setPwd = getSetPwd(s.toString());
+                setPwd.accept(true);
                 encryptPwd = getEncryptPwd(s.toString());
             }
         });
@@ -348,19 +352,19 @@ public class PasswordGeneratorFragment extends Fragment {
         var pwd = sb.toString();
 
         encryptPwd = getEncryptPwd(pwd);
-        setPwd = getSetPwd(pwd, true);
+        setPwd = getSetPwd(pwd);
 
-        setPwd.run();
+        setPwd.accept(false);
     }
 
-    private Runnable getSetPwd(String pwd, boolean updateEditTextPassword) {
-        return () -> {
-            if (updateEditTextPassword) {
+    private Consumer<Boolean> getSetPwd(String pwd) {
+        return (afterTextChanged) -> {
+            if (!afterTextChanged) {
                 textChangeListenerActive.set(false);
                 binding.editTextPassword.setText(pwd);
                 textChangeListenerActive.set(true);
-                binding.editTextPassword.setEnabled(true);
             }
+            binding.editTextPassword.setEnabled(true);
             outputFragment.setMessage(pwd, getString(R.string.unprotected_password));
             switchControls(true);
         };

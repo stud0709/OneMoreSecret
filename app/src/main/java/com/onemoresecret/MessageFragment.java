@@ -115,7 +115,8 @@ public class MessageFragment extends Fragment {
                     MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
                     messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
 
-            case MessageComposer.APPLICATION_KEY_REQUEST ->
+            case MessageComposer.APPLICATION_KEY_REQUEST,
+                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
                     messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
 
             case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
@@ -135,7 +136,7 @@ public class MessageFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        var activity = (MainActivity)requireActivity();
+        var activity = (MainActivity) requireActivity();
         activity.removeMenuProvider(menuProvider);
         new Thread(() -> activity.sendReplyViaSocket(new byte[]{}, true)).start();
         messageFragmentPlugin.onDestroyView();
