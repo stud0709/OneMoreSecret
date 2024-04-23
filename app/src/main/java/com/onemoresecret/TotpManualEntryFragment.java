@@ -203,8 +203,6 @@ public class TotpManualEntryFragment extends Fragment {
                                 AESUtil.getAesTransformationIdx(preferences)).getMessage());
 
                 outputFragment.setMessage(result, "TOTP Configuration (encrypted)");
-                binding.textViewTotp.setText(MessageComposer.OMS_PREFIX + "...");
-                binding.textViewTimer.setText("");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -232,8 +230,6 @@ public class TotpManualEntryFragment extends Fragment {
     private void generateResponseCode(boolean force) {
         if (otp == null) return; //otp not set yet
 
-        if (selectedAlias != null) return;
-
         try {
             var otpState = otp.getState();
             var code = otp.generateResponseCode(otpState.current());
@@ -245,7 +241,9 @@ public class TotpManualEntryFragment extends Fragment {
 
                 if (lastState != otpState.current() || force) {
                     //new State = new code; update output fragment
-                    outputFragment.setMessage(code, "One-Time-Password");
+                    if (selectedAlias == null) {
+                        outputFragment.setMessage(code, "One-Time-Password");
+                    }
                     lastState = otpState.current();
                 }
             });

@@ -47,7 +47,6 @@ public class PasswordGeneratorFragment extends Fragment {
     private KeyStoreListFragment keyStoreListFragment;
     private OutputFragment outputFragment;
     private final CryptographyManager cryptographyManager = new CryptographyManager();
-    private final AtomicBoolean textChangeListenerActive = new AtomicBoolean(true);
     private static final String
             PROP_UCASE = "pwgen_ucase",
             PROP_UCASE_LIST = "pwgen_ucase_list",
@@ -76,7 +75,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private SharedPreferences.OnSharedPreferenceChangeListener onSharedPreferenceChangeListener;
 
     private Consumer<String> encryptPwd;
-    private Consumer<Boolean> setPwd;
+    private Runnable setPwd;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -150,7 +149,7 @@ public class PasswordGeneratorFragment extends Fragment {
                                             .next();
                                     encryptPwd.accept(selectedAlias);
                                 } else {
-                                    setPwd.accept(false);
+                                    setPwd.run();
                                 }
                             }
                         }));
@@ -168,10 +167,8 @@ public class PasswordGeneratorFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                if (!textChangeListenerActive.get()) return;
-
                 setPwd = getSetPwd(s.toString());
-                setPwd.accept(true);
+                setPwd.run();
                 encryptPwd = getEncryptPwd(s.toString());
             }
         });
@@ -351,19 +348,11 @@ public class PasswordGeneratorFragment extends Fragment {
 
         var pwd = sb.toString();
 
-        encryptPwd = getEncryptPwd(pwd);
-        setPwd = getSetPwd(pwd);
-
-        setPwd.accept(false);
+        binding.editTextPassword.setText(pwd);
     }
 
-    private Consumer<Boolean> getSetPwd(String pwd) {
-        return (afterTextChanged) -> {
-            if (!afterTextChanged) {
-                textChangeListenerActive.set(false);
-                binding.editTextPassword.setText(pwd);
-                textChangeListenerActive.set(true);
-            }
+    private Runnable getSetPwd(String pwd) {
+        return () -> {
             binding.editTextPassword.setEnabled(true);
             outputFragment.setMessage(pwd, getString(R.string.unprotected_password));
             switchControls(true);
@@ -379,11 +368,6 @@ public class PasswordGeneratorFragment extends Fragment {
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformationIdx(preferences)).getMessage());
-
-                textChangeListenerActive.set(false);
-                binding.editTextPassword.setText(
-                        encrypted);
-                textChangeListenerActive.set(true);
 
                 binding.editTextPassword.setEnabled(false);
                 outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));

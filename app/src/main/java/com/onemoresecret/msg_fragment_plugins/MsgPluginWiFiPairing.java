@@ -79,7 +79,10 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
                     baos.write(ipAddress);
 
                     //(2) port
-                    baos.write(ByteBuffer.allocate(4).putInt(port).array());
+                    var iArr = ByteBuffer.allocate(4).putInt(port).array();
+
+                    //copy only lower portion, ports range 0...65535
+                    baos.write(Arrays.copyOfRange(iArr, 2, iArr.length));
 
                     var bArr = baos.toByteArray();
 

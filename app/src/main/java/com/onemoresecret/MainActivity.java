@@ -221,8 +221,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "startWiFiListener caller: " + Thread.currentThread().getStackTrace()[3].toString());
 
         var thread = new Thread(() -> {
-            var invalidateWiFiCommOnError = true;
-
             try {
                 synchronized (MainActivity.class) {
                     if (socketWaitingForReply != null && !socketWaitingForReply.isClosed()) {
@@ -250,7 +248,6 @@ public class MainActivity extends AppCompatActivity {
                     serverSocket.bind(new InetSocketAddress(Inet4Address.getByAddress(wiFiComm.ipAdr), wiFiComm.port));
                 }
 
-                invalidateWiFiCommOnError = false;
                 onSuccess.run();
 
                 while (!Thread.currentThread().isInterrupted()
@@ -265,16 +262,12 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception ex) {
                 //server socket is broken
                 ex.printStackTrace();
-                if (invalidateWiFiCommOnError) {
-                    //pairing configuration is not valid any more
-                    setWiFiComm(null);
 
-                    this.getMainExecutor().execute(() -> {
-                        Toast.makeText(this,
-                                Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
-                                Toast.LENGTH_LONG).show();
-                    });
-                }
+                this.getMainExecutor().execute(() -> {
+                    Toast.makeText(this,
+                            Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                            Toast.LENGTH_LONG).show();
+                });
             } finally {
                 synchronized (MainActivity.class) {
                     serverSocket = null;
