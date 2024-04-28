@@ -188,4 +188,7 @@
     <string name="not_on_wifi_network">Not on WiFi network</string>
     <string name="accept_pairing">Accept Pairing</string>
     <string name="pairing_accepted">Pairing Accepted</string>
+    <string name="operation_has_been_cancelled">Operation has been cancelled</string>
+    <string name="working_prc">working... %d%%</string>
+    <string name="done">done!</string>
 </resources>

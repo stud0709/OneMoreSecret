@@ -3,12 +3,15 @@ package com.onemoresecret;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
+
 import com.onemoresecret.databinding.FragmentFileOutputBinding;
 import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
 
@@ -56,12 +59,26 @@ public class FileOutputFragment extends FragmentWithNotificationBeforePause {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
+        binding.txtWorking.setText("");
         binding.btnSend.setOnClickListener(btnListener);
         binding.btnView.setOnClickListener(btnListener);
+        binding.btnSend.setEnabled(false);
+        binding.btnView.setEnabled(false);
     }
 
     public void setUri(Uri uri) {
         this.uri = uri;
+
+        requireContext().getMainExecutor().execute(() -> {
+            binding.btnView.setEnabled(uri != null);
+            binding.btnSend.setEnabled(uri != null);
+        });
+    }
+
+    public void setProgress(@NonNull String s) {
+        requireContext().getMainExecutor().execute(() -> {
+            if (binding == null) return;
+            binding.txtWorking.setText(s);
+        });
     }
 }

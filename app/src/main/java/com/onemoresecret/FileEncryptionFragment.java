@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -17,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.selection.SelectionTracker;
 
 import com.onemoresecret.crypto.AESUtil;
@@ -26,7 +28,9 @@ import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 
+import java.nio.file.Files;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Locale;
 
 public class FileEncryptionFragment extends Fragment {
     private FragmentFileEncryptionBinding binding;
@@ -35,6 +39,10 @@ public class FileEncryptionFragment extends Fragment {
     private SharedPreferences preferences;
     private static final String TAG = FileEncryptionFragment.class.getSimpleName();
     private Uri uri;
+    private Util.UriFileInfo fileInfo;
+    private boolean encryptionRunning = false;
+    private int lastProgressPrc = -1;
+    boolean navBackIfPaused = false;
 
     private final FileEncryptionMenuProvider menuProvider = new FileEncryptionMenuProvider();
 
@@ -63,11 +71,12 @@ public class FileEncryptionFragment extends Fragment {
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
 
         uri = getArguments().getParcelable(QRFragment.ARG_URI);
+        fileInfo = Util.getFileInfo(requireContext(), uri);
 
         getContext().getMainExecutor().execute(() ->
                 ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
-                        getArguments().getString(QRFragment.ARG_FILENAME),
-                        getArguments().getInt(QRFragment.ARG_FILESIZE)));
+                        fileInfo.filename(),
+                        fileInfo.fileSize()));
 
 
         keyStoreListFragment.setRunOnStart(
@@ -82,35 +91,95 @@ public class FileEncryptionFragment extends Fragment {
                         }));
 
         binding.btnEncrypt.setOnClickListener(v -> encrypt());
+        binding.txtProgress.setText("");
     }
 
     private void encrypt() {
-        var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
+        var selectedAlias = keyStoreListFragment.getSelectionTracker()
+                .getSelection()
+                .iterator()
+                .next();
 
-        try {
-            var oFileRecord = OmsFileProvider.create(requireContext(),
-                    getArguments().getString(QRFragment.ARG_FILENAME) + "." + MessageComposer.OMS_FILE_TYPE,
-                    true);
+        if (encryptionRunning) {
+            //cancel encryption
+            binding.btnEncrypt.setText(R.string.encrypt);
+            encryptionRunning = false;
+        } else {
+            //start encryption
+            binding.btnEncrypt.setText(R.string.cancel);
+            encryptionRunning = true;
+            lastProgressPrc = -1;
 
-            EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
-                    oFileRecord.path().toFile(),
-                    (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
-                    RSAUtils.getRsaTransformationIdx(preferences),
-                    AESUtil.getKeyLength(preferences),
-                    AESUtil.getAesTransformationIdx(preferences));
+            new Thread(() -> {
+                try {
+                    var fileRecord = OmsFileProvider.create(requireContext(),
+                            fileInfo.filename() + "." + MessageComposer.OMS_FILE_TYPE,
+                            true);
 
-            var intent = new Intent(Intent.ACTION_SEND);
-            intent.setType("application/octet-stream");
-            intent.putExtra(Intent.EXTRA_STREAM, oFileRecord.uri());
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
+                            fileRecord.path().toFile(),
+                            (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
+                            RSAUtils.getRsaTransformationIdx(preferences),
+                            AESUtil.getKeyLength(preferences),
+                            AESUtil.getAesTransformationIdx(preferences),
+                            () -> binding == null || !encryptionRunning,
+                            this::updateProgress
+                    );
 
-            startActivity(intent);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
-                    String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
-                    Toast.LENGTH_LONG).show());
+                    if (encryptionRunning) {
+                        updateProgress(fileInfo.fileSize()); //100%
+                        requireContext().getMainExecutor().execute(() -> {
+                            if (binding == null) return;
+                            binding.btnEncrypt.setText(R.string.encrypt);
+                        });
+                        navBackIfPaused = true;
+
+                        var intent = new Intent(Intent.ACTION_SEND);
+                        intent.setType("application/octet-stream");
+                        intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        startActivity(intent);
+                    } else {
+                        //operation has been cancelled
+                        Files.delete(fileRecord.path());
+                        requireContext().getMainExecutor().execute(() -> {
+                            if (binding == null) return;
+                            binding.btnEncrypt.setText(R.string.encrypt);
+                            Toast.makeText(requireContext(),
+                                    R.string.operation_has_been_cancelled,
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                        updateProgress(null);
+                    }
+                    encryptionRunning = false;
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
+                            String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
+                            Toast.LENGTH_LONG).show());
+                }
+            }).start();
         }
+    }
+
+    private void updateProgress(@Nullable Integer value) {
+        String s = "";
+        if (value != null) {
+            var progressPrc = (int) ((double) value / (double) fileInfo.fileSize() * 100D);
+            if (lastProgressPrc == progressPrc) return;
+
+            lastProgressPrc = progressPrc;
+            s = lastProgressPrc == 100 ?
+                    getString(R.string.done) :
+                    String.format(Locale.getDefault(), getString(R.string.working_prc), lastProgressPrc);
+        }
+        var fs = s;
+
+        requireContext().getMainExecutor().execute(() -> {
+            if (binding == null) return;
+            binding.txtProgress.setText(fs);
+        });
     }
 
     private class FileEncryptionMenuProvider implements MenuProvider {
@@ -130,5 +199,19 @@ public class FileEncryptionFragment extends Fragment {
 
             return true;
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (!navBackIfPaused) return;
+        var navController = NavHostFragment.findNavController(this);
+        if (navController.getCurrentDestination() != null
+                && navController.getCurrentDestination().getId() != R.id.fileEncryptionFragment) {
+            Log.d(TAG, String.format("Already navigating to %s", navController.getCurrentDestination()));
+            return;
+        }
+        Log.d(TAG, "onPause: going backward");
+        Util.discardBackStack(this);
     }
 }

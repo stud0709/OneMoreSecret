@@ -10,6 +10,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -68,10 +70,12 @@ public final class AESUtil {
     }
 
     public static void process(int cipherMode, InputStream is,
-                                 OutputStream os,
-                                 SecretKey key,
-                                 IvParameterSpec iv,
-                                 String aesTransformation) throws
+                               OutputStream os,
+                               SecretKey key,
+                               IvParameterSpec iv,
+                               String aesTransformation,
+                               Supplier<Boolean> cancellationSupplier,
+                               Consumer<Integer> progressConsumer) throws
             NoSuchPaddingException,
             NoSuchAlgorithmException,
             InvalidAlgorithmParameterException,
@@ -85,9 +89,13 @@ public final class AESUtil {
 
         var iArr = new byte[1024];
         int length;
+        int bytesProcessed = 0;
 
-        while ((length = is.read(iArr)) > 0) {
+        while ((length = is.read(iArr)) > 0 &&
+                (cancellationSupplier == null || !cancellationSupplier.get())) {
             os.write(cipher.update(iArr, 0, length));
+            bytesProcessed += length;
+            if (progressConsumer != null) progressConsumer.accept(bytesProcessed);
         }
 
         os.write(cipher.doFinal());

@@ -49,6 +49,7 @@ public class MessageFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
+        if (!navBackIfPaused) return;
         var navController = NavHostFragment.findNavController(this);
         if (navController.getCurrentDestination() != null
                 && navController.getCurrentDestination().getId() != R.id.MessageFragment) {
@@ -56,7 +57,7 @@ public class MessageFragment extends Fragment {
             return;
         }
         Log.d(TAG, "onPause: going backward");
-        if (navBackIfPaused) Util.discardBackStack(this);
+        Util.discardBackStack(this);
     }
 
     @Override
@@ -100,10 +101,7 @@ public class MessageFragment extends Fragment {
     private void onUri() throws Exception {
         var uri = (Uri) getArguments().getParcelable("URI");
 
-        messageFragmentPlugin = new MsgPluginEncryptedFile(this,
-                uri,
-                getArguments().getString(QRFragment.ARG_FILENAME),
-                getArguments().getInt(QRFragment.ARG_FILESIZE));
+        messageFragmentPlugin = new MsgPluginEncryptedFile(this, uri);
     }
 
     private void onMessage() throws Exception {

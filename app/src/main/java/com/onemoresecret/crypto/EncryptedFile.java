@@ -10,6 +10,8 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -21,7 +23,9 @@ public class EncryptedFile {
                               RSAPublicKey rsaPublicKey,
                               int rsaTransformationIdx,
                               int aesKeyLength,
-                              int aesTransformationIdx)
+                              int aesTransformationIdx,
+                              Supplier<Boolean> cancellationSupplier,
+                              Consumer<Integer> progressConsumer)
             throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
             BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IOException {
 
@@ -42,7 +46,9 @@ public class EncryptedFile {
                     dataOutputStream,
                     aesEncryptionParameters.secretKey(),
                     aesEncryptionParameters.iv(),
-                    AesTransformation.values()[aesTransformationIdx].transformation);
+                    AesTransformation.values()[aesTransformationIdx].transformation,
+                    cancellationSupplier,
+                    progressConsumer);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }

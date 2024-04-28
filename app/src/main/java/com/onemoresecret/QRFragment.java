@@ -74,8 +74,7 @@ public class QRFragment extends Fragment {
     private long nextPinRequestTimestamp = 0;
     private static final String PROP_USE_ZXING = "use_zxing";
 
-    public static final String ARG_FILENAME = "FILENAME",
-            ARG_FILESIZE = "FILESIZE",
+    public static final String
             ARG_URI = "URI",
             ARG_MESSAGE = "MESSAGE",
             ARG_TEXT = "TEXT",
@@ -244,9 +243,6 @@ public class QRFragment extends Fragment {
         bundle.putParcelable(ARG_URI, uri);
 
         var fileInfo = Util.getFileInfo(requireContext(), uri);
-
-        bundle.putString(ARG_FILENAME, fileInfo.filename());
-        bundle.putInt(ARG_FILESIZE, fileInfo.fileSize());
 
         if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
