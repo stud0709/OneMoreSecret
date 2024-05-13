@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.util.Arrays;
 
 public class CrashReportData implements Serializable {
 
@@ -23,10 +24,13 @@ public class CrashReportData implements Serializable {
     }
 
     public static String getLogcat() {
-        Log.d(TAG, "Collecting logcat data...");
+        return getProcessOutput("logcat", "-b", "all", "-d");
+    }
+
+    public static String getProcessOutput(String... sArr) {
+        Log.d(TAG, String.format("Collecting data from %s...", Arrays.toString(sArr)));
         try {
-            var s = "logcat -b all -d";
-            var p = Runtime.getRuntime().exec(s);
+            var p = Runtime.getRuntime().exec(sArr);
 
             try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream()));
                  StringWriter sw = new StringWriter();
@@ -36,7 +40,7 @@ public class CrashReportData implements Serializable {
                 while ((line = bais.readLine()) != null) {
                     pw.println(line);
                 }
-                Log.d(TAG, "Logcat data collected");
+                Log.d(TAG, String.format("Done collecting data from %s...", Arrays.toString(sArr)));
                 return sw.toString();
             }
         } catch (IOException e) {

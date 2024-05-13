@@ -29,7 +29,8 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
     private static String TAG = MsgPluginWiFiPairing.class.getSimpleName();
     private static final String PROP_WIFI_PORT = "wifi_pairing_port";
     private static final long ttl_default = 12L * 3600_000L; //12 hours
-    //TODO: define TTL in the desktop client and transfer with the message
+    private static final int PORT_DEFAULT = 43189;
+
 
     public MsgPluginWiFiPairing(MessageFragment messageFragment, byte[] messageData) throws Exception {
         super(messageFragment);
@@ -71,7 +72,7 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
                 Log.d(TAG, "IP: " + inetAddress.getHostAddress() + " = " + Arrays.toString(ipAddress));
 
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    var port = preferences.getInt(PROP_WIFI_PORT, 43211);
+                    var port = preferences.getInt(PROP_WIFI_PORT, PORT_DEFAULT);
 
                     Log.d(TAG, "Port: " + port);
 

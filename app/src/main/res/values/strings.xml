@@ -191,4 +191,5 @@
     <string name="operation_has_been_cancelled">Operation has been cancelled</string>
     <string name="working_prc">working... %d%%</string>
     <string name="done">done!</string>
+    <string name="clear_wifi_pairing">Clear WiFi Pairing</string>
 </resources>

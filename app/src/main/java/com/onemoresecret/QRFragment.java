@@ -373,7 +373,6 @@ public class QRFragment extends Fragment {
                     }
                     case MessageComposer.APPLICATION_KEY_REQUEST,
                             MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
-                        //this one uses a custom header, therefore it cannot be adapted to the generic procedure
                         runPinProtected(() -> {
                                     Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                                     navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
@@ -563,6 +562,13 @@ public class QRFragment extends Fragment {
                         () -> Toast.makeText(
                                 getContext(),
                                 String.format("Screenshots %s", menuItem.isChecked() ? "enabled" : "disabled"),
+                                Toast.LENGTH_LONG).show());
+            } else if (menuItem.getItemId() == R.id.menuItemClearWiFiComm) {
+                ((MainActivity) requireActivity()).setWiFiComm(null);
+                requireContext().getMainExecutor().execute(
+                        () -> Toast.makeText(
+                                getContext(),
+                                "WiFi Pairing cleared",
                                 Toast.LENGTH_LONG).show());
             } else {
                 return false;

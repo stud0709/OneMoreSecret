@@ -62,6 +62,9 @@
                 android:checkable="true"
                 android:checked="false"
                 android:title="@string/allow_screenshots" />
+            <item
+                android:id="@+id/menuItemClearWiFiComm"
+                android:title="@string/clear_wifi_pairing" />
         </menu>
     </item>
     <item

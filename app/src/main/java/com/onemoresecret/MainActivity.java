@@ -28,10 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.prefs.Preferences;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -55,51 +53,56 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private WiFiComm _wiFiComm = null;
-    private ServerSocket serverSocket = null;
+    private Runnable wiFiListenerShutdown = null;
     private Socket socketWaitingForReply = null;
     private SharedPreferences preferences;
 
     public void setWiFiComm(WiFiComm wiFiComm) {
-        destroyWiFiListener();
-        this._wiFiComm = wiFiComm;
+        synchronized (MainActivity.class) {
+            destroyWiFiListener();
 
-        if (preferences == null)
-            preferences = getPreferences(MODE_PRIVATE);
+            this._wiFiComm = wiFiComm;
 
-        if (wiFiComm == null) {
-            preferences.edit()
-                    .remove(PROP_PRIVATE_KEY_COMM)
-                    .remove(PROP_PUBLIC_KEY_COMM)
-                    .remove(PROP_WIFI_COMM_EXP)
-                    .remove(PROP_IPADDR)
-                    .remove(PROP_PORT).commit();
-        } else {
-            preferences.edit()
-                    .putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(wiFiComm.privateKey.getEncoded(), Base64.DEFAULT))
-                    .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey.getEncoded(), Base64.DEFAULT))
-                    .putLong(PROP_WIFI_COMM_EXP, wiFiComm.ts_expiry)
-                    .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
-                    .putInt(PROP_PORT, wiFiComm.port).commit();
+            if (preferences == null)
+                preferences = getPreferences(MODE_PRIVATE);
+
+            if (wiFiComm == null) {
+                preferences.edit()
+                        .remove(PROP_PRIVATE_KEY_COMM)
+                        .remove(PROP_PUBLIC_KEY_COMM)
+                        .remove(PROP_WIFI_COMM_EXP)
+                        .remove(PROP_IPADDR)
+                        .remove(PROP_PORT).commit();
+            } else {
+                preferences.edit()
+                        .putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(wiFiComm.privateKey.getEncoded(), Base64.DEFAULT))
+                        .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey.getEncoded(), Base64.DEFAULT))
+                        .putLong(PROP_WIFI_COMM_EXP, wiFiComm.ts_expiry)
+                        .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
+                        .putInt(PROP_PORT, wiFiComm.port).commit();
+            }
         }
     }
 
     private WiFiComm getWiFiComm() throws InvalidKeySpecException, NoSuchAlgorithmException {
-        if (_wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
-            var privateKey = RSAUtils.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
-            var publicKey = RSAUtils.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
-            var ipaddrByte = Base64.decode(preferences.getString(PROP_IPADDR, ""), Base64.DEFAULT);
-            var port = preferences.getInt(PROP_PORT, 0);
-            var ts_expiry = preferences.getLong(PROP_WIFI_COMM_EXP, 0);
+        synchronized (MainActivity.class) {
+            if (_wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
+                var privateKey = RSAUtils.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
+                var publicKey = RSAUtils.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
+                var ipaddrByte = Base64.decode(preferences.getString(PROP_IPADDR, ""), Base64.DEFAULT);
+                var port = preferences.getInt(PROP_PORT, 0);
+                var ts_expiry = preferences.getLong(PROP_WIFI_COMM_EXP, 0);
 
-            _wiFiComm = new WiFiComm(ipaddrByte, port, privateKey, publicKey, ts_expiry);
+                _wiFiComm = new WiFiComm(ipaddrByte, port, privateKey, publicKey, ts_expiry);
+            }
+
+            //it is possible that we have read outdated settings
+            if (_wiFiComm != null && !_wiFiComm.isValid()) {
+                setWiFiComm(null);
+            }
+
+            return _wiFiComm;
         }
-
-        //it is possible that we have read outdated settings
-        if (_wiFiComm != null && !_wiFiComm.isValid()) {
-            setWiFiComm(null);
-        }
-
-        return _wiFiComm;
     }
 
     @Override
@@ -163,11 +166,12 @@ public class MainActivity extends AppCompatActivity {
     public void sendReplyViaSocket(byte[] data, boolean closeSocket) {
         synchronized (MainActivity.class) {
             if (socketWaitingForReply == null || socketWaitingForReply.isClosed()) {
-                Log.w(TAG, "Socket waiting for reply not set or closed");
+                Log.w(TAG, "sendReplyViaSocket: Socket waiting for reply not set or closed");
                 return;
             }
-
-            Log.d(TAG, String.format("Sending %s bytes via socket waiting for reply", data.length));
+            Log.d(TAG, String.format("sendReplyViaSocket: Sending %s bytes via socket waiting for reply. Caller: %s",
+                    data.length,
+                    Thread.currentThread().getStackTrace()[3].toString()));
 
             try {
                 var wiFiComm = getWiFiComm();
@@ -183,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
                 outputStream.write(reply);
                 outputStream.flush();
 
-                Log.d(TAG, "Data successfully sent");
+                Log.d(TAG, "sendReplyViaSocket: Data successfully sent");
             } catch (Exception ex) {
                 ex.printStackTrace();
                 closeSocket = true;
@@ -195,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
                     } finally {
                         socketWaitingForReply = null;
-                        Log.d(TAG, "Socket closed");
+                        Log.d(TAG, "sendReplyViaSocket: Socket closed");
                     }
                 }
             }
@@ -204,27 +208,24 @@ public class MainActivity extends AppCompatActivity {
 
     public void destroyWiFiListener() {
         synchronized (MainActivity.class) {
-            if (serverSocket == null) return;
+            if (wiFiListenerShutdown == null) return;
 
-            Log.d(TAG, "Destroying WiFi Listener...");
-            if (!serverSocket.isClosed()) {
-                try {
-                    serverSocket.close();
-                } catch (IOException ignored) {
-                }
-            }
-            serverSocket = null;
+            Log.d(TAG, "destroyWiFiListener caller:" + Thread.currentThread().getStackTrace()[3].toString());
+            wiFiListenerShutdown.run();
+            wiFiListenerShutdown = null;
         }
     }
 
     public void startWiFiListener(Consumer<String> messageConsumer, Runnable onSuccess) {
-        Log.d(TAG, "startWiFiListener caller: " + Thread.currentThread().getStackTrace()[3].toString());
+        new Thread(() -> {
+            try (var serverSocket = new ServerSocket()) {
+                Log.d(TAG, String.format("startWiFiListener caller: %s, hash: %s",
+                        Thread.currentThread().getStackTrace()[3].toString(),
+                        Objects.hashCode(Thread.currentThread())));
 
-        var thread = new Thread(() -> {
-            try {
                 synchronized (MainActivity.class) {
                     if (socketWaitingForReply != null && !socketWaitingForReply.isClosed()) {
-                        Log.d(TAG, "Closing socket waiting for reply...");
+                        Log.d(TAG, "startWiFiListener: socketWaitingForReply found - sending empty reply");
                         //If we have gotten here, the message processing was cancelled.
                         //Notify the client sending an empty (though valid) reply
 
@@ -238,25 +239,34 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
-                    Log.d(TAG, String.format("Starting WiFi Listener on %s:%s...",
+                    wiFiListenerShutdown = () -> {
+                        try {
+                            serverSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    };
+
+                    Log.d(TAG, String.format("startWiFiListener: Starting WiFi Listener on %s:%s...",
                             Inet4Address.getByAddress(wiFiComm.ipAdr),
                             wiFiComm.port));
 
-                    serverSocket = new ServerSocket();
-
                     serverSocket.setReuseAddress(true); //get ready to reuse this socket
                     serverSocket.bind(new InetSocketAddress(Inet4Address.getByAddress(wiFiComm.ipAdr), wiFiComm.port));
+
+                    Log.d(TAG, String.format("startWiFiListener: bound to %s:%s...",
+                            Inet4Address.getByAddress(wiFiComm.ipAdr),
+                            wiFiComm.port));
+
+                    onSuccess.run();
                 }
 
-                onSuccess.run();
-
-                while (!Thread.currentThread().isInterrupted()
-                        && serverSocket != null
-                        && !serverSocket.isClosed()) {
+                while (!Thread.currentThread().isInterrupted()) {
                     try {
                         onWiFiConnection(serverSocket.accept(), messageConsumer);
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        break;
                     }
                 }
             } catch (Exception ex) {
@@ -268,21 +278,16 @@ public class MainActivity extends AppCompatActivity {
                             Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
                             Toast.LENGTH_LONG).show();
                 });
-            } finally {
-                synchronized (MainActivity.class) {
-                    serverSocket = null;
-                }
             }
-            Log.d(TAG, "WiFi Listener has exited");
-        });
 
-        thread.setDaemon(true);
-        thread.start();
+            Log.d(TAG, "startWiFiListener: WiFi Listener has exited");
+
+        }).start();
     }
 
     private void onWiFiConnection(Socket socket, Consumer<String> messageConsumer) {
         Thread t = new Thread(() -> {
-            Log.d(TAG, "Incoming socket connection");
+            Log.d(TAG, "onWiFiConnection: Incoming socket connection");
             try {
                 var dataInputStream = new OmsDataInputStream(socket.getInputStream());
                 //a transaction consists of a request and a response. End of request is signalled by shutdownOutput on the socket
@@ -291,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
                 //stream has been shut down
                 var encryptedMessage = dataInputStream.readByteArray();
 
-                Log.d(TAG, String.format("Message has been received, %s bytes", encryptedMessage.length));
+                Log.d(TAG, String.format("onWiFiConnection: Message has been received, %s bytes", encryptedMessage.length));
 
                 // decrypt AES key
                 var aesSecretKeyData = RSAUtils.process(Cipher.DECRYPT_MODE, getWiFiComm().privateKey,
@@ -303,9 +308,6 @@ public class MainActivity extends AppCompatActivity {
                         new IvParameterSpec(envelope.iv()), envelope.aesTransformation());
 
                 synchronized (MainActivity.class) {
-                    if (serverSocket == null || serverSocket.isClosed())
-                        return; //smth. already happened, this process is obsolete
-
                     //keep socket open, wait for the reply
                     socketWaitingForReply = socket;
                 }
@@ -318,14 +320,14 @@ public class MainActivity extends AppCompatActivity {
                             Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
                             Toast.LENGTH_LONG).show();
                 });
-                Log.d(TAG, "Closing socket");
+                Log.d(TAG, "onWiFiConnection: Closing socket");
                 try {
                     socket.close();
                 } catch (IOException ignored) {
                 }
             }
         });
-        t.setDaemon(true);
+
         t.start();
     }
 }
