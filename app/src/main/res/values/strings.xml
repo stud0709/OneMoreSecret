@@ -192,4 +192,5 @@
     <string name="working_prc">working... %d%%</string>
     <string name="done">done!</string>
     <string name="clear_wifi_pairing">Clear WiFi Pairing</string>
+    <string name="wifi_pairing_enabled">WiFi Pairing enabled</string>
 </resources>

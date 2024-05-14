@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private WiFiComm _wiFiComm = null;
+    private WiFiComm wiFiComm = null;
     private Runnable wiFiListenerShutdown = null;
     private Socket socketWaitingForReply = null;
     private SharedPreferences preferences;
@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         synchronized (MainActivity.class) {
             destroyWiFiListener();
 
-            this._wiFiComm = wiFiComm;
+            this.wiFiComm = wiFiComm;
 
             if (preferences == null)
                 preferences = getPreferences(MODE_PRIVATE);
@@ -81,27 +81,34 @@ public class MainActivity extends AppCompatActivity {
                         .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
                         .putInt(PROP_PORT, wiFiComm.port).commit();
             }
+            invalidateOptionsMenu();
+        }
+    }
+
+    public boolean isWiFiCommSet() {
+        synchronized (MainActivity.class) {
+            return wiFiComm != null;
         }
     }
 
     private WiFiComm getWiFiComm() throws InvalidKeySpecException, NoSuchAlgorithmException {
         synchronized (MainActivity.class) {
-            if (_wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
+            if (wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
                 var privateKey = RSAUtils.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
                 var publicKey = RSAUtils.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
                 var ipaddrByte = Base64.decode(preferences.getString(PROP_IPADDR, ""), Base64.DEFAULT);
                 var port = preferences.getInt(PROP_PORT, 0);
                 var ts_expiry = preferences.getLong(PROP_WIFI_COMM_EXP, 0);
 
-                _wiFiComm = new WiFiComm(ipaddrByte, port, privateKey, publicKey, ts_expiry);
+                wiFiComm = new WiFiComm(ipaddrByte, port, privateKey, publicKey, ts_expiry);
             }
 
             //it is possible that we have read outdated settings
-            if (_wiFiComm != null && !_wiFiComm.isValid()) {
+            if (wiFiComm != null && !wiFiComm.isValid()) {
                 setWiFiComm(null);
             }
 
-            return _wiFiComm;
+            return wiFiComm;
         }
     }
 
@@ -131,16 +138,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        new Thread(() -> {
-            OmsFileProvider.purgeTmp(MainActivity.this);
-            destroyWiFiListener();
-        }).start();
+        OmsFileProvider.purgeTmp(MainActivity.this);
+        destroyWiFiListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        new Thread(this::destroyWiFiListener).start();
+        destroyWiFiListener();
     }
 
     @Override
@@ -217,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startWiFiListener(Consumer<String> messageConsumer, Runnable onSuccess) {
-        new Thread(() -> {
+        var wiFiListener = new Thread(() -> {
             try (var serverSocket = new ServerSocket()) {
                 Log.d(TAG, String.format("startWiFiListener caller: %s, hash: %s",
                         Thread.currentThread().getStackTrace()[3].toString(),
@@ -242,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
                     wiFiListenerShutdown = () -> {
                         try {
                             serverSocket.close();
+                            Log.d(TAG, "Server socket closed");
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -251,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
                             Inet4Address.getByAddress(wiFiComm.ipAdr),
                             wiFiComm.port));
 
-                    serverSocket.setReuseAddress(true); //get ready to reuse this socket
                     serverSocket.bind(new InetSocketAddress(Inet4Address.getByAddress(wiFiComm.ipAdr), wiFiComm.port));
 
                     Log.d(TAG, String.format("startWiFiListener: bound to %s:%s...",
@@ -282,7 +287,10 @@ public class MainActivity extends AppCompatActivity {
 
             Log.d(TAG, "startWiFiListener: WiFi Listener has exited");
 
-        }).start();
+        });
+
+        wiFiListener.setDaemon(true);
+        wiFiListener.start();
     }
 
     private void onWiFiConnection(Socket socket, Consumer<String> messageConsumer) {

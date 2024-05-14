@@ -8,7 +8,7 @@
     tools:context=".QRFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/linearLayout4"
+        android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
@@ -35,7 +35,7 @@
             android:outlineSpotShadowColor="@color/purple_200"
             android:shadowColor="@color/purple_200"
             android:shadowRadius="1"
-            android:text="WiFi Pairing enabled"
+            android:text="@string/wifi_pairing_enabled"
             app:layout_constraintBottom_toBottomOf="@+id/cameraPreview"
             app:layout_constraintStart_toStartOf="@+id/cameraPreview" />
 

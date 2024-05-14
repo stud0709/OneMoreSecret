@@ -43,10 +43,6 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -73,6 +69,15 @@ public class QRFragment extends Fragment {
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
     private static final String PROP_USE_ZXING = "use_zxing";
+    private final Runnable updateWiFiPairingIndicator = () -> requireActivity()
+            .getMainExecutor()
+            .execute(() -> {
+                if (binding == null) return;
+                binding.txtPairing.setVisibility(
+                        ((MainActivity) requireActivity()).isWiFiCommSet() ?
+                                View.VISIBLE :
+                                View.INVISIBLE);
+            });
 
     public static final String
             ARG_URI = "URI",
@@ -177,12 +182,7 @@ public class QRFragment extends Fragment {
 
         ((MainActivity) requireActivity()).startWiFiListener(
                 this::onMessage,
-                () -> requireActivity()
-                        .getMainExecutor()
-                        .execute(() -> {
-                            if (binding == null) return;
-                            binding.txtPairing.setVisibility(View.VISIBLE);
-                        }));
+                updateWiFiPairingIndicator);
     }
 
     private boolean processIntent(Intent intent) {
@@ -460,6 +460,13 @@ public class QRFragment extends Fragment {
         }
 
         @Override
+        public void onPrepareMenu(@NonNull Menu menu) {
+            MenuProvider.super.onPrepareMenu(menu);
+            menu.findItem(R.id.menuItemClearWiFiComm)
+                    .setVisible(((MainActivity) requireActivity()).isWiFiCommSet());
+        }
+
+        @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemQrPrivateKeys) {
                 NavHostFragment.findNavController(QRFragment.this)
@@ -570,6 +577,7 @@ public class QRFragment extends Fragment {
                                 getContext(),
                                 "WiFi Pairing cleared",
                                 Toast.LENGTH_LONG).show());
+                updateWiFiPairingIndicator.run();
             } else {
                 return false;
             }

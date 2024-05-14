@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment;
 import com.onemoresecret.MainActivity;
 import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OmsDataInputStream;
-import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.WiFiPairingFragment;
