@@ -24,6 +24,7 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginCryptoCurrencyAddress;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest;
+import com.onemoresecret.msg_fragment_plugins.MsgPluginPortUpdate;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 
 import java.util.Objects;
@@ -37,7 +38,7 @@ public class MessageFragment extends Fragment {
     private final MutableLiveData<Boolean> hiddenState = new MutableLiveData<>(true);
     private final MessageMenuProvider menuProvider = new MessageMenuProvider();
     private volatile boolean navBackIfPaused = true;
-    private MessageFragmentPlugin<?> messageFragmentPlugin;
+    private MessageFragmentPlugin messageFragmentPlugin;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -126,6 +127,9 @@ public class MessageFragment extends Fragment {
 
             case MessageComposer.APPLICATION_WIFI_PAIRING ->
                     messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData);
+
+            case MessageComposer.APPLICATION_WIFI_PORT_UPDATE ->
+                messageFragmentPlugin = new MsgPluginPortUpdate(this, messageData);
             default ->
                     throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
         }

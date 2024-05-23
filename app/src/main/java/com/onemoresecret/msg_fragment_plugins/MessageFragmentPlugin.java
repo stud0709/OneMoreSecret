@@ -23,7 +23,7 @@ import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-public abstract class MessageFragmentPlugin<T> extends BiometricPrompt.AuthenticationCallback {
+public abstract class MessageFragmentPlugin extends BiometricPrompt.AuthenticationCallback {
     protected final MessageFragment messageFragment;
     protected final Context context;
     protected final FragmentActivity activity;

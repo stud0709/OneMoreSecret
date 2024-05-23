@@ -28,7 +28,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class MsgPluginEncryptedFile extends MessageFragmentPlugin<Uri> {
+public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
     private final Util.UriFileInfo fileInfo;
     private final Uri uri;
     private int lastProgressPrc;

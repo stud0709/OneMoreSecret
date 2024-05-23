@@ -20,15 +20,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Inet4Address;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.security.KeyStoreException;
 import java.util.Arrays;
 
-public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
+public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
     private static String TAG = MsgPluginWiFiPairing.class.getSimpleName();
-    private static final String PROP_WIFI_PORT = "wifi_pairing_port";
     private static final long ttl_default = 12L * 3600_000L; //12 hours
-    private static final int PORT_DEFAULT = 43189;
 
 
     public MsgPluginWiFiPairing(MessageFragment messageFragment, byte[] messageData) throws Exception {
@@ -70,8 +69,9 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin<byte[]> {
                 var ipAddress = inetAddress.getAddress();
                 Log.d(TAG, "IP: " + inetAddress.getHostAddress() + " = " + Arrays.toString(ipAddress));
 
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    var port = preferences.getInt(PROP_WIFI_PORT, PORT_DEFAULT);
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ServerSocket serverSocket = new ServerSocket(0)) {
+                    var port = serverSocket.getLocalPort();
 
                     Log.d(TAG, "Port: " + port);
 

@@ -31,7 +31,7 @@ import java.util.Objects;
 
 import javax.crypto.Cipher;
 
-public class MsgPluginKeyRequest extends MessageFragmentPlugin<byte[]> {
+public class MsgPluginKeyRequest extends MessageFragmentPlugin {
     protected String reference;
     protected PublicKey rsaPublicKey;
     protected byte[] cipherText;

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 
 
-public class MsgPluginEncryptedMessage extends MessageFragmentPlugin<byte[]> {
+public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
     private byte[] messageData;
 
     public MsgPluginEncryptedMessage(MessageFragment messageFragment,

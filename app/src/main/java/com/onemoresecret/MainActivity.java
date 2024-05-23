@@ -24,12 +24,17 @@ import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -81,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
                         .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
                         .putInt(PROP_PORT, wiFiComm.port).commit();
             }
-            invalidateOptionsMenu();
         }
+        invalidateOptionsMenu();
     }
 
     public boolean isWiFiCommSet() {
@@ -257,7 +262,10 @@ public class MainActivity extends AppCompatActivity {
                             Inet4Address.getByAddress(wiFiComm.ipAdr),
                             wiFiComm.port));
 
-                    serverSocket.bind(new InetSocketAddress(Inet4Address.getByAddress(wiFiComm.ipAdr), wiFiComm.port));
+                    serverSocket.bind(
+                            new InetSocketAddress(
+                                    Inet4Address.getByAddress(wiFiComm.ipAdr),
+                                    wiFiComm.port));
 
                     Log.d(TAG, String.format("startWiFiListener: bound to %s:%s...",
                             Inet4Address.getByAddress(wiFiComm.ipAdr),
@@ -278,11 +286,16 @@ public class MainActivity extends AppCompatActivity {
                 //server socket is broken
                 ex.printStackTrace();
 
+                /*
                 this.getMainExecutor().execute(() -> {
                     Toast.makeText(this,
-                            Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                            Objects.requireNonNullElse(
+                                    ex.getMessage(),
+                                    ex.getClass().getName()),
                             Toast.LENGTH_LONG).show();
-                });
+                });*/
+
+                assignNewPort();
             }
 
             Log.d(TAG, "startWiFiListener: WiFi Listener has exited");
@@ -291,6 +304,50 @@ public class MainActivity extends AppCompatActivity {
 
         wiFiListener.setDaemon(true);
         wiFiListener.start();
+    }
+
+    private void assignNewPort() {
+        try (ServerSocket serverSocket = new ServerSocket(0)) {
+            //draw new random port
+            var port = serverSocket.getLocalPort();
+
+            //keep keys, update port
+            setWiFiComm(
+                    new WiFiComm(
+                            this.wiFiComm.ipAdr,
+                            port,
+                            this.wiFiComm.privateKey,
+                            this.wiFiComm.publicKey,
+                            this.wiFiComm.ts_expiry));
+
+            Log.d(TAG, "new port: " + port);
+
+            var iArr = ByteBuffer.allocate(4).putInt(port).array();
+            //copy only lower portion, ports range 0...65535
+            var message = Arrays.copyOfRange(iArr, 2, iArr.length);
+
+            //display dialog to update port on the client side
+            this.getMainExecutor().execute(() -> {
+                var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+                var bundle = new Bundle();
+                bundle.putByteArray(QRFragment.ARG_MESSAGE, message);
+                bundle.putInt(QRFragment.ARG_APPLICATION_ID, MessageComposer.APPLICATION_WIFI_PORT_UPDATE);
+
+                Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
+                navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
+            });
+        } catch (IOException ex) {
+            //could not even draw a new port, smth. is extremely bad
+            ex.printStackTrace();
+
+            this.getMainExecutor().execute(() -> {
+                Toast.makeText(this,
+                        Objects.requireNonNullElse(
+                                ex.getMessage(),
+                                ex.getClass().getName()),
+                        Toast.LENGTH_LONG).show();
+            });
+        }
     }
 
     private void onWiFiConnection(Socket socket, Consumer<String> messageConsumer) {
@@ -325,7 +382,9 @@ public class MainActivity extends AppCompatActivity {
                 ex.printStackTrace();
                 this.getMainExecutor().execute(() -> {
                     Toast.makeText(this,
-                            Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                            Objects.requireNonNullElse(
+                                    ex.getMessage(),
+                                    ex.getClass().getName()),
                             Toast.LENGTH_LONG).show();
                 });
                 Log.d(TAG, "onWiFiConnection: Closing socket");

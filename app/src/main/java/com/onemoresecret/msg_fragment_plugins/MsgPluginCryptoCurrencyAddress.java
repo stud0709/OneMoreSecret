@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 
 
-public class MsgPluginCryptoCurrencyAddress extends MessageFragmentPlugin<byte[]> {
+public class MsgPluginCryptoCurrencyAddress extends MessageFragmentPlugin {
     private BTCAddress.BTCKeyPair keyPair;
 
     public MsgPluginCryptoCurrencyAddress(MessageFragment messageFragment,
