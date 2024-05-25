@@ -193,6 +193,7 @@
     <string name="done">done!</string>
     <string name="clear_wifi_pairing">Clear WiFi Pairing</string>
     <string name="wifi_pairing_enabled">WiFi Pairing enabled</string>
-    <string name="port_update_info"><![CDATA[Android has reclaimed the port we were using. A new port has been assigned. Please right-click omsCompanion\'s task bar icon on your PC and select WiFi Pairing -> Port Update. Then enter (or auto-type):]]></string>
+    <string name="port_update_info"><![CDATA[Android has reclaimed the port we have been using. A new port has been assigned. Please right-click omsCompanion\'s task bar icon on your PC and select WiFi Pairing -> Port Update. Then enter (or auto-type):]]></string>
     <string name="oh_no">Oh No!</string>
+    <string name="alternatively_you_can_clear_wifi_pairing">Alternatively, you can clear WiFi Pairing:</string>
 </resources>

@@ -13,7 +13,7 @@ import java.security.KeyStoreException;
 
 
 public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
-    private byte[] messageData;
+    private final byte[] messageData;
 
     public MsgPluginEncryptedMessage(MessageFragment messageFragment,
                                      byte[] messageData) {
