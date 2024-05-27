@@ -365,6 +365,8 @@ public class QRFragment extends Fragment {
             } else {
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
+                boolean closeSocketWaitingForReply = true; //socket not used for reply, close immediately
+
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
                         //key import is not PIN protected
@@ -373,10 +375,17 @@ public class QRFragment extends Fragment {
                     }
                     case MessageComposer.APPLICATION_KEY_REQUEST,
                             MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                        closeSocketWaitingForReply = false;
+
                         runPinProtected(() -> {
                                     Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                                     navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-                                }, () -> messageReceived.set(false) /* enable message processing again */,
+                                }, () -> {
+                                    //close socket if WiFiPairing active
+                                    ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
+                                    //enable message processing again
+                                    messageReceived.set(false);
+                                },
                                 true);
                     }
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
@@ -390,7 +399,12 @@ public class QRFragment extends Fragment {
                                     showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
                                             rsaAesEnvelope.rsaTransormation(),
                                             getAuthenticationCallback(rsaAesEnvelope, cipherText));
-                                }, () -> messageReceived.set(false) /* enable message processing again */,
+                                }, () -> {
+                                    //close socket if WiFiPairing active
+                                    ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
+                                    //enable message processing again
+                                    messageReceived.set(false);
+                                },
                                 true);
                     }
                     default -> Log.e(TAG,
@@ -398,10 +412,17 @@ public class QRFragment extends Fragment {
                                     Integer.toHexString(applicationId)
                     );
                 }
+
+                if (closeSocketWaitingForReply) {
+                    //close socket if WiFiPairing active
+                    ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
+                }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             messageReceived.set(false);
+            //close socket if WiFiPairing active
+            ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
         }
     }
 

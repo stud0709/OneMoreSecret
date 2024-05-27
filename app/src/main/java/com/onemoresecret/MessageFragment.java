@@ -108,7 +108,6 @@ public class MessageFragment extends Fragment {
     private void onMessage() throws Exception {
         byte[] messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE);
         int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
-        boolean closeSocketWaitingForReply = true; //socket not used for reply, close immediately
 
         switch (applicationId) {
             case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
@@ -118,8 +117,6 @@ public class MessageFragment extends Fragment {
             case MessageComposer.APPLICATION_KEY_REQUEST,
                     MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
                 messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
-                //with WiFi Pairing, the socket will be used to send the reply
-                closeSocketWaitingForReply = false;
             }
             case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                     MessageComposer.APPLICATION_TOTP_URI ->
@@ -135,10 +132,6 @@ public class MessageFragment extends Fragment {
                     messageFragmentPlugin = new MsgPluginPortUpdate(this, messageData);
             default ->
                     throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
-        }
-
-        if (closeSocketWaitingForReply) {
-            ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
         }
     }
 

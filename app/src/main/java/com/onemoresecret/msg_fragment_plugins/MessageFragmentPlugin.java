@@ -98,6 +98,10 @@ public abstract class MessageFragmentPlugin extends BiometricPrompt.Authenticati
     public void onAuthenticationFailed() {
         Log.d(TAG,
                 "User biometrics rejected");
+
+        //close socket if WiFiPairing active
+        ((MainActivity) context).sendReplyViaSocket(new byte[]{}, true);
+
         context.getMainExecutor().execute(() -> {
             Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
             Util.discardBackStack(messageFragment);
