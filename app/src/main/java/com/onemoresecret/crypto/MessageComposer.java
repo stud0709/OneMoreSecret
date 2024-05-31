@@ -43,7 +43,7 @@ public abstract class MessageComposer {
             APPLICATION_WIFI_PAIRING = 10,
             APPLICATION_KEY_REQUEST_PAIRING = 11,
     /*internal application id for port update*/
-    APPLICATION_WIFI_PORT_UPDATE = -1;
+    APPLICATION_WIFI_CONNECTION_UPDATE = -1;
 
     /**
      * Prefix of a text encoded message.

@@ -26,17 +26,17 @@ public class WiFiPairingFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        binding.txtResponseCode.setVisibility(View.INVISIBLE);
+        binding.txtResponseCodeUpdate.setVisibility(View.INVISIBLE);
         binding.txtIntroResponse.setVisibility(View.INVISIBLE);
     }
 
     public void setData(String requestId, String responseCode, Runnable onConfirm) {
         binding.txtRequestId.setText(requestId);
-        binding.txtResponseCode.setText(responseCode);
+        binding.txtResponseCodeUpdate.setText(responseCode);
         binding.btnConfirm.setOnClickListener(e -> {
             binding.btnConfirm.setEnabled(false);
             binding.btnConfirm.setText(R.string.pairing_accepted);
-            binding.txtResponseCode.setVisibility(View.VISIBLE);
+            binding.txtResponseCodeUpdate.setVisibility(View.VISIBLE);
             binding.txtIntroResponse.setVisibility(View.VISIBLE);
             onConfirm.run();
         });

@@ -18,6 +18,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.ActivityMainBinding;
+import com.onemoresecret.msg_fragment_plugins.MsgPluginWiFiPairing;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -25,8 +26,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -34,7 +33,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -286,16 +284,15 @@ public class MainActivity extends AppCompatActivity {
                 //server socket is broken
                 ex.printStackTrace();
 
-                /*
                 this.getMainExecutor().execute(() -> {
                     Toast.makeText(this,
                             Objects.requireNonNullElse(
                                     ex.getMessage(),
                                     ex.getClass().getName()),
                             Toast.LENGTH_LONG).show();
-                });*/
+                });
 
-                assignNewPort();
+                assignNewIpAndPort();
             }
 
             Log.d(TAG, "startWiFiListener: WiFi Listener has exited");
@@ -306,32 +303,25 @@ public class MainActivity extends AppCompatActivity {
         wiFiListener.start();
     }
 
-    private void assignNewPort() {
-        try (ServerSocket serverSocket = new ServerSocket(0)) {
-            //draw new random port
-            var port = serverSocket.getLocalPort();
+    private void assignNewIpAndPort() {
+        try {
+            var ipAndPort = MsgPluginWiFiPairing.getIpAndPort(this);
 
             //keep keys, update port
             setWiFiComm(
                     new WiFiComm(
-                            this.wiFiComm.ipAdr,
-                            port,
+                            ipAndPort.ipAddress(),
+                            ipAndPort.port(),
                             this.wiFiComm.privateKey,
                             this.wiFiComm.publicKey,
                             this.wiFiComm.ts_expiry));
-
-            Log.d(TAG, "new port: " + port);
-
-            var iArr = ByteBuffer.allocate(4).putInt(port).array();
-            //copy only lower portion, ports range 0...65535
-            var message = Arrays.copyOfRange(iArr, 2, iArr.length);
 
             //display dialog to update port on the client side
             this.getMainExecutor().execute(() -> {
                 var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
                 var bundle = new Bundle();
-                bundle.putByteArray(QRFragment.ARG_MESSAGE, message);
-                bundle.putInt(QRFragment.ARG_APPLICATION_ID, MessageComposer.APPLICATION_WIFI_PORT_UPDATE);
+                bundle.putByteArray(QRFragment.ARG_MESSAGE, ipAndPort.responseCode());
+                bundle.putInt(QRFragment.ARG_APPLICATION_ID, MessageComposer.APPLICATION_WIFI_CONNECTION_UPDATE);
 
                 Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                 navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);

@@ -29,6 +29,8 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
     private static String TAG = MsgPluginWiFiPairing.class.getSimpleName();
     private static final long ttl_default = 12L * 3600_000L; //12 hours
 
+    public record IpAndPort(byte[] ipAddress, int port, byte[] responseCode) {
+    }
 
     public MsgPluginWiFiPairing(MessageFragment messageFragment, byte[] messageData) throws Exception {
         super(messageFragment);
@@ -47,33 +49,54 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
             var rsaPrivateKeyComm = RSAUtils.restorePrivateKey(dataInputStream.readByteArray());
 
             //get IP address
-            var connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            var ipAndPort = getIpAndPort(context);
 
-            var network = connectivityManager.getActiveNetwork();
-            if (network == null) {
-                throw new IOException(context.getString(R.string.no_network));
-            }
-            var networkCapabilities = connectivityManager.getNetworkCapabilities(network);
-            if (networkCapabilities == null)
-                throw new IOException(context.getString(R.string.not_on_wifi_network));
-            var transportInfo = networkCapabilities.getTransportInfo();
-            if (!(transportInfo instanceof WifiInfo)) {
-                throw new IOException(context.getString(R.string.not_on_wifi_network));
-            }
-            var linkProperties = connectivityManager.getLinkProperties(network);
-            boolean notIP4 = true;
+            context.getMainExecutor().execute(() -> {
+                var responseCodeBase58 = Base58.encode(ipAndPort.responseCode);
+                ((WiFiPairingFragment) getMessageView()).setData(
+                        requestId,
+                        responseCodeBase58,
+                        () -> {
+                            ((OutputFragment) getOutputView()).setMessage(responseCodeBase58 + "\n", "Response Code");
+                            ((MainActivity) context).setWiFiComm(
+                                    new MainActivity.WiFiComm(
+                                            ipAndPort.ipAddress,
+                                            ipAndPort.port,
+                                            rsaPrivateKeyComm,
+                                            rsaPublicKeyComm,
+                                            System.currentTimeMillis() + ttl_default));
+                        });
+            });
+        }
+    }
+
+    public static IpAndPort getIpAndPort(Context context) throws IOException {
+        var connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        var network = connectivityManager.getActiveNetwork();
+        if (network == null) {
+            throw new IOException(context.getString(R.string.no_network));
+        }
+        var networkCapabilities = connectivityManager.getNetworkCapabilities(network);
+        if (networkCapabilities == null)
+            throw new IOException(context.getString(R.string.not_on_wifi_network));
+        var transportInfo = networkCapabilities.getTransportInfo();
+        if (!(transportInfo instanceof WifiInfo)) {
+            throw new IOException(context.getString(R.string.not_on_wifi_network));
+        }
+        var linkProperties = connectivityManager.getLinkProperties(network);
+        if (linkProperties != null) {
             for (var linkAddress : linkProperties.getLinkAddresses()) {
                 var inetAddress = linkAddress.getAddress();
                 if (!(inetAddress instanceof Inet4Address)) continue;
-                notIP4 = false;
+
                 var ipAddress = inetAddress.getAddress();
                 Log.d(TAG, "IP: " + inetAddress.getHostAddress() + " = " + Arrays.toString(ipAddress));
 
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ServerSocket serverSocket = new ServerSocket(0)) {
-                    var port = serverSocket.getLocalPort();
+                     ServerSocket serverSocket = new ServerSocket(0)) {
 
-                    Log.d(TAG, "Port: " + port);
+                    var port = serverSocket.getLocalPort();
 
                     //(1) IP address as integer value
                     baos.write(ipAddress);
@@ -86,21 +109,12 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
 
                     var bArr = baos.toByteArray();
 
-                    context.getMainExecutor().execute(() -> {
-                        var responseCode = Base58.encode(bArr);
-                        ((WiFiPairingFragment) getMessageView()).setData(
-                                requestId,
-                                responseCode,
-                                () -> {
-                                    ((OutputFragment) getOutputView()).setMessage(responseCode + "\n" /* Hit ENTER to close the pop-up */, "Response Code");
-                                    ((MainActivity) context).setWiFiComm(
-                                            new MainActivity.WiFiComm(ipAddress, port, rsaPrivateKeyComm, rsaPublicKeyComm, System.currentTimeMillis() + ttl_default));
-                                });
-                    });
+                    return new IpAndPort(ipAddress, port, bArr);
                 }
             }
-            if (notIP4) throw new IOException("Unsupported network (not IP4)");
         }
+
+        throw new IOException("Unsupported network (not IP4)");
     }
 
     @Override

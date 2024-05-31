@@ -40,7 +40,7 @@
         app:layout_constraintTop_toBottomOf="@+id/btnConfirm" />
 
     <TextView
-        android:id="@+id/txt_response_code"
+        android:id="@+id/txt_response_code_update"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"

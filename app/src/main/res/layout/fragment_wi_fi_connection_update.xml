@@ -32,7 +32,7 @@
         app:layout_constraintTop_toBottomOf="@+id/txt_ohno" />
 
     <TextView
-        android:id="@+id/txt_new_port"
+        android:id="@+id/txt_response_code_update"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -51,7 +51,7 @@
         android:text="@string/alternatively_you_can_clear_wifi_pairing"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txt_new_port" />
+        app:layout_constraintTop_toBottomOf="@+id/txt_response_code_update" />
 
     <Button
         android:id="@+id/btn_clear_pairing"
