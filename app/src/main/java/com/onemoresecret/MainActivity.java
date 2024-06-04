@@ -1,5 +1,7 @@
 package com.onemoresecret;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -284,15 +286,17 @@ public class MainActivity extends AppCompatActivity {
                 //server socket is broken
                 ex.printStackTrace();
 
-                this.getMainExecutor().execute(() -> {
-                    Toast.makeText(this,
-                            Objects.requireNonNullElse(
-                                    ex.getMessage(),
-                                    ex.getClass().getName()),
-                            Toast.LENGTH_LONG).show();
-                });
+                setWiFiComm(null);
 
-                assignNewIpAndPort();
+                this.getMainExecutor().execute(() -> {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle(R.string.wifi_pairing_error)
+                            .setMessage(R.string.wifi_pairing_error_message)
+                            .setPositiveButton(android.R.string.ok, null);
+
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                });
             }
 
             Log.d(TAG, "startWiFiListener: WiFi Listener has exited");
@@ -301,43 +305,6 @@ public class MainActivity extends AppCompatActivity {
 
         wiFiListener.setDaemon(true);
         wiFiListener.start();
-    }
-
-    private void assignNewIpAndPort() {
-        try {
-            var ipAndPort = MsgPluginWiFiPairing.getIpAndPort(this);
-
-            //keep keys, update port
-            setWiFiComm(
-                    new WiFiComm(
-                            ipAndPort.ipAddress(),
-                            ipAndPort.port(),
-                            this.wiFiComm.privateKey,
-                            this.wiFiComm.publicKey,
-                            this.wiFiComm.ts_expiry));
-
-            //display dialog to update port on the client side
-            this.getMainExecutor().execute(() -> {
-                var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-                var bundle = new Bundle();
-                bundle.putByteArray(QRFragment.ARG_MESSAGE, ipAndPort.responseCode());
-                bundle.putInt(QRFragment.ARG_APPLICATION_ID, MessageComposer.APPLICATION_WIFI_CONNECTION_UPDATE);
-
-                Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
-                navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
-            });
-        } catch (IOException ex) {
-            //could not even draw a new port, smth. is extremely bad
-            ex.printStackTrace();
-
-            this.getMainExecutor().execute(() -> {
-                Toast.makeText(this,
-                        Objects.requireNonNullElse(
-                                ex.getMessage(),
-                                ex.getClass().getName()),
-                        Toast.LENGTH_LONG).show();
-            });
-        }
     }
 
     private void onWiFiConnection(Socket socket, Consumer<String> messageConsumer) {

@@ -20,9 +20,6 @@ public class OmsUncaughtExceptionHandler implements Thread.UncaughtExceptionHand
         intent.putExtra(EXTRA_CRASH_REPORT, crashReportData);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         activity.startActivity(intent);
-
         activity.finish();
-//        android.os.Process.killProcess(android.os.Process.myPid());
-        System.exit(10);
     }
 }

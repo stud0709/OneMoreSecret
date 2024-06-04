@@ -41,9 +41,7 @@ public abstract class MessageComposer {
             APPLICATION_ENCRYPTED_MESSAGE = 8,
             APPLICATION_TOTP_URI = 9,
             APPLICATION_WIFI_PAIRING = 10,
-            APPLICATION_KEY_REQUEST_PAIRING = 11,
-    /*internal application id for port update*/
-    APPLICATION_WIFI_CONNECTION_UPDATE = -1;
+            APPLICATION_KEY_REQUEST_PAIRING = 11;
 
     /**
      * Prefix of a text encoded message.

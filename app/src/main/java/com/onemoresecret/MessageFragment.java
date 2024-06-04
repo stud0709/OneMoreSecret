@@ -24,7 +24,6 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginCryptoCurrencyAddress;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginConnectionUpdate;
 import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
 
 import java.util.Objects;
@@ -128,8 +127,6 @@ public class MessageFragment extends Fragment {
             case MessageComposer.APPLICATION_WIFI_PAIRING ->
                     messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData);
 
-            case MessageComposer.APPLICATION_WIFI_CONNECTION_UPDATE ->
-                    messageFragmentPlugin = new MsgPluginConnectionUpdate(this, messageData);
             default ->
                     throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
         }

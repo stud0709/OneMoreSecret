@@ -20,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -68,7 +69,7 @@ public class QRFragment extends Fragment {
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
-    private static final String PROP_USE_ZXING = "use_zxing";
+    private static final String PROP_USE_ZXING = "use_zxing", PROP_RECENT_PREFIX = "recent_msg_";
     private final Runnable updateWiFiPairingIndicator = () -> requireActivity()
             .getMainExecutor()
             .execute(() -> {
@@ -157,6 +158,11 @@ public class QRFragment extends Fragment {
         }
 
         binding.txtPairing.setVisibility(View.INVISIBLE);
+
+        binding.btnRecent1.setOnClickListener(this::getRecent);
+        binding.btnRecent2.setOnClickListener(this::getRecent);
+        binding.btnRecent3.setOnClickListener(this::getRecent);
+        binding.btnRecent4.setOnClickListener(this::getRecent);
     }
 
     @Override
@@ -366,6 +372,7 @@ public class QRFragment extends Fragment {
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
                 boolean closeSocketWaitingForReply = true; //socket not used for reply, close immediately
+                boolean setRecent = false;
 
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
@@ -391,6 +398,7 @@ public class QRFragment extends Fragment {
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                             MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                             MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                        setRecent = true;
                         dataInputStream.reset();
                         var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
                         //(7) - cipher text
@@ -417,6 +425,8 @@ public class QRFragment extends Fragment {
                     //close socket if WiFiPairing active
                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
                 }
+
+                if (setRecent) setRecent(message);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -424,6 +434,24 @@ public class QRFragment extends Fragment {
             //close socket if WiFiPairing active
             ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
         }
+    }
+
+    private void setRecent(String message) {
+        var editor = preferences.edit();
+
+        //shift recent values
+        for (int i = 4; i > 0; i--) {
+            var prop_name = PROP_RECENT_PREFIX + i; //e.g. recent_msg_2
+            var prop_name_prev = PROP_RECENT_PREFIX + (i - 1); //e.g. recent_msg_1
+            var prev_value = preferences.getString(prop_name_prev, null);
+
+            if (prev_value == null) continue;
+            editor.putString(prop_name, prev_value);
+        }
+
+        var prop_name = PROP_RECENT_PREFIX + 1;
+        editor.putString(prop_name, message);
+        editor.apply();
     }
 
     private void runPinProtected(Runnable onSuccess,
@@ -471,6 +499,23 @@ public class QRFragment extends Fragment {
         requireActivity().removeMenuProvider(menuProvider);
         if (cameraProvider != null) cameraProvider.unbindAll();
         binding = null;
+    }
+
+    public void getRecent(View view) {
+        var idx = ((Button) view).getText();
+        String msg = preferences.getString(PROP_RECENT_PREFIX + idx, null);
+
+        if (msg == null) {
+            requireContext().getMainExecutor().execute(() -> {
+                Toast.makeText(getContext(),
+                        "No value",
+                        Toast.LENGTH_LONG).show();
+            });
+
+            return;
+        }
+
+        onMessage(msg);
     }
 
     private class QrMenuProvider implements MenuProvider {

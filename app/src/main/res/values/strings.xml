@@ -193,7 +193,6 @@
     <string name="done">done!</string>
     <string name="clear_wifi_pairing">Clear WiFi Pairing</string>
     <string name="wifi_pairing_enabled">WiFi Pairing enabled</string>
-    <string name="port_update_info"><![CDATA[Due to a network change, we could not maintain a link to omsCompanion. To restore it, please right-click omsCompanion\'s task bar icon on your PC and select WiFi Pairing -> Update. Then enter (or auto-type):]]></string>
-    <string name="oh_no">Oh No!</string>
-    <string name="alternatively_you_can_clear_wifi_pairing">Alternatively, you can clear WiFi Pairing:</string>
+    <string name="wifi_pairing_error">WiFi Pairing Error</string>
+    <string name="wifi_pairing_error_message">Please use omsCompanion\'s WiFi Pairing menu to re-establish the connection or disconnect.</string>
 </resources>
