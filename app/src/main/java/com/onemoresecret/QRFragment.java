@@ -21,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -31,10 +32,14 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
@@ -44,6 +49,7 @@ import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -59,7 +65,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
-
     private FragmentQrBinding binding;
     private ImageAnalysis imageAnalysis;
     private ProcessCameraProvider cameraProvider;
@@ -69,12 +74,12 @@ public class QRFragment extends Fragment {
     private MessageParser parser;
     private final AtomicBoolean messageReceived = new AtomicBoolean(false);
     private long nextPinRequestTimestamp = 0;
-    private static final String PROP_USE_ZXING = "use_zxing", PROP_RECENT_PREFIX = "recent_msg_";
+    private static final String PROP_USE_ZXING = "use_zxing", PROP_RECENT_PREFIX = "recent_entry_";
     private final Runnable updateWiFiPairingIndicator = () -> requireActivity()
             .getMainExecutor()
             .execute(() -> {
                 if (binding == null) return;
-                binding.txtPairing.setVisibility(
+                binding.imgPairing.setVisibility(
                         ((MainActivity) requireActivity()).isWiFiCommSet() ?
                                 View.VISIBLE :
                                 View.INVISIBLE);
@@ -86,6 +91,10 @@ public class QRFragment extends Fragment {
             ARG_TEXT = "TEXT",
             ARG_APPLICATION_ID = "AI";
 
+    private static final long RECENT_TTL = 6L * 3600L * 1000L; //6h
+
+    private ImageButton[] recentButtons = {};
+
 
     @Override
     public View onCreateView(
@@ -93,6 +102,13 @@ public class QRFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         binding = FragmentQrBinding.inflate(inflater, container, false);
+
+        recentButtons = new ImageButton[]{
+                binding.ibRecent1,
+                binding.ibRecent2,
+                binding.ibRecent3,
+                binding.ibRecent4};
+
         return binding.getRoot();
     }
 
@@ -141,7 +157,7 @@ public class QRFragment extends Fragment {
         parser = new MessageParser() {
             @Override
             public void onMessage(String message) {
-                QRFragment.this.onMessage(message);
+                QRFragment.this.onMessage(message, true);
             }
 
             @Override
@@ -150,19 +166,18 @@ public class QRFragment extends Fragment {
             }
         };
 
-        if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
-            binding.swZxing.setVisibility(View.GONE);
-        } else {
-            binding.swZxing.setChecked(preferences.getBoolean(PROP_USE_ZXING, false));
-            binding.swZxing.setOnCheckedChangeListener((compoundButton, b) -> preferences.edit().putBoolean(PROP_USE_ZXING, b).commit());
-        }
+        binding.imgPairing.setVisibility(View.INVISIBLE);
 
-        binding.txtPairing.setVisibility(View.INVISIBLE);
+        Arrays.stream(recentButtons).forEach(ib -> ib.setOnClickListener(this::getRecent));
 
-        binding.btnRecent1.setOnClickListener(this::getRecent);
-        binding.btnRecent2.setOnClickListener(this::getRecent);
-        binding.btnRecent3.setOnClickListener(this::getRecent);
-        binding.btnRecent4.setOnClickListener(this::getRecent);
+        refreshRecentButtons();
+    }
+
+    private boolean isZxingEnabled() {
+        var b = BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS) /*in the FOSS version, ZXing is the only QR enging */
+                || preferences.getBoolean(PROP_USE_ZXING, false);
+        Log.d(TAG, "ZXing enabled: " + b);
+        return b;
     }
 
     @Override
@@ -184,10 +199,10 @@ public class QRFragment extends Fragment {
         Log.d(TAG, "resuming...");
         //get ready to receive new messages
         messageReceived.set(false);
-        binding.txtPairing.setVisibility(View.INVISIBLE);
+        binding.imgPairing.setVisibility(View.INVISIBLE);
 
         ((MainActivity) requireActivity()).startWiFiListener(
-                this::onMessage,
+                msg -> onMessage(msg, true),
                 updateWiFiPairingIndicator);
     }
 
@@ -228,7 +243,7 @@ public class QRFragment extends Fragment {
                                 NavHostFragment.findNavController(QRFragment.this)
                                         .navigate(R.id.action_QRFragment_to_encryptTextFragment, bundle);
                             } else {
-                                onMessage(text);
+                                onMessage(text, true);
                             }
                             return true;
                         }
@@ -317,16 +332,17 @@ public class QRFragment extends Fragment {
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build();
 
-                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(), new QRCodeAnalyzer(() -> binding.swZxing.isChecked()) {
-                    @Override
-                    public void onQRCodeFound(String barcodeValue) {
-                        try {
-                            parser.consume(barcodeValue);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+                imageAnalysis.setAnalyzer(requireContext().getMainExecutor(),
+                        new QRCodeAnalyzer(isZxingEnabled()) {
+                            @Override
+                            public void onQRCodeFound(String barcodeValue) {
+                                try {
+                                    parser.consume(barcodeValue);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
 
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
             } catch (Exception e) {
@@ -339,10 +355,11 @@ public class QRFragment extends Fragment {
     /**
      * Try to process inbound message
      *
-     * @param message Message in OMS format
+     * @param message       Message in OMS format
+     * @param callSetRecent add this message to recent messages
      * @see MessageComposer
      */
-    private void onMessage(String message) {
+    private void onMessage(String message, boolean callSetRecent) {
         if (messageReceived.get()) return;
         messageReceived.set(true);
 
@@ -372,7 +389,6 @@ public class QRFragment extends Fragment {
                 Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
 
                 boolean closeSocketWaitingForReply = true; //socket not used for reply, close immediately
-                boolean setRecent = false;
 
                 switch (applicationId) {
                     case MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
@@ -398,7 +414,6 @@ public class QRFragment extends Fragment {
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                             MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                             MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
-                        setRecent = true;
                         dataInputStream.reset();
                         var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
                         //(7) - cipher text
@@ -406,7 +421,7 @@ public class QRFragment extends Fragment {
                         runPinProtected(() -> {
                                     showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
                                             rsaAesEnvelope.rsaTransormation(),
-                                            getAuthenticationCallback(rsaAesEnvelope, cipherText));
+                                            getAuthenticationCallback(rsaAesEnvelope, cipherText, callSetRecent ? message : null));
                                 }, () -> {
                                     //close socket if WiFiPairing active
                                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
@@ -425,8 +440,6 @@ public class QRFragment extends Fragment {
                     //close socket if WiFiPairing active
                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
                 }
-
-                if (setRecent) setRecent(message);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -436,22 +449,59 @@ public class QRFragment extends Fragment {
         }
     }
 
-    private void setRecent(String message) {
+
+    public void setRecent(String message, int applicationId) {
+        var latestPropertyName = PROP_RECENT_PREFIX + "1";
+        var latest = preferences.getString(latestPropertyName, null);
+        if (latest != null) {
+            var latestEntry = RecentEntry.deserialize(latest);
+            if (latestEntry.getMessage().equals(message))
+                return; //do not store duplicates in history
+        }
+
         var editor = preferences.edit();
 
         //shift recent values
-        for (int i = 4; i > 0; i--) {
-            var prop_name = PROP_RECENT_PREFIX + i; //e.g. recent_msg_2
-            var prop_name_prev = PROP_RECENT_PREFIX + (i - 1); //e.g. recent_msg_1
+        for (int i = recentButtons.length; i > 0; i--) {
+            var prop_name = PROP_RECENT_PREFIX + i; //e.g. recent_data_2
+            var prop_name_prev = PROP_RECENT_PREFIX + (i - 1); //e.g. recent_data_1
             var prev_value = preferences.getString(prop_name_prev, null);
 
             if (prev_value == null) continue;
             editor.putString(prop_name, prev_value);
         }
 
-        var prop_name = PROP_RECENT_PREFIX + 1;
-        editor.putString(prop_name, message);
+        var entry = new RecentEntry(
+                message,
+                applicationId,
+                System.currentTimeMillis() + RECENT_TTL);
+
+        editor.putString(latestPropertyName, entry.serialize());
         editor.apply();
+        requireContext().getMainExecutor().execute(this::refreshRecentButtons);
+    }
+
+    private void refreshRecentButtons() {
+        for (int i = recentButtons.length; i > 0; i--) {
+            var prop_name = PROP_RECENT_PREFIX + i; //e.g. recent_data_2
+            var recent = preferences.getString(prop_name, null);
+            var drawableId = 0;
+            if (recent != null) {
+                var recentEntry = RecentEntry.deserialize(recent);
+
+                if (recentEntry.ttl > System.currentTimeMillis()) //otherwise expired
+                    drawableId = MessageComposer.getDrawableIdForApplicationId(recentEntry.applicationId);
+            }
+            if (drawableId == 0) {
+                recentButtons[i - 1].setVisibility(View.INVISIBLE);
+            } else {
+                recentButtons[i - 1].setVisibility(View.VISIBLE);
+                recentButtons[i - 1].setImageDrawable(
+                        ResourcesCompat.getDrawable(getResources(),
+                                drawableId,
+                                requireContext().getTheme()));
+            }
+        }
     }
 
     private void runPinProtected(Runnable onSuccess,
@@ -502,20 +552,25 @@ public class QRFragment extends Fragment {
     }
 
     public void getRecent(View view) {
-        var idx = ((Button) view).getText();
-        String msg = preferences.getString(PROP_RECENT_PREFIX + idx, null);
+        for (int i = 0; i < recentButtons.length; i++) {
+            if (recentButtons[i].getId() != view.getId()) continue;
 
-        if (msg == null) {
-            requireContext().getMainExecutor().execute(() -> {
-                Toast.makeText(getContext(),
-                        "No value",
-                        Toast.LENGTH_LONG).show();
-            });
+            var recent = preferences.getString(PROP_RECENT_PREFIX + (i + 1), null);
 
+            if (recent == null) {
+                requireContext().getMainExecutor().execute(() -> {
+                    Toast.makeText(getContext(),
+                            "No value",
+                            Toast.LENGTH_LONG).show();
+                });
+
+                return;
+            }
+
+            var recentEntry = RecentEntry.deserialize(recent);
+            onMessage(recentEntry.message, false);
             return;
         }
-
-        onMessage(msg);
     }
 
     private class QrMenuProvider implements MenuProvider {
@@ -530,6 +585,12 @@ public class QRFragment extends Fragment {
             MenuProvider.super.onPrepareMenu(menu);
             menu.findItem(R.id.menuItemClearWiFiComm)
                     .setVisible(((MainActivity) requireActivity()).isWiFiCommSet());
+            if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
+                menu.findItem(R.id.menuItemZxing)
+                        .setVisible(false); //FOSS version has only ZXing engine
+            } else {
+                menu.findItem(R.id.menuItemZxing).setChecked(isZxingEnabled());
+            }
         }
 
         @Override
@@ -552,7 +613,7 @@ public class QRFragment extends Fragment {
                 if (clipData != null) {
                     var item = clipboardManager.getPrimaryClip().getItemAt(0);
                     var text = item.getText().toString();
-                    onMessage(text);
+                    onMessage(text, true);
                 }
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
                 var crashReportData = new CrashReportData(null);
@@ -644,6 +705,9 @@ public class QRFragment extends Fragment {
                                 "WiFi Pairing cleared",
                                 Toast.LENGTH_LONG).show());
                 updateWiFiPairingIndicator.run();
+            } else if (menuItem.getItemId() == R.id.menuItemZxing) {
+                preferences.edit().putBoolean(PROP_USE_ZXING, !isZxingEnabled()).commit();
+                requireActivity().invalidateOptionsMenu();
             } else {
                 return false;
             }
@@ -697,7 +761,8 @@ public class QRFragment extends Fragment {
     }
 
     private BiometricPrompt.AuthenticationCallback getAuthenticationCallback(MessageComposer.RsaAesEnvelope rsaAesEnvelope,
-                                                                             byte[] cipherText) {
+                                                                             byte[] cipherText,
+                                                                             @Nullable String originalMessage) {
         return new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
@@ -727,7 +792,7 @@ public class QRFragment extends Fragment {
                             rsaAesEnvelope.aesTransformation());
 
                     //payload starts with its own application identifier.
-                    afterDecrypt(rsaAesEnvelope, payload);
+                    afterDecrypt(rsaAesEnvelope, payload, originalMessage);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     messageReceived.set(false);
@@ -752,7 +817,10 @@ public class QRFragment extends Fragment {
         };
     }
 
-    private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope, byte[] payload) throws Exception {
+    private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope,
+                              byte[] payload,
+                              @Nullable String originalMessage) throws Exception {
+
         try (var bais = new ByteArrayInputStream(payload);
              var dataInputStream = new OmsDataInputStream(bais)) {
 
@@ -779,6 +847,8 @@ public class QRFragment extends Fragment {
                             navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                         }
                         case MessageComposer.APPLICATION_WIFI_PAIRING -> {
+                            originalMessage = null;
+
                             //(2)...(n) structured data to be read from the remaining bytes
                             var bArr = new byte[dataInputStream.available()];
                             dataInputStream.read(bArr);
@@ -803,6 +873,55 @@ public class QRFragment extends Fragment {
                 default ->
                         throw new IllegalArgumentException("No processor defined for application ID " +
                                 Integer.toHexString(rsaAesEnvelope.applicationId()));
+            }
+
+            if (originalMessage != null) {
+                setRecent(originalMessage, bundle.getInt(ARG_APPLICATION_ID));
+            }
+        }
+    }
+
+    public static class RecentEntry {
+        private final String message;
+        private final int applicationId;
+        private final long ttl;
+
+        public RecentEntry(@JsonProperty("message") String message,
+                           @JsonProperty("applicationId") int applicationId,
+                           @JsonProperty("ttl") long ttl) {
+            this.message = message;
+            this.applicationId = applicationId;
+            this.ttl = ttl;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public int getApplicationId() {
+            return applicationId;
+        }
+
+        public long getTtl() {
+            return ttl;
+        }
+
+        @JsonIgnore
+        public String serialize() {
+            try {
+                return Util.JACKSON_MAPPER.writeValueAsString(this);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new RuntimeException();
+            }
+        }
+
+        public static RecentEntry deserialize(String json) {
+            try {
+                return Util.JACKSON_MAPPER.readValue(json, RecentEntry.class);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new RuntimeException();
             }
         }
     }

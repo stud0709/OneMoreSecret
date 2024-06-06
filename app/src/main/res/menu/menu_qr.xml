@@ -29,17 +29,27 @@
         android:id="@+id/menuItemEncryptText"
         android:title="@string/encrypt_text" />
     <item
-        android:id="@+id/menuItemQrPrivateKeys"
-        android:title="@string/action_private_keys"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/menuItemPinSetup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:title="@string/pin_setup" />
-    <item
         android:id="@+id/menuItemClearWiFiComm"
         android:title="@string/clear_wifi_pairing" />
+    <item
+        android:id="@+id/menuItemSettings"
+        android:title="Settings" >
+        <menu >
+            <item
+                android:id="@+id/menuItemPinSetup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:title="@string/pin_setup" />
+            <item
+                android:id="@+id/menuItemQrPrivateKeys"
+                android:title="@string/action_private_keys"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/menuItemZxing"
+                android:checkable="true"
+                android:title="ZXing Enabled" />
+        </menu>
+    </item>
     <item
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

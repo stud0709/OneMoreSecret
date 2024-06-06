@@ -12,11 +12,11 @@ import java.util.function.Supplier;
 public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
     private static final String TAG = QRCodeAnalyzer.class.getSimpleName();
 
-    public QRCodeAnalyzer(Supplier<Boolean> isZxingEnabled) {
-        this.isZxingEnabled = isZxingEnabled;
+    public QRCodeAnalyzer(boolean zxingEnabled) {
+        this.zxingEnabled = zxingEnabled;
     }
 
-    private final Supplier<Boolean> isZxingEnabled;
+    private final boolean zxingEnabled;
     private Analyzer analyzer = null;
     private static final String ML_KIT_CLASSNAME = "com.onemoresecret.qr.MLKitBarcodeAnalyzer";
 
@@ -24,7 +24,7 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
     @Override
     public void analyze(@NonNull ImageProxy imageProxy) {
         try {
-            if (isZxingEnabled.get() || BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
+            if (zxingEnabled || BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
                 if (analyzer == null || !(analyzer instanceof ZXingBarcodeAnalyzer))
                     analyzer = new ZXingBarcodeAnalyzer();
             } else {

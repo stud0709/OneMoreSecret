@@ -5,16 +5,19 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
-import android.util.Log;
 
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
+
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Objects;
 
 public final class Util {
     public static final String FLAVOR_FOSS = "foss";
     public static final int BASE64_LINE_LENGTH = 75;
+    public static final ObjectMapper JACKSON_MAPPER = new ObjectMapper();
 
     private Util() {
     }

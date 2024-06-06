@@ -20,25 +20,22 @@
             android:clickable="false"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0">
 
         </androidx.camera.view.PreviewView>
 
-        <TextView
-            android:id="@+id/txtPairing"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="8dp"
-            android:outlineAmbientShadowColor="@color/purple_200"
-            android:outlineProvider="none"
-            android:outlineSpotShadowColor="@color/purple_200"
-            android:shadowColor="@color/purple_200"
-            android:shadowRadius="1"
-            android:text="@string/wifi_pairing_enabled"
-            app:layout_constraintBottom_toBottomOf="@+id/cameraPreview"
-            app:layout_constraintStart_toStartOf="@+id/cameraPreview" />
+        <ImageView
+            android:id="@+id/imgPairing"
+            android:layout_width="128dp"
+            android:layout_height="128dp"
+            android:src="@drawable/leak_add"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/cameraPreview"
+            app:layout_constraintStart_toStartOf="@+id/cameraPreview"
+            app:layout_constraintTop_toTopOf="@+id/cameraPreview" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -47,12 +44,6 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical">
-
-        <Switch
-            android:id="@+id/swZxing"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:text="zxing" />
 
         <TextView
             android:id="@+id/textView2"
@@ -79,7 +70,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Recent"
+            android:text="@string/recent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/cameraPreview" />
 
@@ -93,56 +84,48 @@
                 android:layout_height="wrap_content"
                 android:layout_weight=".1" />
 
-            <Button
-                android:id="@+id/btn_recent1"
-                style="?attr/materialButtonOutlinedStyle"
+            <ImageButton
+                android:id="@+id/ibRecent1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:singleLine="true"
-                android:text="1" />
+                android:src="@drawable/baseline_currency_bitcoin_24" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight=".1" />
 
-            <Button
-                android:id="@+id/btn_recent2"
-                style="?attr/materialButtonOutlinedStyle"
+            <ImageButton
+                android:id="@+id/ibRecent2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:singleLine="true"
-                android:text="2" />
+                android:src="@drawable/baseline_timelapse_24" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight=".1" />
 
-            <Button
-                android:id="@+id/btn_recent3"
-                style="?attr/materialButtonOutlinedStyle"
+            <ImageButton
+                android:id="@+id/ibRecent3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:singleLine="true"
-                android:text="3" />
+                android:src="@drawable/baseline_password_24" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight=".1" />
 
-            <Button
-                android:id="@+id/btn_recent4"
-                style="?attr/materialButtonOutlinedStyle"
+            <ImageButton
+                android:id="@+id/ibRecent4"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:singleLine="true"
-                android:text="4" />
+                android:src="@drawable/baseline_category_24" />
 
             <TextView
                 android:layout_width="0dp"
@@ -156,7 +139,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Presets"
+            android:text="@string/presets"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/cameraPreview" />
 
@@ -300,7 +283,8 @@
         <TextView
             android:id="@+id/txtAppVersion"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="bottom"
             android:text="@string/app_version" />
 
     </LinearLayout>

@@ -1,9 +1,11 @@
 package com.onemoresecret.crypto;
 
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import com.onemoresecret.OmsDataInputStream;
 import com.onemoresecret.OmsDataOutputStream;
+import com.onemoresecret.R;
 import com.onemoresecret.Util;
 
 import java.io.ByteArrayOutputStream;
@@ -42,6 +44,25 @@ public abstract class MessageComposer {
             APPLICATION_TOTP_URI = 9,
             APPLICATION_WIFI_PAIRING = 10,
             APPLICATION_KEY_REQUEST_PAIRING = 11;
+
+    public static int getDrawableIdForApplicationId(int applicationId) {
+        int id = 0;
+        switch (applicationId) {
+            case APPLICATION_BITCOIN_ADDRESS -> {
+                id = R.drawable.baseline_currency_bitcoin_24;
+            }
+            case APPLICATION_ENCRYPTED_MESSAGE,
+                    APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
+                id = R.drawable.baseline_password_24;
+            }
+            case APPLICATION_TOTP_URI,
+                    APPLICATION_TOTP_URI_DEPRECATED -> {
+                id = R.drawable.baseline_timelapse_24;
+            }
+        }
+
+        return id;
+    }
 
     /**
      * Prefix of a text encoded message.
