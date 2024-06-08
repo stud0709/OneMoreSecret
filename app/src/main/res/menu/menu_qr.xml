@@ -83,4 +83,8 @@
     <item
         android:id="@+id/menuItemHelp"
         android:title="@string/help" />
+    <item
+        android:id="@+id/menuItemVersion"
+        android:enabled="false"
+        android:title="version" />
 </menu>

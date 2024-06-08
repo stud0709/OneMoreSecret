@@ -133,8 +133,6 @@ public class QRFragment extends Fragment {
 
         requireActivity().addMenuProvider(menuProvider);
 
-        binding.txtAppVersion.setText(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
-
         Intent intent = requireActivity().getIntent();
         if (intent != null) {
             requireActivity().setIntent(null);
@@ -171,13 +169,23 @@ public class QRFragment extends Fragment {
         Arrays.stream(recentButtons).forEach(ib -> ib.setOnClickListener(this::getRecent));
 
         refreshRecentButtons();
+
+        if (binding.flexLOutPresets.getChildCount() == 0) {
+            //dummy presets
+            var fragmentManager = getChildFragmentManager();
+            var containerId = binding.flexLOutPresets.getId();
+            var trx = fragmentManager.beginTransaction();
+            for (int i = 0; i < 10; i++) {
+                var dummyPreset = new PresetFragment(()->Log.d(TAG, "click!"), ()->Log.d(TAG, "long click!"));
+                trx.add(containerId, dummyPreset);
+            }
+            trx.commit();
+        }
     }
 
     private boolean isZxingEnabled() {
-        var b = BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS) /*in the FOSS version, ZXing is the only QR enging */
+        return BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS) /*in the FOSS version, ZXing is the only QR engine */
                 || preferences.getBoolean(PROP_USE_ZXING, false);
-        Log.d(TAG, "ZXing enabled: " + b);
-        return b;
     }
 
     @Override
@@ -493,7 +501,7 @@ public class QRFragment extends Fragment {
                     drawableId = MessageComposer.getDrawableIdForApplicationId(recentEntry.applicationId);
             }
             if (drawableId == 0) {
-                recentButtons[i - 1].setVisibility(View.INVISIBLE);
+                recentButtons[i - 1].setVisibility(i == 1 ? View.INVISIBLE : View.GONE);
             } else {
                 recentButtons[i - 1].setVisibility(View.VISIBLE);
                 recentButtons[i - 1].setImageDrawable(
@@ -583,6 +591,7 @@ public class QRFragment extends Fragment {
         @Override
         public void onPrepareMenu(@NonNull Menu menu) {
             MenuProvider.super.onPrepareMenu(menu);
+            menu.findItem(R.id.menuItemVersion).setTitle(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
             menu.findItem(R.id.menuItemClearWiFiComm)
                     .setVisible(((MainActivity) requireActivity()).isWiFiCommSet());
             if (BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS)) {
