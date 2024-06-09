@@ -13,15 +13,20 @@ import android.view.ViewGroup;
 
 import com.onemoresecret.databinding.FragmentPresetBinding;
 
+import java.util.function.Consumer;
+
 
 public class PresetFragment extends Fragment {
     private static final String TAG = PresetFragment.class.getSimpleName();
     private FragmentPresetBinding binding;
-    private final Runnable onClick, onLongClick;
+    private final Consumer<QRFragment.PresetEntry> onClick;
+    private final Consumer<QRFragment.PresetEntry> onLongClick;
+    private final QRFragment.PresetEntry presetEntry;
 
-    public PresetFragment(Runnable onClick, Runnable onLongClick) {
+    public PresetFragment(QRFragment.PresetEntry presetEntry, Consumer<QRFragment.PresetEntry> onClick, Consumer<QRFragment.PresetEntry> onLongClick) {
         this.onClick = onClick;
         this.onLongClick = onLongClick;
+        this.presetEntry = presetEntry;
     }
 
     @Override
@@ -43,13 +48,16 @@ public class PresetFragment extends Fragment {
 
         //apply preset
         binding.button.setOnClickListener(v -> {
-            onClick.run();
+            onClick.accept(presetEntry);
         });
 
         //enter preset configuration
         binding.button.setOnLongClickListener(v -> {
-            this.onLongClick.run();
+            onLongClick.accept(presetEntry);
             return true;
         });
+
+        binding.button.setText(presetEntry.symbol());
+        binding.txtName.setText(presetEntry.name());
     }
 }

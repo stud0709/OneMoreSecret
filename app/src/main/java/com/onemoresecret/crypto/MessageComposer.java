@@ -1,6 +1,5 @@
 package com.onemoresecret.crypto;
 
-import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import com.onemoresecret.OmsDataInputStream;
@@ -16,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import javax.crypto.BadPaddingException;
@@ -45,23 +45,30 @@ public abstract class MessageComposer {
             APPLICATION_WIFI_PAIRING = 10,
             APPLICATION_KEY_REQUEST_PAIRING = 11;
 
-    public static int getDrawableIdForApplicationId(int applicationId) {
-        int id = 0;
+    /**
+     * Assigns a drawable to an applicationId. This is used to display recent entries.
+     * <b>ApplicationId without a drawableId wil not be added to recent entries.</b>
+     *
+     * @param applicationId
+     * @return drawableId
+     */
+    public static Optional<Integer> getDrawableIdForApplicationId(int applicationId) {
         switch (applicationId) {
             case APPLICATION_BITCOIN_ADDRESS -> {
-                id = R.drawable.baseline_currency_bitcoin_24;
+                return Optional.of(R.drawable.baseline_currency_bitcoin_24);
             }
             case APPLICATION_ENCRYPTED_MESSAGE,
                     APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
-                id = R.drawable.baseline_password_24;
+               return Optional.of(R.drawable.baseline_password_24);
             }
             case APPLICATION_TOTP_URI,
                     APPLICATION_TOTP_URI_DEPRECATED -> {
-                id = R.drawable.baseline_timelapse_24;
+                return Optional.of(R.drawable.baseline_timelapse_24);
+            }
+            default -> {
+                return Optional.empty();
             }
         }
-
-        return id;
     }
 
     /**

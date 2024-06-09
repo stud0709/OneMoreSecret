@@ -138,7 +138,7 @@ public class PinEntryFragment extends DialogFragment {
 
     private void panic() {
         new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
-        
+
         var cryptographyManager = new CryptographyManager();
 
         try {
@@ -150,6 +150,16 @@ public class PinEntryFragment extends DialogFragment {
         } catch (KeyStoreException e) {
             throw new RuntimeException(e);
         }
+
+        var editor = preferences.edit();
+
+        if (preferences.contains(QRFragment.PROP_RECENT_ENTRIES))
+            editor.remove(QRFragment.PROP_RECENT_ENTRIES);
+
+        if (preferences.contains(QRFragment.PROP_PRESETS))
+            editor.remove(QRFragment.PROP_PRESETS);
+
+        editor.apply();
     }
 
     private void onDigit(View v) {

@@ -75,49 +75,16 @@
             app:layout_constraintTop_toBottomOf="@+id/cameraPreview" />
 
         <HorizontalScrollView
+            android:id="@+id/scroll_recent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:id="@+id/linear_recent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <ImageButton
-                    android:id="@+id/ibRecent1"
-                    style="@style/Widget.AppCompat.ImageButton"
-                    android:layout_width="100dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:src="@drawable/baseline_category_24" />
-
-                <ImageButton
-                    android:id="@+id/ibRecent2"
-                    android:layout_width="100dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:src="@drawable/baseline_category_24" />
-
-                <ImageButton
-                    android:id="@+id/ibRecent3"
-                    android:layout_width="100dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:src="@drawable/baseline_category_24" />
-
-                <ImageButton
-                    android:id="@+id/ibRecent4"
-                    android:layout_width="100dp"
-                    android:layout_height="50dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:src="@drawable/baseline_category_24" />
-
-            </LinearLayout>
+                android:orientation="horizontal"/>
         </HorizontalScrollView>
 
         <TextView

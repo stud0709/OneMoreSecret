@@ -86,7 +86,7 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             }
 
             if (bluetoothManager != null && bluetoothHidDevice != null) {
-                bluetoothHidDevice.getConnectedDevices().forEach(d -> getBluetoothHidDevice().disconnect(d));
+                bluetoothHidDevice.getConnectedDevices().forEach(d -> bluetoothHidDevice.disconnect(d));
                 bluetoothHidDevice.unregisterApp();
                 bluetoothManager.getAdapter().closeProfileProxy(BluetoothProfile.HID_DEVICE, bluetoothHidDevice);
             }
