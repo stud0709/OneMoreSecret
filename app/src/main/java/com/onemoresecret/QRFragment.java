@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -79,6 +80,7 @@ public class QRFragment extends Fragment {
     private static final String PROP_USE_ZXING = "use_zxing", PROP_RECENT_SIZE = "recent_size";
     public static final String PROP_RECENT_ENTRIES = "recent_entries", PROP_PRESETS = "presets";
     private static final int DEF_RECENT_SIZE = 3;
+    private static final long RECENT_TTL = TimeUnit.HOURS.toMillis(12);
     private final Runnable updateWiFiPairingIndicator = () -> requireActivity()
             .getMainExecutor()
             .execute(() -> {
@@ -94,8 +96,6 @@ public class QRFragment extends Fragment {
             ARG_MESSAGE = "MESSAGE",
             ARG_TEXT = "TEXT",
             ARG_APPLICATION_ID = "AI";
-
-    private static final long RECENT_TTL = 6L * 3600L * 1000L; //6h
 
     private final List<ImageButton> recentButtons = new ArrayList<>();
 
@@ -171,12 +171,6 @@ public class QRFragment extends Fragment {
                 QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
             }
         };
-
-        binding.imgPairing.setVisibility(View.INVISIBLE);
-
-        refreshRecentButtons();
-
-        loadPresets();
     }
 
     private boolean isZxingEnabled() {
@@ -238,6 +232,10 @@ public class QRFragment extends Fragment {
         ((MainActivity) requireActivity()).startWiFiListener(
                 msg -> onMessage(msg, true),
                 updateWiFiPairingIndicator);
+
+        loadRecentButtons();
+
+        loadPresets();
     }
 
     private boolean processIntent(Intent intent) {
@@ -518,7 +516,7 @@ public class QRFragment extends Fragment {
         }
     }
 
-    private void refreshRecentButtons() {
+    private void loadRecentButtons() {
         recentButtons.forEach(b -> binding.linearRecent.removeView(b));
         recentButtons.clear();
 
@@ -551,6 +549,10 @@ public class QRFragment extends Fragment {
                                 recentEntry.drawableId,
                                 requireContext().getTheme()));
                 b.setOnClickListener(v -> onMessage(recentEntry.message, false));
+                b.setOnLongClickListener(v -> {
+                    //TODO: create new preset
+                    return true;
+                });
 
                 binding.linearRecent.addView(b);
                 recentButtons.add(b);
@@ -575,15 +577,22 @@ public class QRFragment extends Fragment {
         if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false) &&
                 (System.currentTimeMillis() > nextPinRequestTimestamp || !evaluateNextPinRequestTimestamp)) {
 
-            new PinEntryFragment(() -> {
-                if (evaluateNextPinRequestTimestamp) {
-                    //calculate next pin request time
-                    var interval_ms = preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0) * 60_000L;
-                    nextPinRequestTimestamp = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
-                }
+            new PinEntryFragment(
+                    () -> {
+                        if (evaluateNextPinRequestTimestamp) {
+                            //calculate next pin request time
+                            var interval_ms = TimeUnit.MINUTES.toMillis(preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0));
+                            nextPinRequestTimestamp = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
+                        }
 
-                onSuccess.run();
-            }, onCancel).show(requireActivity().getSupportFragmentManager(), null);
+                        onSuccess.run();
+                    },
+                    onCancel,
+                    () -> requireActivity().getMainExecutor().execute(() -> {
+                        //both presets and recent data have been deleted
+                        loadRecentButtons();
+                        loadPresets();
+                    })).show(requireActivity().getSupportFragmentManager(), null);
         } else {
             requireContext().getMainExecutor().execute(onSuccess);
         }

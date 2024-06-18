@@ -28,12 +28,15 @@ import java.util.Random;
 public class PinEntryFragment extends DialogFragment {
     private FragmentPinEntryBinding binding;
     private SharedPreferences preferences;
-    private final Runnable runOnSuccess;
+    private final Runnable runOnSuccess, runOnPanic;
     private Runnable runOnCancel;
 
-    public PinEntryFragment(Runnable runOnSuccess, @Nullable Runnable runOnCancel) {
+    public PinEntryFragment(Runnable runOnSuccess,
+                            @Nullable Runnable runOnCancel,
+                            @Nullable Runnable runOnPanic) {
         this.runOnSuccess = runOnSuccess;
         this.runOnCancel = runOnCancel;
+        this.runOnPanic = runOnPanic;
     }
 
     @Override
@@ -160,6 +163,8 @@ public class PinEntryFragment extends DialogFragment {
             editor.remove(QRFragment.PROP_PRESETS);
 
         editor.apply();
+
+        if (runOnPanic != null) runOnPanic.run();
     }
 
     private void onDigit(View v) {

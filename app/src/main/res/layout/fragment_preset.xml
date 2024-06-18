@@ -14,8 +14,7 @@
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⚪️"
-        android:textSize="34sp" />
+        android:text="⚪️" />
 
     <TextView
         android:id="@+id/txt_name"
