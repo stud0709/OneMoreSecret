@@ -280,7 +280,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         var proxy = bluetoothController.getBluetoothHidDevice();
         if (proxy == null) return; //https://github.com/stud0709/OneMoreSecret/issues/11
 
-        proxy.getConnectedDevices().stream().filter(d -> !d.getAddress().equals(device.getAddress())).forEach(d -> proxy.disconnect(d));
+        proxy.getConnectedDevices().stream().filter(d -> !d.getAddress().equals(device.getAddress())).forEach(proxy::disconnect);
 
         if (bluetoothController.getBluetoothHidDevice().getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
             Log.d(TAG, String.format("Trying to connect %s: %s",
@@ -504,10 +504,8 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
 
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) {
                 int newState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-                switch (newState) {
-                    case BluetoothAdapter.STATE_ON:
-                        Log.d(TAG, "Bluetooth is now on");
-                        break;
+                if (newState == BluetoothAdapter.STATE_ON) {
+                    Log.d(TAG, "Bluetooth is now on");
                 }
             }
 

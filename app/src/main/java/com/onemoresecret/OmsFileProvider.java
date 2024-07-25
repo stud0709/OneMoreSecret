@@ -40,12 +40,10 @@ public class OmsFileProvider extends FileProvider {
         var dir = new File(ctx.getCacheDir(), "tmp");
         if (!dir.exists()) return;
 
-        var stackTrace = Thread.currentThread().getStackTrace();
+        //Log.d(TAG, String.format("purgeTmp called by %s", Thread.currentThread().getStackTrace()[3]));
 
-        Log.d(TAG, String.format("purgeTmp called by %s", stackTrace[3]));
-
-        try {
-            Files.list(dir.toPath()).filter(p -> !Files.isDirectory(p)).forEach(p -> {
+        try (var fileList = Files.list(dir.toPath())) {
+            fileList.filter(p -> !Files.isDirectory(p)).forEach(p -> {
                 try {
                     Files.delete(p);
                 } catch (IOException ex) {

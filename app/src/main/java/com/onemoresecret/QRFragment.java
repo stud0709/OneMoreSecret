@@ -124,6 +124,8 @@ public class QRFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        binding.imgPairing.setVisibility(View.INVISIBLE);
+
         if (requireActivity().getSupportFragmentManager().getBackStackEntryCount() != 0) {
             Log.w(TAG, "Discarding back stack");
             Util.discardBackStack(this);
@@ -171,6 +173,10 @@ public class QRFragment extends Fragment {
                 QRFragment.this.onChunkReceived(receivedChunks, cntReceived, totalChunks);
             }
         };
+
+        //feature under construction
+        binding.txtPresets.setVisibility(View.INVISIBLE);
+        binding.flexLOutPresets.setVisibility(View.INVISIBLE);
     }
 
     private boolean isZxingEnabled() {
@@ -719,7 +725,13 @@ public class QRFragment extends Fragment {
             } else if (menuItem.getItemId() == R.id.menuItemPanic) {
                 if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
                     nextPinRequestTimestamp = 0;
-                    new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
+                    new Thread(() -> {
+                        OmsFileProvider.purgeTmp(requireContext());
+                        if (preferences.contains(QRFragment.PROP_RECENT_ENTRIES))
+                            preferences.edit().remove(QRFragment.PROP_RECENT_ENTRIES).commit();
+
+                        requireContext().getMainExecutor().execute(QRFragment.this::loadRecentButtons);
+                    }).start();
                     requireContext().getMainExecutor().execute(
                             () -> Toast.makeText(getContext(), R.string.locked, Toast.LENGTH_LONG).show());
                 } else {

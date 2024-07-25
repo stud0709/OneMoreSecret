@@ -119,12 +119,12 @@ public class PasswordGeneratorFragment extends Fragment {
         binding.chipOccurs.setOnClickListener(e -> changeOccurs());
 
         onSharedPreferenceChangeListener = (sharedPreferences, key) -> {
-            if (key.equals(PROP_PWD_LENGTH)) {
+            if (PROP_PWD_LENGTH.equals(key)) {
                 requireActivity()
                         .getMainExecutor()
                         .execute(() -> binding.chipPwdLength
                                 .setText(Integer.toString(preferences.getInt(key, PWD_LEN_DEFAULT))));
-            } else if (key.equals(PROP_OCCURS)) {
+            } else if (PROP_OCCURS.equals(key)) {
                 requireActivity()
                         .getMainExecutor()
                         .execute(() -> binding.chipOccurs
@@ -195,7 +195,7 @@ public class PasswordGeneratorFragment extends Fragment {
     private void changeOccurs() {
         var builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Occurrence");
-        builder.setMessage("\u2026of every character class (at least)");
+        builder.setMessage("…of every character class (at least)");
         var numberPicker = new NumberPicker(requireContext());
         numberPicker.setMinValue(OCCURS_MIN);
         numberPicker.setMaxValue(OCCURS_MAX);

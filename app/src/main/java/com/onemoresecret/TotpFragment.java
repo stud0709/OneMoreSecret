@@ -19,8 +19,6 @@ import com.onemoresecret.databinding.FragmentTotpBinding;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class TotpFragment extends Fragment {
     private static final String TAG = TotpFragment.class.getSimpleName();
