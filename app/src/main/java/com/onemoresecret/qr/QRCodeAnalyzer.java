@@ -7,8 +7,6 @@ import androidx.camera.core.ImageProxy;
 import com.onemoresecret.BuildConfig;
 import com.onemoresecret.Util;
 
-import java.util.function.Supplier;
-
 public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
     private static final String TAG = QRCodeAnalyzer.class.getSimpleName();
 
@@ -33,7 +31,7 @@ public abstract class QRCodeAnalyzer implements ImageAnalysis.Analyzer {
                 }
             }
 
-            analyzer.analyze(imageProxy, qr -> onQRCodeFound(qr));
+            analyzer.analyze(imageProxy, this::onQRCodeFound);
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException ex) {
             ex.printStackTrace();
             imageProxy.close();

@@ -1,21 +1,30 @@
 package com.onemoresecret.bt.layout;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.onemoresecret.bt.KeyModifier;
 import com.onemoresecret.bt.KeyboardReport;
+import com.onemoresecret.bt.KeyboardUsage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+@JsonSerialize(using = StrokeSerializer.class)
 public class Stroke {
     private final List<KeyboardReport> reports = new ArrayList<>();
-    private final List<Boolean> ucaseFlags = new ArrayList<>();
+    protected final Set<KeyModifier> modifiers = new HashSet<>();
 
     /**
      * Get resulting sequence of KeyboardReports
+     *
      * @return key stroke sequence
      */
     public List<KeyboardReport> get() {
         List<KeyboardReport> list = new ArrayList<>(reports);
-        list.add(new KeyboardReport(KeyboardUsage.KBD_NONE)); //release all keys
+        if (!modifiers.isEmpty())
+            list.add(new KeyboardReport(KeyboardUsage.KBD_NONE)); //release all keys, reset all modifiers
         return list;
     }
 
@@ -23,93 +32,57 @@ public class Stroke {
      * Clear all modifiers
      */
     public Stroke clear() {
-        reports.add(new KeyboardReport(KeyboardUsage.KBD_NONE));
+        modifiers.clear();
         return this;
     }
 
     /**
      * Add modifiers one by one emulating user input
      */
-    public Stroke press(int... modifiers) {
-        var m = 0;
-
-        if (!reports.isEmpty()) {
-            m = reports.get(reports.size() - 1).getModifiers();
-        }
-
-        for (int i : modifiers) {
-            m |= i;
-            reports.add(new KeyboardReport(m, KeyboardUsage.KBD_NONE));
-        }
-
+    public Stroke press(KeyModifier... modifiers) {
+        this.modifiers.addAll(Arrays.asList(modifiers));
         return this;
     }
 
     /**
      * Remove modifiers one by one emulating user input
      */
-    public Stroke release(int... modifiers) {
-        var m = 0;
+    public Stroke release(KeyModifier... modifiers) {
+        Arrays.asList(modifiers).forEach(this.modifiers::remove);
+        return this;
+    }
 
-        if (!reports.isEmpty()) {
-            m = reports.get(reports.size() - 1).getModifiers();
+    public Stroke type(KeyboardUsage... usages) {
+        for (var u : usages) {
+            var mArr = this.modifiers.toArray(new KeyModifier[]{});
+            reports.add(new KeyboardReport(u, mArr)); //press
+            reports.add(new KeyboardReport(KeyboardUsage.KBD_NONE, mArr)); //release
         }
-
-        for (int i : modifiers) {
-            m &= ~i;
-            reports.add(new KeyboardReport(m, KeyboardUsage.KBD_NONE));
-        }
-
         return this;
     }
 
     /**
-     * Type (press + release) retaining modifiers.
-     * @param usages one or more keys to type
-     * @param upperCase upper case flag ("press SHIFT here")
-     */
-    public Stroke type(boolean upperCase, int... usages) {
-        var m = 0;
-
-        if (!reports.isEmpty()) {
-            m = reports.get(reports.size() - 1).getModifiers();
-        }
-
-        for(int i : usages) {
-            reports.add(new KeyboardReport(m, i)); //press
-            ucaseFlags.add(upperCase);
-            reports.add(new KeyboardReport(m, 0)); //release
-            ucaseFlags.add(false);
-        }
-
-        return this;
-    }
-
-    /**
-     * Type without setting the upper case flag. This will result in default upper case logic .
-     * @param usages one or more keys to type
-     * @see Stroke#toUpper()
-     */
-
-    public Stroke type(int... usages) {
-        return type(false, usages);
-    }
-
-    /**
-     * Convert this {@link Stroke} to upper case. If there is only one type, it will be set to upper case regardless of the upperCase flag of this element.
+     * Convert this {@link Stroke} to upper case. This method handles only simple cases like a -> A. For more
+     * complex keystrokes, a separate {@link Stroke} definition should be created.
      */
     public Stroke toUpper() {
-        var cnt = reports.stream().filter(r -> r.getKey() != 0).count();
+        if (reports.stream().filter(r -> r.getUsage() != KeyboardUsage.KBD_NONE).count() != 1) {
+            return null; //create a dedicated Stroke instead!
+        }
 
         var upperCaseStroke = new Stroke();
-        for(int i = 0; i < reports.size(); i++) {
-            var upperCase = ucaseFlags.get(i) || (i==0 && cnt == 1);
 
-            if(upperCase) {
-                upperCaseStroke.reports.add(reports.get(i).addModifier(KeyboardReport.LEFT_SHIFT));
-            } else {
-                //copy without changes
-                upperCaseStroke.reports.add(reports.get(i));
+        var shift = KeyModifier.NONE;
+        for (int i = 0; i < reports.size(); i++) {
+            var kr = reports.get(i);
+            upperCaseStroke.modifiers.addAll(kr.getModifiers());
+            upperCaseStroke.modifiers.add(shift);
+
+            if (kr.getUsage() != KeyboardUsage.KBD_NONE) {
+                //we are typing smth., press SHIFT here
+                upperCaseStroke.press(KeyModifier.LEFT_SHIFT);
+                upperCaseStroke.type(kr.getUsage());
+                shift = KeyModifier.LEFT_SHIFT;
             }
         }
 

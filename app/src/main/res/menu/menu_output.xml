@@ -16,5 +16,8 @@
         <item
             android:id="@+id/menuItemOutputHelp"
             android:title="@string/help_auto_type" />
+        <item
+            android:id="@+id/menuItemKeyboardTool"
+            android:title="@string/keyboard_layout_tool" />
     </group>
 </menu>

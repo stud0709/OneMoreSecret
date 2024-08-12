@@ -1,17 +1,15 @@
 package com.onemoresecret.bt;
 
-public class KeyboardReport {
-    public final byte[] report;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    public static final int
-            LEFT_CONTROL = 1,
-            LEFT_SHIFT = 1 << 1,
-            LEFT_ALT = 1 << 2,
-            LEFT_GUI = 1 << 3,
-            RIGHT_CONTROL = 1 << 4,
-            RIGHT_SHIFT = 1 << 5,
-            RIGHT_ALT = 1 << 6,
-            RIGHT_GUI = 1 << 7;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+@JsonSerialize(using = KeyboardReportSerializer.class)
+public class KeyboardReport {
+    private final Set<KeyModifier> modifiers = new HashSet<>();
+    private final KeyboardUsage usage;
 
     public static final int
             NUM_LOCK = 1,
@@ -20,34 +18,38 @@ public class KeyboardReport {
             COMPOSE = 1 << 3,
             KANA = 1 << 4;
 
-
     /**
      * Report data.
      *
-     * @param modifiers Use {@link KeyboardReport#LEFT_CONTROL} and other constants combined with boolean AND, e.g. {@code LEFT_CONTROL & LEFT_SHIFT }
-     * @param key       Physical key according to USB HID Usage Tables.
+     * @param modifiers Use {@link KeyModifier#value} combined with boolean AND, e.g. {@code LEFT_CONTROL.value & LEFT_SHIFT.value }
+     * @param usage       Physical key according to USB HID Usage Tables.
      */
-    public KeyboardReport(int modifiers, int key) {
-        report = new byte[]{(byte) modifiers, (byte) key};
+    public KeyboardReport(KeyboardUsage usage, KeyModifier... modifiers) {
+        this.modifiers.addAll(Arrays.asList(modifiers));
+        this.usage = usage;
     }
 
-    public KeyboardReport(int key) {
-        report = new byte[]{(byte) 0, (byte) key};
+    public KeyboardReport(KeyboardUsage usage) {
+        this.usage = usage;
     }
 
-    public KeyboardReport addModifier(int modifier) {
-        return new KeyboardReport(report[0] | modifier, report[1]);
+    /**
+     * Keyboard report. byte[0] = modifiers, byte[1] = keyboard usage (i.e. key which is currently pressed)
+     * @return Keyboard report
+     */
+    public byte[] getReport() {
+        byte mByte = 0;
+        for(var m : modifiers) {
+            mByte |= m.value;
+        }
+        return new byte[] {mByte, usage.value};
     }
 
-    public KeyboardReport removeModifier(int modifier) {
-        return new KeyboardReport(report[0] & ~modifier, report[1]);
+    public Set<KeyModifier> getModifiers() {
+        return modifiers;
     }
 
-    public int getModifiers() {
-        return report[0];
-    }
-
-    public int getKey() {
-        return report[1];
+    public KeyboardUsage getUsage() {
+        return usage;
     }
 }

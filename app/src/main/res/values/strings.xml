@@ -197,4 +197,5 @@
     <string name="wifi_pairing_error_message">Please use omsCompanion\'s WiFi Pairing menu to re-establish the connection or disconnect.</string>
     <string name="recent">Recent:</string>
     <string name="presets">Presets:</string>
+    <string name="keyboard_layout_tool">Keyboard Layout Tool</string>
 </resources>

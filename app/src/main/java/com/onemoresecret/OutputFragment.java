@@ -1,6 +1,7 @@
 package com.onemoresecret;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
@@ -25,6 +26,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -34,7 +36,9 @@ import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.MenuProvider;
 
 import com.onemoresecret.bt.BluetoothController;
+import com.onemoresecret.bt.KeyboardReport;
 import com.onemoresecret.bt.layout.KeyboardLayout;
+import com.onemoresecret.bt.KeyboardUsage;
 import com.onemoresecret.bt.layout.Stroke;
 import com.onemoresecret.databinding.FragmentOutputBinding;
 import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
@@ -315,7 +319,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                                     .sendReport(
                                             bluetoothDevice,
                                             0,
-                                            r.report);
+                                            r.getReport());
                         } catch (Exception ex) {
                             ex.printStackTrace();
                             typing.set(false);
@@ -633,6 +637,8 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                 startActivity(shareIntent);
             } else if (menuItem.getItemId() == R.id.menuItemOutputHelp) {
                 Util.openUrl(R.string.autotype_md_url, requireContext());
+            } else if (menuItem.getItemId() == R.id.menuItemKeyboardTool) {
+                showKeyboardTestTool();
             } else {
                 return false;
             }
@@ -652,5 +658,74 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
 
     private long getKeyStrokeDelayOff() {
         return preferences.getLong(PROP_KEY_STROKE_DELAY_OFF, DEF_KEY_STROKE_DELAY_OFF);
+    }
+
+    private void showKeyboardTestTool() {
+        // Inflate the custom layout
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
+        View dialogView = inflater.inflate(R.layout.layout_keboard_test, null);
+
+        // Initialize the ListView and Button
+        ListView listView = dialogView.findViewById(R.id.listViewUsbUsage);
+
+        var items = KeyboardUsage.values();
+
+        // Set up the ListView with an ArrayAdapter
+        var adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_list_item_1,
+                items);
+
+        listView.setAdapter(adapter);
+
+        // Set up the AlertDialog
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .create();
+
+        // Set item click listener for the ListView
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            KeyboardUsage selectedItem = items[position];
+            Toast.makeText(requireContext(), selectedItem.toString(), Toast.LENGTH_SHORT).show();
+
+            if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+
+            var rArr = new KeyboardReport[]{
+                    new KeyboardReport(selectedItem), //usage without any modifiers
+                    new KeyboardReport(KeyboardUsage.KBD_NONE), //release
+                    new KeyboardReport(KeyboardUsage.KBD_SPACE), //trigger things like ¨ or ^
+                    new KeyboardReport(KeyboardUsage.KBD_NONE)
+            };
+
+            var bluetoothDevice = ((SpinnerItemDevice) binding
+                    .spinnerBluetoothTarget
+                    .getSelectedItem())
+                    .getBluetoothDevice();
+
+            Arrays.stream(rArr).forEach(r -> {
+                try {
+                    bluetoothController
+                            .getBluetoothHidDevice()
+                            .sendReport(
+                                    bluetoothDevice,
+                                    0,
+                                    r.getReport());
+                    Log.d(TAG, "sent: " + r);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    typing.set(false);
+                    return;
+                }
+            });
+        });
+
+        //log the current layout
+        var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
+        selectedLayout.logLayout();
+
+        // Show the dialog
+        dialog.show();
     }
 }
