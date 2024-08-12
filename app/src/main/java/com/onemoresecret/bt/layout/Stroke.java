@@ -16,6 +16,10 @@ public class Stroke {
     private final List<KeyboardReport> reports = new ArrayList<>();
     protected final Set<KeyModifier> modifiers = new HashSet<>();
 
+    public Stroke() {
+        sendModifiers();
+    }
+
     /**
      * Get resulting sequence of KeyboardReports
      *
@@ -33,6 +37,7 @@ public class Stroke {
      */
     public Stroke clear() {
         modifiers.clear();
+        sendModifiers();
         return this;
     }
 
@@ -41,6 +46,7 @@ public class Stroke {
      */
     public Stroke press(KeyModifier... modifiers) {
         this.modifiers.addAll(Arrays.asList(modifiers));
+        sendModifiers();
         return this;
     }
 
@@ -49,7 +55,16 @@ public class Stroke {
      */
     public Stroke release(KeyModifier... modifiers) {
         Arrays.asList(modifiers).forEach(this.modifiers::remove);
+        sendModifiers();
         return this;
+    }
+
+    /**
+     * This is a workaround for some cases like Hyper-V, that sometimes "overlooks" modifiers.
+     */
+    protected void sendModifiers() {
+        var mArr = this.modifiers.toArray(new KeyModifier[]{});
+        reports.add(new KeyboardReport(KeyboardUsage.KBD_NONE, mArr));
     }
 
     public Stroke type(KeyboardUsage... usages) {
