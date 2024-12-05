@@ -571,6 +571,8 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
             super.onAppStatusChanged(device, registered);
 
+            if(binding == null) return;
+
             try {
                 Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
 

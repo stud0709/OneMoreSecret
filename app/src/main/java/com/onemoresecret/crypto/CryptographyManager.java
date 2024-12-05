@@ -191,6 +191,7 @@ public class CryptographyManager {
                 .setUserAuthenticationRequired(true)
                 .setEncryptionPaddings(ENCRYPTION_PADDINGS)
                 .setIsStrongBoxBacked(ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE))
+                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
                 .build();
 
         keyStore.setEntry(keyName, privateKeyEntry, keyProtection);
