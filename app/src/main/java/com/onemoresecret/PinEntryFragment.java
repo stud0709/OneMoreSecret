@@ -30,6 +30,7 @@ public class PinEntryFragment extends DialogFragment {
     private SharedPreferences preferences;
     private final Runnable runOnSuccess, runOnPanic;
     private Runnable runOnCancel;
+    private Context context;
 
     public PinEntryFragment(Runnable runOnSuccess,
                             @Nullable Runnable runOnCancel,
@@ -46,6 +47,12 @@ public class PinEntryFragment extends DialogFragment {
     ) {
         binding = FragmentPinEntryBinding.inflate(inflater, container, false);
         return binding.getRoot();
+    }
+
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        /* Remember the context. Will need it in onDismiss to purge tmp files. */
+        this.context = context;
     }
 
     @Override
@@ -174,9 +181,9 @@ public class PinEntryFragment extends DialogFragment {
     @Override
     public void onDismiss(@NonNull DialogInterface dialog) {
         super.onDismiss(dialog);
-        new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
+        new Thread(() -> OmsFileProvider.purgeTmp(context)).start();
         if (this.runOnCancel != null) {
-            requireContext().getMainExecutor().execute(runOnCancel);
+            context.getMainExecutor().execute(runOnCancel);
         }
     }
 }
