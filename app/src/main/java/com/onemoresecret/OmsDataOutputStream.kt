@@ -1,54 +1,53 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import java.io.DataOutputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.math.BigInteger;
+import java.io.DataOutputStream
+import java.io.IOException
+import java.io.OutputStream
+import java.math.BigInteger
 
 /**
- * This is a OneMoreSecret specific extension of {@link java.io.DataOutputStream}. All additional methods boil down to a byte arrays prepended by its length.
- * The length is a {@link Short} value, thus limiting the array length to {@link Short#MAX_VALUE}.
+ * This is a OneMoreSecret specific extension of [java.io.DataOutputStream]. All additional methods boil down to a byte arrays prepended by its length.
+ * The length is a [Short] value, thus limiting the array length to [Short.MAX_VALUE].
  */
-public class OmsDataOutputStream extends DataOutputStream {
+class OmsDataOutputStream
+/**
+ * Creates a new data output stream to write data to the specified
+ * underlying output stream. The counter `written` is
+ * set to zero.
+ *
+ * @param out the underlying output stream, to be saved for later
+ * use.
+ */
+    (outputStream: OutputStream?) : DataOutputStream(outputStream) {
     /**
-     * Creates a new data output stream to write data to the specified
-     * underlying output stream. The counter <code>written</code> is
-     * set to zero.
-     *
-     * @param out the underlying output stream, to be saved for later
-     *            use.
-     * @see FilterOutputStream#out
-     */
-    public OmsDataOutputStream(OutputStream out) {
-        super(out);
-    }
-
-    /**
-     * This is a workaround method for writing UTF-8 strings, as the native method <a href="https://docs.oracle.com/javase/7/docs/api/java/io/DataInput.html#modified-utf-8">modifies UTF-8</a>.
+     * This is a workaround method for writing UTF-8 strings, as the native method [modifies UTF-8](https://docs.oracle.com/javase/7/docs/api/java/io/DataInput.html#modified-utf-8).
      * Here, native UTF-8 byte array is written, prepended with the array length.
      */
-    public void writeString(String s) throws IOException {
-        writeByteArray(s.getBytes());
+    @Throws(IOException::class)
+    fun writeString(s: String) {
+        writeByteArray(s.toByteArray())
     }
 
     /**
      * The byte array is prepended by its length. The length is an unsigned short value, so the maximal length of the array is 65535 bytes.
      */
-    public void writeByteArray(byte[] bArr) throws IOException {
-        writeUnsignedShort(bArr.length);
-        write(bArr);
+    @Throws(IOException::class)
+    fun writeByteArray(bArr: ByteArray) {
+        writeUnsignedShort(bArr.size)
+        write(bArr)
     }
 
-    public void writeUnsignedShort(int value) throws IOException {
-        assert value < 65536;
-        writeShort((short) value);
+    @Throws(IOException::class)
+    fun writeUnsignedShort(value: Int) {
+        assert(value < 65536)
+        writeShort(value.toShort().toInt())
     }
 
     /**
-     * BigInteger's {@link BigInteger#toByteArray()} representation prepended by the array's length.
+     * BigInteger's [BigInteger.toByteArray] representation prepended by the array's length.
      */
-    public void writeBigInteger(BigInteger bi) throws IOException {
-        writeByteArray(bi.toByteArray());
+    @Throws(IOException::class)
+    fun writeBigInteger(bi: BigInteger) {
+        writeByteArray(bi.toByteArray())
     }
 }

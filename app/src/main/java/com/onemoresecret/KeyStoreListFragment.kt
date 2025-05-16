@@ -1,208 +1,174 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.ItemDetailsLookup;
-import androidx.recyclerview.selection.ItemKeyProvider;
-import androidx.recyclerview.selection.SelectionPredicates;
-import androidx.recyclerview.selection.SelectionTracker;
-import androidx.recyclerview.selection.StorageStrategy;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
-import com.onemoresecret.databinding.PrivateKeyListItemBinding;
-
-import java.security.KeyStoreException;
-import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Consumer;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.selection.ItemDetailsLookup
+import androidx.recyclerview.selection.ItemKeyProvider
+import androidx.recyclerview.selection.SelectionPredicates
+import androidx.recyclerview.selection.SelectionTracker
+import androidx.recyclerview.selection.StorageStrategy
+import androidx.recyclerview.widget.RecyclerView
+import com.onemoresecret.Util.byteArrayToHex
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.RSAUtils.getFingerprint
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import com.onemoresecret.databinding.PrivateKeyListItemBinding
+import java.security.KeyStoreException
+import java.security.interfaces.RSAPublicKey
+import java.util.Collections
+import java.util.function.Consumer
 
 /**
  * A fragment representing a list of Items.
  */
-public class KeyStoreListFragment extends Fragment {
-    private FragmentKeyStoreListBinding binding;
-    private SelectionTracker<String> selectionTracker;
+class KeyStoreListFragment : Fragment() {
+    private var binding: FragmentKeyStoreListBinding? = null
+    lateinit var selectionTracker: SelectionTracker<String?>
 
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
+    private val cryptographyManager = CryptographyManager()
 
-    private final List<String> aliasList = new ArrayList<>();
+    private val aliasList: MutableList<String> = ArrayList()
 
-    private final ItemAdapter itemAdapter = new ItemAdapter();
+    private val itemAdapter = ItemAdapter()
 
-    private Consumer<FragmentKeyStoreListBinding> runOnStart;
+    private var runOnStart: Consumer<FragmentKeyStoreListBinding?>? = null
 
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentKeyStoreListBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentKeyStoreListBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    public SelectionTracker<String> getSelectionTracker() {
-        return selectionTracker;
+    fun setRunOnStart(runOnStart: Consumer<FragmentKeyStoreListBinding?>?) {
+        this.runOnStart = runOnStart
     }
 
-    public void setRunOnStart(Consumer<FragmentKeyStoreListBinding> runOnStart) {
-        this.runOnStart = runOnStart;
-    }
-
-    public void onItemRemoved(String alias) {
+    fun onItemRemoved(alias: String) {
         //var idx = aliasList.indexOf(alias);
-        aliasList.remove(alias);
+        aliasList.remove(alias)
         //itemAdapter.notifyItemRemoved(idx); //this is not working as per 1.21
-        itemAdapter.notifyDataSetChanged();
+        itemAdapter.notifyDataSetChanged()
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        if (runOnStart != null) runOnStart.accept(binding);
-        runOnStart = null;
+    override fun onStart() {
+        super.onStart()
+        if (runOnStart != null) runOnStart!!.accept(binding)
+        runOnStart = null
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        aliasList.clear();
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        aliasList.clear()
 
         try {
-            var aliasesEnum = cryptographyManager.keyStore.aliases();
+            val aliasesEnum = cryptographyManager.keyStore!!.aliases()
             while (aliasesEnum.hasMoreElements()) {
-                aliasList.add(aliasesEnum.nextElement());
+                aliasList.add(aliasesEnum.nextElement())
             }
-            Collections.sort(aliasList);
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
+            aliasList.sort()
+        } catch (e: KeyStoreException) {
+            throw RuntimeException(e)
         }
 
-        binding.list.setAdapter(itemAdapter);
+        binding!!.list.adapter = itemAdapter
 
-        selectionTracker = new SelectionTracker.Builder<>("selectionTracker",
-                binding.list,
-                new PrivateKeyItemKeyProvider(ItemKeyProvider.SCOPE_MAPPED),
-                new PrivateKeyLookup(),
-                StorageStrategy.createStringStorage())
-                .withSelectionPredicate(SelectionPredicates.createSelectSingleAnything())
-                .build();
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
-    }
-
-    class ItemAdapter extends RecyclerView.Adapter<PrivateKeyViewHolder> {
-
-        @NonNull
-        @Override
-        public KeyStoreListFragment.PrivateKeyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            var binding =
-                    PrivateKeyListItemBinding.inflate(LayoutInflater.from(parent.getContext()),
-                            parent,
-                            false);
-            return new KeyStoreListFragment.PrivateKeyViewHolder(binding);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull KeyStoreListFragment.PrivateKeyViewHolder holder, int position) {
-            holder.bind(position);
-        }
-
-        @Override
-        public int getItemCount() {
-            return aliasList.size();
-        }
-
+        selectionTracker = SelectionTracker.Builder(
+            "selectionTracker",
+            binding!!.list,
+            PrivateKeyItemKeyProvider(ItemKeyProvider.SCOPE_MAPPED),
+            PrivateKeyLookup(),
+            StorageStrategy.createStringStorage()
+        )
+            .withSelectionPredicate(SelectionPredicates.createSelectSingleAnything())
+            .build()
     }
 
 
-    public class PrivateKeyViewHolder extends RecyclerView.ViewHolder {
-        private final PrivateKeyListItemBinding binding;
-        private String alias;
-        private int position;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding = null
+    }
 
-        public PrivateKeyViewHolder(@NonNull PrivateKeyListItemBinding binding) {
-            super(binding.getRoot());
-            this.binding = binding;
+    internal inner class ItemAdapter : RecyclerView.Adapter<PrivateKeyViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PrivateKeyViewHolder {
+            val binding =
+                PrivateKeyListItemBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            return PrivateKeyViewHolder(binding)
         }
 
-        public void bind(int position) {
-            this.position = position;
-            this.alias = aliasList.get(position);
+        override fun onBindViewHolder(holder: PrivateKeyViewHolder, position: Int) {
+            holder.bind(position)
+        }
+
+        override fun getItemCount(): Int {
+            return aliasList.size
+        }
+    }
+
+
+    inner class PrivateKeyViewHolder(private val binding: PrivateKeyListItemBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        var alias: String? = null
+        private var position = 0
+
+        fun bind(position: Int) {
+            this.position = position
+            this.alias = aliasList[position]
             try {
-                binding.textItemKeyAlias.setText(alias);
-                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
-                binding.textItemFingerprint.setText(
-                        Util.byteArrayToHex(
-                                RSAUtils.getFingerprint(publicKey)));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+                binding.textItemKeyAlias.text = alias
+                val publicKey = cryptographyManager.getCertificate(alias).publicKey as RSAPublicKey
+                binding.textItemFingerprint.text = byteArrayToHex(
+                    getFingerprint(publicKey)
+                )
+            } catch (e: Exception) {
+                throw RuntimeException(e)
             }
-            binding.getRoot().setActivated(selectionTracker.isSelected(alias));
+            binding.root.isActivated = selectionTracker!!.isSelected(alias)
         }
     }
 
 
-    public class PrivateKeyLookup extends ItemDetailsLookup<String> {
+    inner class PrivateKeyLookup : ItemDetailsLookup<String?>() {
+        override fun getItemDetails(e: MotionEvent): ItemDetails<String?>? {
+            val view = binding!!.list.findChildViewUnder(e.x, e.y) ?: return null
 
-        @Nullable
-        @Override
-        public ItemDetails<String> getItemDetails(@NonNull MotionEvent e) {
-            var view = binding.list.findChildViewUnder(e.getX(), e.getY());
-            if (view == null)
-                return null;
-
-            var holder = (PrivateKeyViewHolder) binding.list.getChildViewHolder(view);
-            return new ItemDetails<>() {
-                @Override
-                public int getPosition() {
-                    return holder.position;
+            val holder = binding!!.list.getChildViewHolder(view) as PrivateKeyViewHolder
+            return object : ItemDetails<String?>() {
+                override fun getPosition(): Int {
+                    return holder.layoutPosition //instead of position
                 }
 
-                @Nullable
-                @Override
-                public String getSelectionKey() {
-                    return holder.alias;
+                override fun getSelectionKey(): String? {
+                    return holder.alias
                 }
-            };
+            }
         }
     }
 
 
-    public class PrivateKeyItemKeyProvider extends ItemKeyProvider<String> {
-
-        /**
-         * Creates a new provider with the given scope.
-         *
-         * @param scope Scope can't be changed at runtime.
-         */
-        protected PrivateKeyItemKeyProvider(int scope) {
-            super(scope);
+    inner class PrivateKeyItemKeyProvider
+    /**
+     * Creates a new provider with the given scope.
+     *
+     * @param scope Scope can't be changed at runtime.
+     */
+        (scope: Int) : ItemKeyProvider<String?>(scope) {
+        override fun getKey(position: Int): String? {
+            return aliasList[position]
         }
 
-        @Nullable
-        @Override
-        public String getKey(int position) {
-            return aliasList.get(position);
-        }
-
-        @Override
-        public int getPosition(@NonNull String key) {
-            return aliasList.indexOf(key);
+        override fun getPosition(key: String): Int {
+            return aliasList.indexOf(key)
         }
     }
-
 }

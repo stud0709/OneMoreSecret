@@ -1,217 +1,232 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.net.Uri
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.NavHostFragment
+import androidx.recyclerview.selection.SelectionTracker
+import com.onemoresecret.Util.UriFileInfo
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.Util.getFileInfo
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.AESUtil.getAesTransformationIdx
+import com.onemoresecret.crypto.AESUtil.getKeyLength
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.EncryptedFile.create
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.crypto.RSAUtils.getRsaTransformationIdx
+import com.onemoresecret.databinding.FragmentFileEncryptionBinding
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import java.nio.file.Files
+import java.security.interfaces.RSAPublicKey
+import java.util.Locale
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.selection.SelectionTracker;
+class FileEncryptionFragment : Fragment() {
+    private var binding: FragmentFileEncryptionBinding? = null
+    private var keyStoreListFragment: KeyStoreListFragment? = null
+    private val cryptographyManager = CryptographyManager()
+    private var preferences: SharedPreferences? = null
+    private var uri: Uri? = null
+    private var fileInfo: UriFileInfo? = null
+    private var encryptionRunning = false
+    private var lastProgressPrc = -1
+    private var navBackIfPaused: Boolean = false
 
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedFile;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
-
-import java.nio.file.Files;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Locale;
-
-public class FileEncryptionFragment extends Fragment {
-    private FragmentFileEncryptionBinding binding;
-    private KeyStoreListFragment keyStoreListFragment;
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-    private SharedPreferences preferences;
-    private static final String TAG = FileEncryptionFragment.class.getSimpleName();
-    private Uri uri;
-    private Util.UriFileInfo fileInfo;
-    private boolean encryptionRunning = false;
-    private int lastProgressPrc = -1;
-    boolean navBackIfPaused = false;
-
-    private final FileEncryptionMenuProvider menuProvider = new FileEncryptionMenuProvider();
+    private val menuProvider = FileEncryptionMenuProvider()
 
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = FragmentFileEncryptionBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentFileEncryptionBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider)
 
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
-        binding.btnEncrypt.setEnabled(false);
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        binding!!.btnEncrypt.isEnabled = false
+        keyStoreListFragment = binding!!.fragmentContainerView.getFragment<KeyStoreListFragment>()
 
-        uri = getArguments().getParcelable(QRFragment.ARG_URI);
-        fileInfo = Util.getFileInfo(requireContext(), uri);
+        uri = requireArguments().getParcelable(QRFragment.ARG_URI)
+        fileInfo = getFileInfo(requireContext(), uri!!)
 
-        getContext().getMainExecutor().execute(() ->
-                ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
-                        fileInfo.filename(),
-                        fileInfo.fileSize()));
+        requireContext().mainExecutor.execute {
+            (binding!!.fragmentContainerView6.getFragment<Fragment>() as FileInfoFragment).setValues(
+                fileInfo!!.filename,
+                fileInfo!!.fileSize
+            )
+        }
 
 
-        keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment
-                        .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<>() {
-                            @Override
-                            public void onSelectionChanged() {
-                                super.onSelectionChanged();
-                                binding.btnEncrypt.setEnabled(keyStoreListFragment.getSelectionTracker().hasSelection());
-                            }
-                        }));
+        keyStoreListFragment!!.setRunOnStart { fragmentKeyStoreListBinding: FragmentKeyStoreListBinding? ->
+            keyStoreListFragment!!
+                .selectionTracker
+                .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
+                    override fun onSelectionChanged() {
+                        super.onSelectionChanged()
+                        binding!!.btnEncrypt.isEnabled =
+                            keyStoreListFragment!!.selectionTracker.hasSelection()
+                    }
+                })
+        }
 
-        binding.btnEncrypt.setOnClickListener(v -> encrypt());
-        binding.txtProgress.setText("");
+        binding!!.btnEncrypt.setOnClickListener { v: View? -> encrypt() }
+        binding!!.txtProgress.text = ""
     }
 
-    private void encrypt() {
-        var selectedAlias = keyStoreListFragment.getSelectionTracker()
-                .getSelection()
-                .iterator()
-                .next();
+    private fun encrypt() {
+        val selectedAlias = keyStoreListFragment!!.selectionTracker
+            .selection
+            .iterator()
+            .next()!!
 
         if (encryptionRunning) {
             //cancel encryption
-            binding.btnEncrypt.setText(R.string.encrypt);
-            encryptionRunning = false;
+            binding!!.btnEncrypt.setText(R.string.encrypt)
+            encryptionRunning = false
         } else {
             //start encryption
-            binding.btnEncrypt.setText(R.string.cancel);
-            encryptionRunning = true;
-            lastProgressPrc = -1;
+            binding!!.btnEncrypt.setText(R.string.cancel)
+            encryptionRunning = true
+            lastProgressPrc = -1
 
-            new Thread(() -> {
+            Thread {
                 try {
-                    var fileRecord = OmsFileProvider.create(requireContext(),
-                            fileInfo.filename() + "." + MessageComposer.OMS_FILE_TYPE,
-                            true);
+                    val fileRecord = OmsFileProvider.create(
+                        requireContext(),
+                        fileInfo!!.filename + "." + MessageComposer.OMS_FILE_TYPE,
+                        true
+                    )
 
-                    EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
-                            fileRecord.path().toFile(),
-                            (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
-                            RSAUtils.getRsaTransformationIdx(preferences),
-                            AESUtil.getKeyLength(preferences),
-                            AESUtil.getAesTransformationIdx(preferences),
-                            () -> binding == null || !encryptionRunning,
-                            this::updateProgress
-                    );
+                    create(
+                        requireContext().contentResolver.openInputStream(uri!!)!!,
+                        fileRecord!!.path.toFile(),
+                        (cryptographyManager.getCertificate(selectedAlias).publicKey as RSAPublicKey),
+                        getRsaTransformationIdx(preferences!!),
+                        getKeyLength(preferences!!),
+                        getAesTransformationIdx(preferences!!),
+                        { binding == null || !encryptionRunning },
+                        { value: Int? -> this.updateProgress(value) }
+                    )
 
                     if (encryptionRunning) {
-                        updateProgress(fileInfo.fileSize()); //100%
-                        requireContext().getMainExecutor().execute(() -> {
-                            if (binding == null) return;
-                            binding.btnEncrypt.setText(R.string.encrypt);
-                        });
-                        navBackIfPaused = true;
+                        updateProgress(fileInfo!!.fileSize) //100%
+                        requireContext().mainExecutor.execute {
+                            if (binding == null) return@execute
+                            binding!!.btnEncrypt.setText(R.string.encrypt)
+                        }
+                        navBackIfPaused = true
 
-                        var intent = new Intent(Intent.ACTION_SEND);
-                        intent.setType("application/octet-stream");
-                        intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        val intent = Intent(Intent.ACTION_SEND)
+                        intent.setType("application/octet-stream")
+                        intent.putExtra(Intent.EXTRA_STREAM, fileRecord!!.uri)
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-                        startActivity(intent);
+                        startActivity(intent)
                     } else {
                         //operation has been cancelled
-                        Files.delete(fileRecord.path());
-                        requireContext().getMainExecutor().execute(() -> {
-                            if (binding == null) return;
-                            binding.btnEncrypt.setText(R.string.encrypt);
-                            Toast.makeText(requireContext(),
-                                    R.string.operation_has_been_cancelled,
-                                    Toast.LENGTH_SHORT).show();
-                        });
-                        updateProgress(null);
+                        Files.delete(fileRecord!!.path)
+                        requireContext().mainExecutor.execute {
+                            if (binding == null) return@execute
+                            binding!!.btnEncrypt.setText(R.string.encrypt)
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.operation_has_been_cancelled,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        updateProgress(null)
                     }
-                    encryptionRunning = false;
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
-                            String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
-                            Toast.LENGTH_LONG).show());
+                    encryptionRunning = false
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    requireActivity().mainExecutor.execute {
+                        Toast.makeText(
+                            requireContext(),
+                            String.format("%s: %s", ex.javaClass.simpleName, ex.message),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
-            }).start();
+            }.start()
         }
     }
 
-    private void updateProgress(@Nullable Integer value) {
-        String s = "";
+    private fun updateProgress(value: Int?) {
+        var s = ""
         if (value != null) {
-            var progressPrc = (int) ((double) value / (double) fileInfo.fileSize() * 100D);
-            if (lastProgressPrc == progressPrc) return;
+            val progressPrc = (value.toDouble() / fileInfo!!.fileSize.toDouble() * 100.0).toInt()
+            if (lastProgressPrc == progressPrc) return
 
-            lastProgressPrc = progressPrc;
-            s = lastProgressPrc == 100 ?
-                    getString(R.string.done) :
-                    String.format(Locale.getDefault(), getString(R.string.working_prc), lastProgressPrc);
+            lastProgressPrc = progressPrc
+            s = if (lastProgressPrc == 100) getString(R.string.done) else String.format(
+                Locale.getDefault(),
+                getString(R.string.working_prc),
+                lastProgressPrc
+            )
         }
-        var fs = s;
+        val fs = s
 
-        requireContext().getMainExecutor().execute(() -> {
-            if (binding == null) return;
-            binding.txtProgress.setText(fs);
-        });
+        requireContext().mainExecutor.execute {
+            if (binding == null) return@execute
+            binding!!.txtProgress.text = fs
+        }
     }
 
-    private class FileEncryptionMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_help, menu);
+    private inner class FileEncryptionMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu)
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.encrypt_file_md_url, requireContext());
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemHelp) {
+                openUrl(R.string.encrypt_file_md_url, requireContext())
             } else {
-                return false;
+                return false
             }
 
-            return true;
+            return true
         }
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (!navBackIfPaused) return;
-        var navController = NavHostFragment.findNavController(this);
-        if (navController.getCurrentDestination() != null
-                && navController.getCurrentDestination().getId() != R.id.fileEncryptionFragment) {
-            Log.d(TAG, String.format("Already navigating to %s", navController.getCurrentDestination()));
-            return;
+    override fun onPause() {
+        super.onPause()
+        if (!navBackIfPaused) return
+        val navController = NavHostFragment.findNavController(this)
+        if (navController.currentDestination != null
+            && navController.currentDestination!!.id != R.id.fileEncryptionFragment
+        ) {
+            Log.d(TAG, String.format("Already navigating to %s", navController.currentDestination))
+            return
         }
-        Log.d(TAG, "onPause: going backward");
-        Util.discardBackStack(this);
+        Log.d(TAG, "onPause: going backward")
+        discardBackStack(this)
+    }
+
+    companion object {
+        private val TAG: String = FileEncryptionFragment::class.java.simpleName
     }
 }

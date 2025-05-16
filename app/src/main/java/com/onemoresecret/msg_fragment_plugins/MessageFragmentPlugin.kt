@@ -1,117 +1,124 @@
-package com.onemoresecret.msg_fragment_plugins;
+package com.onemoresecret.msg_fragment_plugins
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.util.Log;
-import android.widget.Toast;
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import android.widget.Toast
+import androidx.biometric.BiometricPrompt
+import androidx.biometric.BiometricPrompt.PromptInfo
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import com.onemoresecret.MainActivity
+import com.onemoresecret.MessageFragment
+import com.onemoresecret.OmsFileProvider
+import com.onemoresecret.OutputFragment
+import com.onemoresecret.R
+import com.onemoresecret.Util.byteArrayToHex
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.crypto.CryptographyManager
+import java.security.KeyStoreException
+import java.util.Objects
 
-import androidx.annotation.NonNull;
-import androidx.biometric.BiometricPrompt;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
+abstract class MessageFragmentPlugin(@JvmField protected val messageFragment: MessageFragment) :
+    BiometricPrompt.AuthenticationCallback() {
+    @JvmField
+    protected val context: Context = messageFragment.requireContext()
+    @JvmField
+    protected val activity: FragmentActivity = messageFragment.requireActivity()
+    @JvmField
+    protected var fingerprint: ByteArray? = null
+    @JvmField
+    protected val preferences: SharedPreferences =
+        activity.getPreferences(Context.MODE_PRIVATE)
+    @JvmField
+    protected var rsaTransformation: String? = null
+    protected val TAG: String = javaClass.simpleName
+    @JvmField
+    protected var messageView: Fragment? = null
+    @JvmField
+    protected var outputView: FragmentWithNotificationBeforePause? = null
 
-import com.onemoresecret.MainActivity;
-import com.onemoresecret.MessageFragment;
-import com.onemoresecret.OmsFileProvider;
-import com.onemoresecret.OutputFragment;
-import com.onemoresecret.R;
-import com.onemoresecret.Util;
-import com.onemoresecret.crypto.CryptographyManager;
+    abstract fun getMessageView(): Fragment?
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-
-public abstract class MessageFragmentPlugin extends BiometricPrompt.AuthenticationCallback {
-    protected final MessageFragment messageFragment;
-    protected final Context context;
-    protected final FragmentActivity activity;
-    protected byte[] fingerprint;
-    protected final SharedPreferences preferences;
-    protected String rsaTransformation;
-    protected final String TAG = getClass().getSimpleName();
-    protected Fragment messageView;
-    protected FragmentWithNotificationBeforePause outputView;
-
-    public MessageFragmentPlugin(MessageFragment messageFragment) {
-        this.messageFragment = messageFragment;
-        this.context = messageFragment.requireContext();
-        this.activity = messageFragment.requireActivity();
-        this.preferences = activity.getPreferences(Context.MODE_PRIVATE);
+    open fun getOutputView(): FragmentWithNotificationBeforePause? {
+        if (outputView == null) outputView = OutputFragment()
+        return outputView
     }
 
-    public abstract Fragment getMessageView();
+    protected open val reference: String?
+        get() = null
 
-    public FragmentWithNotificationBeforePause getOutputView() {
-        if (outputView == null) outputView = new OutputFragment();
-        return outputView;
-    }
+    @Throws(KeyStoreException::class)
+    open fun showBiometricPromptForDecryption() {
+        val cryptographyManager = CryptographyManager()
+        val aliases = cryptographyManager.getByFingerprint(fingerprint!!)
 
-    protected String getReference() {
-        return null;
-    }
+        if (aliases.isEmpty()) throw NoSuchElementException(
+            String.format(
+                context.getString(R.string.no_key_found),
+                byteArrayToHex(fingerprint!!)
+            )
+        )
 
-    public void showBiometricPromptForDecryption() throws KeyStoreException {
-        var cryptographyManager = new CryptographyManager();
-        var aliases = cryptographyManager.getByFingerprint(fingerprint);
+        if (aliases.size > 1) throw NoSuchElementException(context.getString(R.string.multiple_keys_found))
 
-        if (aliases.isEmpty())
-            throw new NoSuchElementException(String.format(context.getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
+        val biometricPrompt = BiometricPrompt(activity, this)
+        val alias = aliases[0]
 
-        if (aliases.size() > 1)
-            throw new NoSuchElementException(context.getString(R.string.multiple_keys_found));
+        val promptInfo = PromptInfo.Builder()
+            .setTitle(context.getString(R.string.prompt_info_title))
+            .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), alias))
+            .setDescription(
+                Objects.requireNonNullElse(
+                    reference,
+                    context.getString(R.string.prompt_info_description)
+                )
+            )
+            .setNegativeButtonText(context.getString(android.R.string.cancel))
+            .setConfirmationRequired(false)
+            .build()
 
-        var biometricPrompt = new BiometricPrompt(activity, this);
-        var alias = aliases.get(0);
+        val cipher = CryptographyManager().getInitializedCipherForDecryption(
+            alias, rsaTransformation
+        )
 
-        var promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                .setTitle(context.getString(R.string.prompt_info_title))
-                .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), alias))
-                .setDescription(Objects.requireNonNullElse(getReference(), context.getString(R.string.prompt_info_description)))
-                .setNegativeButtonText(context.getString(android.R.string.cancel))
-                .setConfirmationRequired(false)
-                .build();
-
-        var cipher = new CryptographyManager().getInitializedCipherForDecryption(
-                alias, rsaTransformation);
-
-        context.getMainExecutor().execute(() -> {
+        context.mainExecutor.execute {
             biometricPrompt.authenticate(
-                    promptInfo,
-                    new BiometricPrompt.CryptoObject(cipher));
-        });
+                promptInfo,
+                BiometricPrompt.CryptoObject(cipher)
+            )
+        }
     }
 
 
-    @Override
-    public void onAuthenticationError(int errCode, @NonNull CharSequence errString) {
-        Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode));
-        new Thread(() -> OmsFileProvider.purgeTmp(context)).start();
-        context.getMainExecutor().execute(() -> {
-            Toast.makeText(context, errString + " (" + errCode + ")", Toast.LENGTH_SHORT).show();
-            Util.discardBackStack(messageFragment);
-        });
+    override fun onAuthenticationError(errCode: Int, errString: CharSequence) {
+        Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errCode))
+        Thread { OmsFileProvider.purgeTmp(context) }.start()
+        context.mainExecutor.execute {
+            Toast.makeText(context, "$errString ($errCode)", Toast.LENGTH_SHORT).show()
+            discardBackStack(messageFragment)
+        }
     }
 
-    @Override
-    public void onAuthenticationFailed() {
-        Log.d(TAG,
-                "User biometrics rejected");
+    override fun onAuthenticationFailed() {
+        Log.d(
+            TAG,
+            "User biometrics rejected"
+        )
 
         //close socket if WiFiPairing active
-        ((MainActivity) context).sendReplyViaSocket(new byte[]{}, true);
+        (context as MainActivity).sendReplyViaSocket(byteArrayOf(), true)
 
-        context.getMainExecutor().execute(() -> {
-            Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
-            Util.discardBackStack(messageFragment);
-        });
+        context.getMainExecutor().execute {
+            Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT)
+                .show()
+            discardBackStack(messageFragment)
+        }
     }
 
     /**
-     * Logic at {@link Fragment#onDestroyView()}
+     * Logic at [Fragment.onDestroyView]
      */
-    public void onDestroyView() {
-
+    open fun onDestroyView() {
     }
 }

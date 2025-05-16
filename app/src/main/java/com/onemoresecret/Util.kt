@@ -1,78 +1,74 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Context;
-import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
-import android.provider.OpenableColumns;
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.NavHostFragment
+import com.fasterxml.jackson.databind.ObjectMapper
+import java.util.Objects
+import androidx.core.net.toUri
 
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
+object Util {
+    const val FLAVOR_FOSS = "foss"
+    const val BASE64_LINE_LENGTH = 75
 
+    @JvmField
+    val JACKSON_MAPPER = ObjectMapper()
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+    @JvmOverloads
+    @JvmStatic
+    fun byteArrayToHex(a: ByteArray, spaces: Boolean = true): String {
+        val sb = StringBuilder()
 
-import java.util.Objects;
-
-public final class Util {
-    public static final String FLAVOR_FOSS = "foss";
-    public static final int BASE64_LINE_LENGTH = 75;
-    public static final ObjectMapper JACKSON_MAPPER = new ObjectMapper();
-
-    private Util() {
-    }
-
-    public static String byteArrayToHex(byte[] a) {
-        return byteArrayToHex(a, true);
-    }
-
-    public static String byteArrayToHex(byte[] a, boolean spaces) {
-        var sb = new StringBuilder();
-
-        for (int i = 0; i < a.length; i++) {
-            sb.append(String.format("%02x", a[i])).append(i % 2 == 1 && spaces ? " " : "");
+        for (i in a.indices) {
+            sb.append(String.format("%02x", a[i])).append(if (i % 2 == 1 && spaces) " " else "")
         }
-        return sb.toString().trim();
+        return sb.toString().trim { it <= ' ' }
     }
 
-    public static byte[] hexToByteArray(String s) {
-        var len = s.length();
-        var data = new byte[len / 2];
-        for (var i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i + 1), 16));
+    fun hexToByteArray(s: String): ByteArray {
+        val len = s.length
+        val data = ByteArray(len / 2)
+        var i = 0
+        while (i < len) {
+            data[i / 2] = ((((s[i].digitToIntOrNull(16) ?: (-1 shl 4)) + s[i + 1]
+                .digitToIntOrNull(16)!!) ?: -1)).toByte()
+            i += 2
         }
-        return data;
+        return data
     }
 
     /**
-     * open URL via {@link android.content.Intent}.
+     * open URL via [android.content.Intent].
      */
-    public static void openUrl(int stringId, Context ctx) {
-        var url = ctx.getString(stringId);
-        var intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(url));
-        ctx.startActivity(intent);
+    @JvmStatic
+    fun openUrl(stringId: Int, ctx: Context) {
+        val url = ctx.getString(stringId)
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(url.toUri())
+        ctx.startActivity(intent)
     }
 
-    public record UriFileInfo(String filename, int fileSize) {
-    }
+    @JvmStatic
+    fun getFileInfo(ctx: Context, uri: Uri): UriFileInfo {
+        ctx.contentResolver.query(uri, null, null, null, null).use { cursor ->
+            Objects.requireNonNull(cursor)
+            cursor!!.moveToFirst()
 
-    ;
-
-    public static UriFileInfo getFileInfo(Context ctx, Uri uri) {
-        try (Cursor cursor = ctx.getContentResolver().query(uri, null, null, null, null)) {
-            Objects.requireNonNull(cursor);
-            cursor.moveToFirst();
-
-            var sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-            var nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-            return new UriFileInfo(cursor.getString(nameIndex), cursor.getInt(sizeIndex));
+            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            return UriFileInfo(cursor.getString(nameIndex), cursor.getInt(sizeIndex))
         }
     }
 
-    public static void discardBackStack(Fragment fragment) {
-        var navController = NavHostFragment.findNavController(fragment);
-        navController.popBackStack(navController.getGraph().getStartDestinationId(), false);
+    @JvmStatic
+    fun discardBackStack(fragment: Fragment) {
+        val navController = NavHostFragment.findNavController(fragment)
+        navController.popBackStack(navController.graph.startDestinationId, false)
     }
+
+    @JvmRecord
+    data class UriFileInfo(@JvmField val filename: String, @JvmField val fileSize: Int)
 }

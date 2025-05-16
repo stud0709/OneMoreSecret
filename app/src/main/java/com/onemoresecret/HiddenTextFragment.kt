@@ -1,34 +1,30 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.onemoresecret.databinding.FragmentHiddenTextBinding
 
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
+class HiddenTextFragment : Fragment() {
+    private var binding: FragmentHiddenTextBinding? = null
 
-import com.onemoresecret.databinding.FragmentHiddenTextBinding;
-
-public class HiddenTextFragment extends Fragment {
-    private FragmentHiddenTextBinding binding;
-
-    @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        binding = FragmentHiddenTextBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentHiddenTextBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    public void setText(String text) {
-        binding.textViewMessage.setText(text);
+    fun setText(text: String?) {
+        binding!!.textViewMessage.text = text
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding.textViewMessage.setText(getString(R.string.hidden_text));
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding!!.textViewMessage.text = getString(R.string.hidden_text)
+        binding = null
     }
 }

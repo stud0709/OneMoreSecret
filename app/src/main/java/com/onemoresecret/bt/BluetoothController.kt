@@ -1,173 +1,204 @@
-package com.onemoresecret.bt;
+package com.onemoresecret.bt
 
-import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothHidDevice;
-import android.bluetooth.BluetoothHidDeviceAppSdpSettings;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.util.Log;
-
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothHidDevice
+import android.bluetooth.BluetoothHidDeviceAppSdpSettings
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothProfile.ServiceListener
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.core.app.ActivityCompat
+import java.util.function.Consumer
 
 //https://developer.android.com/guide/topics/connectivity/bluetooth/setup
+class BluetoothController( val context: Context,
+                        var   activityResultLauncher:   ActivityResultLauncher<Intent>?,
+    private val callback: BluetoothHidDevice.Callback
+) : ServiceListener {
+    private val sdpRecord = BluetoothHidDeviceAppSdpSettings(
+        "OneMoreSecret",
+        "OneMoreSecret HID Device",
+        "OneMoreSecret",
+        BluetoothHidDevice.SUBCLASS1_KEYBOARD,
+        REPORT_MAP_KEYBOARD
+    )
 
-public class BluetoothController implements BluetoothProfile.ServiceListener {
-    private static final String TAG = BluetoothController.class.getSimpleName();
+    private val bluetoothManager: BluetoothManager? = context.getSystemService(
+        Context.BLUETOOTH_SERVICE
+    ) as BluetoothManager
+    var bluetoothHidDevice: BluetoothHidDevice? = null
+        private set
 
-    private final BluetoothHidDeviceAppSdpSettings sdpRecord = new BluetoothHidDeviceAppSdpSettings(
-            "OneMoreSecret",
-            "OneMoreSecret HID Device",
-            "OneMoreSecret",
-            BluetoothHidDevice.SUBCLASS1_KEYBOARD,
-            REPORT_MAP_KEYBOARD
-    );
+    val isBluetoothAvailable: Boolean
+        get() = bluetoothManager != null
 
-    private final Fragment fragment;
-    private final BluetoothManager bluetoothManager;
-    private final ActivityResultLauncher<Intent> activityResultLauncher;
-    private final BluetoothHidDevice.Callback callback;
-    private BluetoothHidDevice bluetoothHidDevice = null;
-
-    public BluetoothController(Fragment fragment,
-                               ActivityResultCallback<ActivityResult> onActivityResult,
-                               BluetoothHidDevice.Callback callback) {
-
-        this.fragment = fragment;
-        this.callback = callback;
-        this.bluetoothManager = (BluetoothManager) fragment.requireContext().getSystemService(Context.BLUETOOTH_SERVICE);
-        if (this.bluetoothManager == null) {
-            Log.i(TAG, "No bluetooth Manager found");
-            activityResultLauncher = null;
-            return;
-        }
-        var b = this.getAdapter().getProfileProxy(fragment.getContext(), this, BluetoothProfile.HID_DEVICE);
-        Log.i(TAG, "getProfileProxy: " + b);
-
-        //prepare intent "request discoverable"
-        activityResultLauncher = fragment.registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                onActivityResult);
+    fun requestDiscoverable(discoverableDurationS: Int) {
+        val discoverableIntent =
+            Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE)
+        discoverableIntent.putExtra(
+            BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION,
+            discoverableDurationS
+        )
+        activityResultLauncher!!.launch(discoverableIntent)
     }
 
-    public boolean isBluetoothAvailable() {
-        return bluetoothManager != null;
-    }
+    val adapter: BluetoothAdapter
+        get() = bluetoothManager!!.adapter
 
-    public BluetoothHidDevice getBluetoothHidDevice() {
-        return bluetoothHidDevice;
-    }
-
-    public void requestDiscoverable(int discoverable_duration_s) {
-        var discoverableIntent =
-                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, discoverable_duration_s);
-        activityResultLauncher.launch(discoverableIntent);
-    }
-
-    public BluetoothAdapter getAdapter() {
-        return bluetoothManager.getAdapter();
-    }
-
-    public void destroy() {
+    fun destroy() {
         try {
             if (ActivityCompat.checkSelfPermission(
-                    fragment.requireContext(),
-                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
             }
 
             if (bluetoothManager != null && bluetoothHidDevice != null) {
-                bluetoothHidDevice.getConnectedDevices().forEach(d -> bluetoothHidDevice.disconnect(d));
-                bluetoothHidDevice.unregisterApp();
-                bluetoothManager.getAdapter().closeProfileProxy(BluetoothProfile.HID_DEVICE, bluetoothHidDevice);
+                bluetoothHidDevice!!.connectedDevices.forEach(Consumer { d: BluetoothDevice? ->
+                    bluetoothHidDevice!!.disconnect(
+                        d
+                    )
+                })
+                bluetoothHidDevice!!.unregisterApp()
+                bluetoothManager.adapter.closeProfileProxy(
+                    BluetoothProfile.HID_DEVICE,
+                    bluetoothHidDevice
+                )
             }
-        } catch (IllegalStateException ex) {
+        } catch (ex: IllegalStateException) {
             //things are happening outside the context
-            Log.e(TAG, String.format("%s not attached to a context", fragment));
+            ex.printStackTrace()
         }
     }
 
-// BluetoothProfile.ServiceListener
-
-    @Override
-    public void onServiceConnected(int profile, BluetoothProfile proxy) {
-        Log.i(TAG, "Service connected");
+    // BluetoothProfile.ServiceListener
+    override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+        Log.i(TAG, "Service connected")
         if (profile != BluetoothProfile.HID_DEVICE) {
-            Log.wtf(TAG, "profile: " + profile + " is not HID_DEVICE");
-            return;
+            Log.wtf(
+                TAG,
+                "profile: $profile is not HID_DEVICE"
+            )
+            return
         }
 
         try {
-            bluetoothHidDevice = (BluetoothHidDevice) proxy;
+            bluetoothHidDevice = proxy as BluetoothHidDevice
             if (ActivityCompat.checkSelfPermission(
-                    fragment.requireContext(),
-                    Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                return;
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
             }
 
-            if (bluetoothHidDevice == null) return;
+            if (bluetoothHidDevice == null) return
 
-            Log.i(TAG, String.format("registering HID app: %s",
-                    bluetoothHidDevice.registerApp(
-                            sdpRecord,
-                            null,
-                            null,
-                            fragment.requireContext().getMainExecutor(),
-                            callback)));
-        } catch (IllegalStateException ex) {
+            Log.i(
+                TAG, String.format(
+                    "registering HID app: %s",
+                    bluetoothHidDevice!!.registerApp(
+                        sdpRecord,
+                        null,
+                        null,
+                        context.mainExecutor,
+                        callback
+                    )
+                )
+            )
+        } catch (ex: IllegalStateException) {
             //things are happening outside the context
-            Log.e(TAG, String.format("%s not attached to a context", fragment));
+            ex.printStackTrace()
         }
     }
 
-    @Override
-    public void onServiceDisconnected(int profile) {
-        Log.i(TAG, "Service disconnected: " + profile);
-        bluetoothHidDevice = null;
+    override fun onServiceDisconnected(profile: Int) {
+        Log.i(TAG, "Service disconnected: $profile")
+        bluetoothHidDevice = null
     }
 
-    private static final byte[] REPORT_MAP_KEYBOARD = {
+    init {
+        if (this.bluetoothManager == null) {
+            Log.i(TAG, "No bluetooth Manager found")
+            activityResultLauncher = null
+        } else {
+            val b =
+                adapter.getProfileProxy(context, this, BluetoothProfile.HID_DEVICE)
+            Log.i(TAG, "getProfileProxy: $b")
+        }
+    }
 
-            (byte) 0x05, (byte) 0x01,                         // Usage Page (Generic Desktop)
-            (byte) 0x09, (byte) 0x06,                         // Usage (Keyboard)
-            (byte) 0xA1, (byte) 0x01,                         // Collection (Application)
-            (byte) 0x05, (byte) 0x07,                         //     Usage Page (Key Codes)
-            (byte) 0x19, (byte) 0xe0,                         //     Usage Minimum (224)
-            (byte) 0x29, (byte) 0xe7,                         //     Usage Maximum (231)
-            (byte) 0x15, (byte) 0x00,                         //     Logical Minimum (0)
-            (byte) 0x25, (byte) 0x01,                         //     Logical Maximum (1)
-            (byte) 0x75, (byte) 0x01,                         //     Report Size (1)
-            (byte) 0x95, (byte) 0x08,                         //     Report Count (8)
-            (byte) 0x81, (byte) 0x02,                         //     Input (Data, Variable, Absolute)
+    companion object {
+        private val TAG: String = BluetoothController::class.java.simpleName
 
-            (byte) 0x95, (byte) 0x05,                         //     Report Count (5)
-            (byte) 0x75, (byte) 0x01,                         //     Report Size (1)
-            (byte) 0x05, (byte) 0x08,                         //     Usage Page (Page# for LEDs)
-            (byte) 0x19, (byte) 0x01,                         //     Usage Minimum (1)
-            (byte) 0x29, (byte) 0x05,                         //     Usage Maximum (5)
-            (byte) 0x91, (byte) 0x02,                         //     Output (Data, Variable, Absolute), Led report
-            (byte) 0x95, (byte) 0x01,                         //     Report Count (1)
-            (byte) 0x75, (byte) 0x03,                         //     Report Size (3)
-            (byte) 0x91, (byte) 0x01,                         //     Output (Data, Variable, Absolute), Led report padding
+        private val REPORT_MAP_KEYBOARD = byteArrayOf(
+            0x05.toByte(),
+            0x01.toByte(),  // Usage Page (Generic Desktop)
+            0x09.toByte(),
+            0x06.toByte(),  // Usage (Keyboard)
+            0xA1.toByte(),
+            0x01.toByte(),  // Collection (Application)
+            0x05.toByte(),
+            0x07.toByte(),  //     Usage Page (Key Codes)
+            0x19.toByte(),
+            0xe0.toByte(),  //     Usage Minimum (224)
+            0x29.toByte(),
+            0xe7.toByte(),  //     Usage Maximum (231)
+            0x15.toByte(),
+            0x00.toByte(),  //     Logical Minimum (0)
+            0x25.toByte(),
+            0x01.toByte(),  //     Logical Maximum (1)
+            0x75.toByte(),
+            0x01.toByte(),  //     Report Size (1)
+            0x95.toByte(),
+            0x08.toByte(),  //     Report Count (8)
+            0x81.toByte(),
+            0x02.toByte(),  //     Input (Data, Variable, Absolute)
 
-            (byte) 0x95, (byte) 0x01,                         //     Report Count (1)
-            (byte) 0x75, (byte) 0x08,                         //     Report Size (8)
-            (byte) 0x15, (byte) 0x00,                         //     Logical Minimum (0)
-            (byte) 0x25, (byte) 0x65,                         //     Logical Maximum (101)
-            (byte) 0x05, (byte) 0x07,                         //     Usage Page (Key codes)
-            (byte) 0x19, (byte) 0x00,                         //     Usage Minimum (0)
-            (byte) 0x29, (byte) 0x65,                         //     Usage Maximum (101)
-            (byte) 0x81, (byte) 0x00,                         //     Input (Data, Array) Key array(6 bytes)
-            (byte) 0xC0                                       // End Collection (Application)
-    };
+            0x95.toByte(),
+            0x05.toByte(),  //     Report Count (5)
+            0x75.toByte(),
+            0x01.toByte(),  //     Report Size (1)
+            0x05.toByte(),
+            0x08.toByte(),  //     Usage Page (Page# for LEDs)
+            0x19.toByte(),
+            0x01.toByte(),  //     Usage Minimum (1)
+            0x29.toByte(),
+            0x05.toByte(),  //     Usage Maximum (5)
+            0x91.toByte(),
+            0x02.toByte(),  //     Output (Data, Variable, Absolute), Led report
+            0x95.toByte(),
+            0x01.toByte(),  //     Report Count (1)
+            0x75.toByte(),
+            0x03.toByte(),  //     Report Size (3)
+            0x91.toByte(),
+            0x01.toByte(),  //     Output (Data, Variable, Absolute), Led report padding
 
+            0x95.toByte(),
+            0x01.toByte(),  //     Report Count (1)
+            0x75.toByte(),
+            0x08.toByte(),  //     Report Size (8)
+            0x15.toByte(),
+            0x00.toByte(),  //     Logical Minimum (0)
+            0x25.toByte(),
+            0x65.toByte(),  //     Logical Maximum (101)
+            0x05.toByte(),
+            0x07.toByte(),  //     Usage Page (Key codes)
+            0x19.toByte(),
+            0x00.toByte(),  //     Usage Minimum (0)
+            0x29.toByte(),
+            0x65.toByte(),  //     Usage Maximum (101)
+            0x81.toByte(),
+            0x00.toByte(),  //     Input (Data, Array) Key array(6 bytes)
+            0xC0.toByte() // End Collection (Application)
+        )
+    }
 }

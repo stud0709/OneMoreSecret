@@ -1,59 +1,57 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.databinding.FragmentKeyRequestPairingBinding
+import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+class KeyRequestPairingFragment : FragmentWithNotificationBeforePause() {
+    private lateinit var binding: FragmentKeyRequestPairingBinding
+    private lateinit var reply: ByteArray
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-import com.onemoresecret.databinding.FragmentKeyRequestPairingBinding;
-import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
-
-
-public class KeyRequestPairingFragment extends FragmentWithNotificationBeforePause {
-    private static final String TAG = KeyRequestPairingFragment.class.getSimpleName();
-
-    private FragmentKeyRequestPairingBinding binding;
-    private byte[] reply;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         binding = FragmentKeyRequestPairingBinding.inflate(
-                inflater,
-                container,
-                false);
+            inflater,
+            container,
+            false
+        )
 
-        return binding.getRoot();
+        return binding.root
     }
 
-    private final View.OnClickListener btnListener = btn -> {
-        if (beforePause != null) beforePause.run();
+    private val btnListener = View.OnClickListener { btn: View? ->
+        if (beforePause != null) beforePause!!.run()
+        val activity = requireActivity() as MainActivity
+        Thread { activity.sendReplyViaSocket(reply, true) }.start()
+        discardBackStack(this)
+    }
 
-        var activity = (MainActivity) requireActivity();
-        new Thread(() -> activity.sendReplyViaSocket(reply, true)).start();
-
-        Util.discardBackStack(this);
-    };
-
-    @Override
-    public void setBeforePause(Runnable r) {
+    override fun setBeforePause(r: Runnable?) {
         //not necessary
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        binding.btnSendKey.setOnClickListener(btnListener);
-        binding.btnSendKey.setEnabled(false);
+        binding.btnSendKey.setOnClickListener(btnListener)
+        binding.btnSendKey.isEnabled = false
     }
 
-    public void setReply(byte[] reply) {
-        this.reply = reply;
-        requireActivity().getMainExecutor().execute(() -> binding.btnSendKey.setEnabled(true));
+    fun setReply(reply: ByteArray) {
+        this.reply = reply
+        requireActivity().mainExecutor.execute {
+            binding.btnSendKey.isEnabled =
+                true
+        }
+    }
+
+    companion object {
+        private val TAG: String = KeyRequestPairingFragment::class.java.simpleName
     }
 }

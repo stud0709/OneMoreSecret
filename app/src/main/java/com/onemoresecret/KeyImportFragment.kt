@@ -1,298 +1,323 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.AesKeyAlgorithm;
-import com.onemoresecret.crypto.AesTransformation;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.databinding.FragmentKeyImportBinding;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Arrays;
-import java.util.Objects;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import com.onemoresecret.Util.byteArrayToHex
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.AESUtil.getKeyFromPassword
+import com.onemoresecret.crypto.AESUtil.process
+import com.onemoresecret.crypto.AesKeyAlgorithm
+import com.onemoresecret.crypto.AesTransformation
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.CryptographyManager.Companion.restoreKeyPair
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.crypto.RSAUtils.getFingerprint
+import com.onemoresecret.databinding.FragmentKeyImportBinding
+import java.io.ByteArrayInputStream
+import java.io.IOException
+import java.security.KeyStoreException
+import java.security.interfaces.RSAPublicKey
+import java.util.Objects
+import java.util.function.Consumer
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
 
 /**
  * Key import Fragment.
  */
-public class KeyImportFragment extends Fragment {
-    private FragmentKeyImportBinding binding;
-    private static final String TAG = KeyImportFragment.class.getSimpleName();
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
+class KeyImportFragment : Fragment() {
+    private var binding: FragmentKeyImportBinding? = null
+    private val cryptographyManager = CryptographyManager()
 
-    private final KeyImportMenu menuProvider = new KeyImportMenu();
+    private val menuProvider = KeyImportMenu()
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider)
 
-        assert getArguments() != null;
+        checkNotNull(arguments)
 
-        try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(getArguments().getByteArray("MESSAGE")))) {
-            // (1) Application ID
-            var applicationId = dataInputStream.readUnsignedShort();
-            if (applicationId != MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER)
-                throw new IllegalArgumentException("wrong applicationId: " + applicationId);
+        try {
+            OmsDataInputStream(ByteArrayInputStream(arguments!!.getByteArray("MESSAGE"))).use { dataInputStream ->
+                // (1) Application ID
+                val applicationId = dataInputStream.readUnsignedShort()
+                require(applicationId == MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER) { "wrong applicationId: $applicationId" }
 
-            // (2) alias
-            var alias = dataInputStream.readString();
-            Log.d(TAG, "alias: " + alias);
-            binding.editTextKeyAlias.setText(alias);
-            // --- AES parameter ---
+                // (2) alias
+                val alias = dataInputStream.readString()
+                Log.d(TAG, "alias: $alias")
+                binding!!.editTextKeyAlias.setText(alias)
 
-            // (3) salt
-            var salt = dataInputStream.readByteArray();
-            Log.d(TAG, "salt: " + Util.byteArrayToHex(salt));
+                // --- AES parameter ---
 
-            // (4) IV
-            var iv = dataInputStream.readByteArray();
-            Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
+                // (3) salt
+                val salt = dataInputStream.readByteArray()
+                Log.d(TAG, "salt: " + byteArrayToHex(salt))
 
-            // (5) AES transformation index
-            var aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
-            Log.d(TAG, "cipher algorithm: " + aesTransformation);
+                // (4) IV
+                val iv = dataInputStream.readByteArray()
+                Log.d(TAG, "IV: " + byteArrayToHex(iv))
 
-            // (6) key algorithm index
-            var aesKeyAlg = AesKeyAlgorithm.values()[dataInputStream.readUnsignedShort()].keyAlgorithm;
-            Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
+                // (5) AES transformation index
+                val aesTransformation =
+                    AesTransformation.entries[dataInputStream.readUnsignedShort()].transformation
+                Log.d(
+                    TAG,
+                    "cipher algorithm: $aesTransformation"
+                )
 
-            // (7) key length
-            var aesKeyLength = dataInputStream.readUnsignedShort();
-            Log.d(TAG, "AES key length: " + aesKeyLength);
+                // (6) key algorithm index
+                val aesKeyAlg =
+                    AesKeyAlgorithm.entries[dataInputStream.readUnsignedShort()].keyAlgorithm
+                Log.d(TAG, "AES key algorithm: $aesKeyAlg")
 
-            // (8) AES iterations
-            var iterations = dataInputStream.readUnsignedShort();
-            Log.d(TAG, "iterations: " + iterations);
+                // (7) key length
+                val aesKeyLength = dataInputStream.readUnsignedShort()
+                Log.d(TAG, "AES key length: $aesKeyLength")
 
-            // --- Encrypted part ---
+                // (8) AES iterations
+                val iterations = dataInputStream.readUnsignedShort()
+                Log.d(TAG, "iterations: $iterations")
 
-            // (9) cipher text
-            var cipherText = dataInputStream.readByteArray();
-            Log.d(TAG, cipherText.length + " bytes cipher text read");
+                // --- Encrypted part ---
 
-            binding.editTextKeyAlias.setText(alias);
+                // (9) cipher text
+                val cipherText = dataInputStream.readByteArray()
+                Log.d(TAG, cipherText.size.toString() + " bytes cipher text read")
 
-            binding.btnDecrypt.setOnClickListener(e ->
-                    new Thread(() ->
-                            onPasswordEntry(salt,
-                                    iv,
-                                    cipherText,
-                                    aesTransformation,
-                                    aesKeyAlg,
-                                    aesKeyLength,
-                                    iterations)).start()
-            );
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            Util.discardBackStack(this);
+                binding!!.editTextKeyAlias.setText(alias)
+                binding!!.btnDecrypt.setOnClickListener { e: View? ->
+                    Thread {
+                        onPasswordEntry(
+                            salt,
+                            iv,
+                            cipherText,
+                            aesTransformation,
+                            aesKeyAlg,
+                            aesKeyLength,
+                            iterations
+                        )
+                    }.start()
+                }
+            }
+        } catch (ex: IOException) {
+            ex.printStackTrace()
+            Toast.makeText(
+                context,
+                Objects.requireNonNullElse(ex.message, ex.javaClass.name),
+                Toast.LENGTH_LONG
+            ).show()
+            discardBackStack(this)
         }
     }
 
-    private void onPasswordEntry(
-            byte[] salt,
-            byte[] iv,
-            byte[] cipherText,
-            String aesTransformation,
-            String keyAlg,
-            int keyLength,
-            int iterations) {
-
+    private fun onPasswordEntry(
+        salt: ByteArray,
+        iv: ByteArray,
+        cipherText: ByteArray,
+        aesTransformation: String,
+        keyAlg: String,
+        keyLength: Int,
+        iterations: Int
+    ) {
         try {
             //try decrypt
-            var secretKey = AESUtil.getKeyFromPassword(
-                    binding.editTextPassphrase.getText().toString().toCharArray(),
-                    salt,
-                    keyAlg,
-                    keyLength,
-                    iterations);
+            val secretKey = getKeyFromPassword(
+                binding!!.editTextPassphrase.text.toString().toCharArray(),
+                salt,
+                keyAlg,
+                keyLength,
+                iterations
+            )
 
-            var bArr = AESUtil.process(
-                    Cipher.DECRYPT_MODE,
-                    cipherText,
-                    secretKey,
-                    new IvParameterSpec(iv),
-                    aesTransformation);
+            val bArr = process(
+                Cipher.DECRYPT_MODE,
+                cipherText,
+                secretKey,
+                IvParameterSpec(iv),
+                aesTransformation
+            )
 
-            try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(bArr))) {
-                // (9.1) - private key material
-                var privateKeyMaterial = dataInputStream.readByteArray();
+            try {
+                OmsDataInputStream(ByteArrayInputStream(bArr)).use { dataInputStream ->
+                    // (9.1) - private key material
+                    val privateKeyMaterial = dataInputStream.readByteArray()
 
-                // (9.2) - public key material
-                var publicKeyMaterial = dataInputStream.readByteArray();
+                    // (9.2) - public key material
+                    val publicKeyMaterial = dataInputStream.readByteArray()
 
-                var keyPair = CryptographyManager.restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
+                    val keyPair = restoreKeyPair(privateKeyMaterial, publicKeyMaterial)
 
-                var publicKey = (RSAPublicKey) keyPair.getPublic();
+                    val publicKey = keyPair.public as RSAPublicKey
 
-                var fingerprintBytes = RSAUtils.getFingerprint(publicKey);
-                var fingerprint = Util.byteArrayToHex(fingerprintBytes);
+                    val fingerprintBytes = getFingerprint(publicKey)
+                    val fingerprint = byteArrayToHex(fingerprintBytes)
+                    requireContext().mainExecutor.execute {
+                        binding!!.textFingerprintData.text = fingerprint
+                        //check alias
+                        binding!!.editTextKeyAlias.addTextChangedListener(
+                            getTextWatcher(
+                                fingerprintBytes
+                            )
+                        )
 
-                requireContext().getMainExecutor().execute(() -> {
-                    binding.textFingerprintData.setText(fingerprint);
+                        validateAlias(fingerprintBytes)
 
-                    //check alias
-                    binding.editTextKeyAlias.addTextChangedListener(getTextWatcher(fingerprintBytes));
-
-                    validateAlias(fingerprintBytes);
-
-                    binding.btnSave.setEnabled(true);
-
-                    binding.btnSave.setOnClickListener(e ->
-                            new Thread(() -> {
+                        binding!!.btnSave.isEnabled = true
+                        binding!!.btnSave.setOnClickListener { e: View? ->
+                            Thread {
                                 try {
                                     //delete other keys with the same fingerprint
-                                    var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
-                                    sameFingerprint.forEach(a -> {
+                                    val sameFingerprint =
+                                        cryptographyManager.getByFingerprint(fingerprintBytes)
+                                    sameFingerprint.forEach(Consumer { a: String? ->
                                         try {
-                                            cryptographyManager.deleteKey(a);
-                                        } catch (KeyStoreException ex) {
-                                            ex.printStackTrace();
+                                            cryptographyManager.deleteKey(a)
+                                        } catch (ex: KeyStoreException) {
+                                            ex.printStackTrace()
                                         }
-                                    });
+                                    })
 
-                                    var keyAlias = binding.
-                                            editTextKeyAlias.
-                                            getText().
-                                            toString().
-                                            trim();
+                                    val keyAlias: String = binding!!
+                                        .editTextKeyAlias
+                                        .getText()
+                                        .toString().trim()
+
                                     cryptographyManager.importKey(
-                                            keyAlias,
-                                            keyPair,
-                                            requireContext());
-                                    requireContext().getMainExecutor().execute(
-                                            () -> {
-                                                Toast.makeText(this.getContext(),
-                                                        "Private key '" + keyAlias + "' successfully imported",
-                                                        Toast.LENGTH_LONG).show();
-                                                Util.discardBackStack(this);
-                                            });
-
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                    requireContext().getMainExecutor().execute(
-                                            () -> Toast.makeText(this.getContext(),
-                                                    ex.getMessage(),
-                                                    Toast.LENGTH_LONG).show());
+                                        keyAlias,
+                                        keyPair,
+                                        requireContext()
+                                    )
+                                    requireContext().mainExecutor.execute {
+                                        Toast.makeText(
+                                            this.context,
+                                            "Private key '$keyAlias' successfully imported",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        discardBackStack(this)
+                                    }
+                                } catch (ex: Exception) {
+                                    ex.printStackTrace()
+                                    requireContext().mainExecutor.execute {
+                                        Toast.makeText(
+                                            this.context,
+                                            ex.message,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 }
-                            }).start()
-                    );
-                });
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                            }.start()
+                        }
+                    }
+                }
+            } catch (ex: IOException) {
+                ex.printStackTrace()
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            requireContext().getMainExecutor().execute(
-                    () -> Toast.makeText(this.getContext(),
-                            "Could not decrypt. Wrong passphrase?",
-                            Toast.LENGTH_LONG).show());
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            requireContext().mainExecutor.execute {
+                Toast.makeText(
+                    this.context,
+                    "Could not decrypt. Wrong passphrase?",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentKeyImportBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentKeyImportBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
     }
 
-    private void validateAlias(byte[] fingerprintNew) {
+    private fun validateAlias(fingerprintNew: ByteArray) {
         try {
-            var alias = binding.editTextKeyAlias.getText().toString();
-            Log.d(TAG, "alias: " + alias);
-            String warning = null;
+            val alias = binding!!.editTextKeyAlias.text.toString()
+            Log.d(TAG, "alias: $alias")
+            var warning: String? = null
 
-            if (cryptographyManager.keyStore.containsAlias(alias)) {
-                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
-                var fingerprint = RSAUtils.getFingerprint(publicKey);
-                if (!Arrays.equals(fingerprint, fingerprintNew)) {
-                    warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
+            if (cryptographyManager.keyStore!!.containsAlias(alias)) {
+                val publicKey = cryptographyManager.getCertificate(alias).publicKey as RSAPublicKey
+                val fingerprint = getFingerprint(publicKey)
+                if (!fingerprint.contentEquals(fingerprintNew)) {
+                    warning = String.format(
+                        getString(R.string.warning_alias_exists),
+                        byteArrayToHex(fingerprint)
+                    )
                 }
             }
 
-            var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew);
+            val sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew)
             if (!sameFingerprint.isEmpty()) {
-                warning = String.format(getString(R.string.warning_same_fingerprint), sameFingerprint.get(0));
+                warning = String.format(
+                    getString(R.string.warning_same_fingerprint),
+                    sameFingerprint[0]
+                )
             }
 
-            var _warning = warning;
+            val _warning = warning
 
-            requireContext().getMainExecutor().execute(() -> {
-                binding.txtWarnings.setText(_warning == null ? "" : _warning);
-                binding.txtWarnings.setVisibility(_warning == null ? View.GONE : View.VISIBLE);
-            });
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            requireContext().mainExecutor.execute {
+                binding!!.txtWarnings.text = _warning ?: ""
+                binding!!.txtWarnings.visibility =
+                    if (_warning == null) View.GONE else View.VISIBLE
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    private TextWatcher getTextWatcher(byte[] fingerprintBytes) {
-        return new TextWatcher() {
-
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+    private fun getTextWatcher(fingerprintBytes: ByteArray): TextWatcher {
+        return object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
             }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
             }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                validateAlias(fingerprintBytes);
+            override fun afterTextChanged(s: Editable) {
+                validateAlias(fingerprintBytes)
             }
-        };
+        }
     }
 
-    private class KeyImportMenu implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_help, menu);
+    private inner class KeyImportMenu : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu)
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.key_import_md_url, requireContext());
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemHelp) {
+                openUrl(R.string.key_import_md_url, requireContext())
             } else {
-                return false;
+                return false
             }
-            return true;
+            return true
         }
     }
 
+    companion object {
+        private val TAG: String = KeyImportFragment::class.simpleName!!
+    }
 }

@@ -1,137 +1,146 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.app.AlertDialog;
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+import android.app.AlertDialog
+import android.content.DialogInterface
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.NavHostFragment
+import androidx.recyclerview.selection.SelectionTracker
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.databinding.FragmentKeyManagementBinding
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import java.security.KeyStoreException
+import java.util.Base64
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.recyclerview.selection.SelectionTracker;
+class KeyManagementFragment : Fragment() {
+    private var binding: FragmentKeyManagementBinding? = null
+    private val menuProvider = KeyEntryMenuProvider()
+    private var keyStoreListFragment: KeyStoreListFragment? = null
+    private var outputFragment: OutputFragment? = null
+    private val cryptographyManager = CryptographyManager()
 
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.databinding.FragmentKeyManagementBinding;
-
-import java.security.KeyStoreException;
-import java.util.Base64;
-
-public class KeyManagementFragment extends Fragment {
-    private FragmentKeyManagementBinding binding;
-    private final KeyEntryMenuProvider menuProvider = new KeyEntryMenuProvider();
-    private KeyStoreListFragment keyStoreListFragment;
-    private OutputFragment outputFragment;
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-
-
-        binding = FragmentKeyManagementBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentKeyManagementBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
-        outputFragment = binding.fragmentContainerView2.getFragment();
-        keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment.
-                        getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<>() {
-                            @Override
-                            public void onSelectionChanged() {
-                                super.onSelectionChanged();
-                                requireActivity().invalidateOptionsMenu();
-                                if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    var alias = getSelectedAlias();
-                                    outputFragment.setMessage(getPublicKeyMessage(alias), String.format(getString(R.string.share_public_key_title), alias));
-                                } else {
-                                    outputFragment.setMessage(null, null);
-                                }
-                            }
-                        }));
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider)
+        keyStoreListFragment = binding!!.fragmentContainerView.getFragment<KeyStoreListFragment>()
+        outputFragment = binding!!.fragmentContainerView2.getFragment<OutputFragment>()
+        keyStoreListFragment!!.setRunOnStart { fragmentKeyStoreListBinding: FragmentKeyStoreListBinding? ->
+            keyStoreListFragment!!.selectionTracker
+                .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
+                    override fun onSelectionChanged() {
+                        super.onSelectionChanged()
+                        requireActivity().invalidateOptionsMenu()
+                        if (keyStoreListFragment!!.selectionTracker.hasSelection()) {
+                            val alias: String = this@KeyManagementFragment.selectedAlias
+                            outputFragment!!.setMessage(
+                                getPublicKeyMessage(alias),
+                                String.format(
+                                    getString(R.string.share_public_key_title),
+                                    alias
+                                )
+                            )
+                        } else {
+                            outputFragment!!.setMessage(null, null)
+                        }
+                    }
+                })
+        }
     }
 
-    private String getSelectedAlias() {
-        return keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-    }
+    private val selectedAlias: String
+        get() = keyStoreListFragment!!.selectionTracker.selection.iterator().next().toString()
 
-    private String getPublicKeyMessage(String alias) {
+    private fun getPublicKeyMessage(alias: String): String {
         try {
-            var bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
-            return Base64.getEncoder().encodeToString(bArr);
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+            val bArr = cryptographyManager.getCertificate(alias).publicKey.encoded
+            return Base64.getEncoder().encodeToString(bArr)
+        } catch (ex: Exception) {
+            throw RuntimeException(ex)
         }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
     }
 
-    private class KeyEntryMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_key_management, menu);
+    private inner class KeyEntryMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_key_management, menu)
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemNewPrivateKey) {
-                NavHostFragment.findNavController(KeyManagementFragment.this)
-                        .navigate(R.id.action_keyManagementFragment_to_newPrivateKeyFragment, null);
-                return true;
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemNewPrivateKey) {
+                NavHostFragment.findNavController(this@KeyManagementFragment)
+                    .navigate(R.id.action_keyManagementFragment_to_newPrivateKeyFragment, null)
+                return true
             }
 
-            if (!keyStoreListFragment.getSelectionTracker().hasSelection()) return false;
+            if (!keyStoreListFragment!!.selectionTracker.hasSelection()) return false
 
-            var alias = getSelectedAlias();
+            val alias: String = this@KeyManagementFragment.selectedAlias
 
-            if (menuItem.getItemId() == R.id.menuItemDeleteKeyEntry) {
-                new AlertDialog.Builder(getContext())
-                        .setTitle(R.string.delete_private_key)
-                        .setMessage(String.format(getString(R.string.ok_to_delete), alias))
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                            try {
-                                cryptographyManager.deleteKey(alias);
-                                Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
-                                keyStoreListFragment.onItemRemoved(alias);
-                            } catch (KeyStoreException e) {
-                                e.printStackTrace();
-                                Toast.makeText(getContext(),
-                                        e.getMessage() == null ? String.format(requireContext().getString(R.string.operation_failed_s), e.getClass().getSimpleName()) : e.getMessage(),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        }).setNegativeButton(android.R.string.cancel, null).show();
-            } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
-                Util.openUrl(R.string.key_management_md_url, requireContext());
+            if (menuItem.itemId == R.id.menuItemDeleteKeyEntry) {
+                AlertDialog.Builder(context)
+                    .setTitle(R.string.delete_private_key)
+                    .setMessage(String.format(getString(R.string.ok_to_delete), alias))
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setPositiveButton(
+                        android.R.string.ok
+                    ) { dialog: DialogInterface?, which: Int ->
+                        try {
+                            cryptographyManager.deleteKey(alias)
+                            Toast.makeText(
+                                context,
+                                String.format(getString(R.string.key_deleted), alias),
+                                Toast.LENGTH_LONG
+                            ).show()
+                            keyStoreListFragment!!.onItemRemoved(alias)
+                        } catch (e: KeyStoreException) {
+                            e.printStackTrace()
+                            Toast.makeText(
+                                context,
+                                if (e.message == null) String.format(
+                                    requireContext().getString(R.string.operation_failed_s),
+                                    e.javaClass.simpleName
+                                ) else e.message,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }.setNegativeButton(android.R.string.cancel, null).show()
+            } else if (menuItem.itemId == R.id.menuItemKeyMgtHelp) {
+                openUrl(R.string.key_management_md_url, requireContext())
             } else {
-                return false;
+                return false
             }
 
-            return true;
+            return true
         }
 
-        @Override
-        public void onPrepareMenu(@NonNull Menu menu) {
-            menu.setGroupVisible(R.id.group_key_all, keyStoreListFragment.getSelectionTracker().hasSelection());
-            MenuProvider.super.onPrepareMenu(menu);
+        override fun onPrepareMenu(menu: Menu) {
+            menu.setGroupVisible(
+                R.id.group_key_all,
+                keyStoreListFragment!!.selectionTracker.hasSelection()
+            )
+            super.onPrepareMenu(menu)
         }
     }
 }

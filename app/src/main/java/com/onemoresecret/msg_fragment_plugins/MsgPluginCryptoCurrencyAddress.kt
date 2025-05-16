@@ -1,64 +1,55 @@
-package com.onemoresecret.msg_fragment_plugins;
+package com.onemoresecret.msg_fragment_plugins
 
-import android.util.Log;
+import androidx.biometric.BiometricPrompt
+import androidx.fragment.app.Fragment
+import com.onemoresecret.CryptoCurrencyAddressFragment
+import com.onemoresecret.MessageFragment
+import com.onemoresecret.OutputFragment
+import com.onemoresecret.R
+import com.onemoresecret.crypto.BTCAddress.toKeyPair
+import com.onemoresecret.crypto.BTCAddress.toPrivateKey
 
-import androidx.biometric.BiometricPrompt;
-import androidx.fragment.app.Fragment;
+class MsgPluginCryptoCurrencyAddress(
+    messageFragment: MessageFragment,
+    wif: ByteArray
+) : MessageFragmentPlugin(messageFragment) {
+    private val keyPair =
+        toKeyPair(toPrivateKey(wif)).toBTCKeyPair()
 
-import com.onemoresecret.CryptoCurrencyAddressFragment;
-import com.onemoresecret.HiddenTextFragment;
-import com.onemoresecret.MessageFragment;
-import com.onemoresecret.OutputFragment;
-import com.onemoresecret.R;
-import com.onemoresecret.Util;
-import com.onemoresecret.crypto.BTCAddress;
-
-import java.io.IOException;
-import java.security.KeyStoreException;
-
-
-public class MsgPluginCryptoCurrencyAddress extends MessageFragmentPlugin {
-    private final BTCAddress.BTCKeyPair keyPair;
-
-    public MsgPluginCryptoCurrencyAddress(MessageFragment messageFragment,
-                                          byte[] wif) throws Exception {
-        super(messageFragment);
-        keyPair = BTCAddress.toKeyPair(BTCAddress.toPrivateKey(wif)).toBTCKeyPair();
-    }
-
-    @Override
-    public void showBiometricPromptForDecryption() {
+    override fun showBiometricPromptForDecryption() {
         //nothing to decrypt
     }
 
-    @Override
-    public Fragment getMessageView() {
+    override fun getMessageView(): Fragment {
         if (messageView == null) {
-            messageView = new CryptoCurrencyAddressFragment();
-            context.getMainExecutor().execute(() -> {
-                var cryptoCurrencyAddressFragmentFragment = (CryptoCurrencyAddressFragment) messageView;
-                cryptoCurrencyAddressFragmentFragment.setValue(keyPair.getBtcAddressBase58());
-
-                messageFragment.getHiddenState().observe(messageView, hidden -> {
+            messageView = CryptoCurrencyAddressFragment()
+            context.mainExecutor.execute {
+                val cryptoCurrencyAddressFragmentFragment =
+                    messageView as CryptoCurrencyAddressFragment
+                cryptoCurrencyAddressFragmentFragment.setValue(keyPair.btcAddressBase58)
+                messageFragment.hiddenState.observe(
+                    messageView as CryptoCurrencyAddressFragment
+                ) { hidden: Boolean ->
                     if (hidden) {
-                        ((OutputFragment) outputView)
-                                .setMessage(
-                                        keyPair.getBtcAddressBase58(),
-                                        context.getString(R.string.public_address));
+                        (outputView as OutputFragment)
+                            .setMessage(
+                                keyPair.btcAddressBase58,
+                                context.getString(R.string.public_address)
+                            )
                     } else {
-                        ((OutputFragment) outputView)
-                                .setMessage(
-                                        keyPair.getWifBase58(),
-                                        context.getString(R.string.private_key_wif));
+                        (outputView as OutputFragment)
+                            .setMessage(
+                                keyPair.wifBase58,
+                                context.getString(R.string.private_key_wif)
+                            )
                     }
-                });
-            });
+                }
+            }
         }
-        return messageView;
+        return messageView as Fragment
     }
 
-    @Override
-    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
         //no authentication
     }
 }

@@ -1,84 +1,79 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Bundle;
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.MimeTypeMap
+import com.onemoresecret.databinding.FragmentFileOutputBinding
+import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause
+import java.util.Objects
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+class FileOutputFragment : FragmentWithNotificationBeforePause() {
+    private var binding: FragmentFileOutputBinding? = null
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.webkit.MimeTypeMap;
+    private var uri: Uri? = null
 
-import com.onemoresecret.databinding.FragmentFileOutputBinding;
-import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
-
-import java.util.Objects;
-
-public class FileOutputFragment extends FragmentWithNotificationBeforePause {
-    private static final String TAG = FileOutputFragment.class.getSimpleName();
-
-    private FragmentFileOutputBinding binding;
-
-    private Uri uri;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentFileOutputBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentFileOutputBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    private final View.OnClickListener btnListener = btn -> {
-        if (beforePause != null) beforePause.run();
-
-        var intent = new Intent(btn == binding.btnView ? Intent.ACTION_VIEW : Intent.ACTION_SEND);
-        var extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
-        String mimeType = Objects.requireNonNullElse(
-                MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),
-                "application/octet-stream");
-        if (btn == binding.btnView) {
-            intent.setDataAndType(uri, mimeType);
+    private val btnListener = View.OnClickListener { btn: View ->
+        if (beforePause != null) beforePause!!.run()
+        val intent =
+            Intent(if (btn === binding!!.btnView) Intent.ACTION_VIEW else Intent.ACTION_SEND)
+        val extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+        val mimeType = Objects.requireNonNullElse(
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension),
+            "application/octet-stream"
+        )
+        if (btn === binding!!.btnView) {
+            intent.setDataAndType(uri, mimeType)
         } else {
-            intent.setType(mimeType);
-            intent.putExtra(Intent.EXTRA_STREAM, uri);
+            intent.setType(mimeType)
+            intent.putExtra(Intent.EXTRA_STREAM, uri)
         }
 
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        requireActivity().startActivity(intent)
+    }
 
-        requireActivity().startActivity(intent);
-    };
-
-    @Override
-    public void setBeforePause(Runnable r) {
+    override fun setBeforePause(r: Runnable?) {
         //not necessary
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        binding.txtWorking.setText("");
-        binding.btnSend.setOnClickListener(btnListener);
-        binding.btnView.setOnClickListener(btnListener);
-        binding.btnSend.setEnabled(false);
-        binding.btnView.setEnabled(false);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding!!.txtWorking.text = ""
+        binding!!.btnSend.setOnClickListener(btnListener)
+        binding!!.btnView.setOnClickListener(btnListener)
+        binding!!.btnSend.isEnabled = false
+        binding!!.btnView.isEnabled = false
     }
 
-    public void setUri(Uri uri) {
-        this.uri = uri;
+    fun setUri(uri: Uri?) {
+        this.uri = uri
 
-        requireContext().getMainExecutor().execute(() -> {
-            binding.btnView.setEnabled(uri != null);
-            binding.btnSend.setEnabled(uri != null);
-        });
+        requireContext().mainExecutor.execute {
+            binding!!.btnView.isEnabled = uri != null
+            binding!!.btnSend.isEnabled = uri != null
+        }
     }
 
-    public void setProgress(@NonNull String s) {
-        requireContext().getMainExecutor().execute(() -> {
-            if (binding == null) return;
-            binding.txtWorking.setText(s);
-        });
+    fun setProgress(s: String) {
+        requireContext().mainExecutor.execute {
+            if (binding == null) return@execute
+            binding!!.txtWorking.text = s
+        }
+    }
+
+    companion object {
+        private val TAG: String = FileOutputFragment::class.simpleName!!
     }
 }

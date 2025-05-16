@@ -1,148 +1,149 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.selection.SelectionTracker
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.AESUtil.getAesTransformationIdx
+import com.onemoresecret.crypto.AESUtil.getKeyLength
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.MessageComposer.Companion.encodeAsOmsText
+import com.onemoresecret.crypto.OneTimePassword
+import com.onemoresecret.crypto.RSAUtils.getRsaTransformationIdx
+import com.onemoresecret.crypto.TotpUriTransfer
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import com.onemoresecret.databinding.FragmentTotpImportBinding
+import java.security.interfaces.RSAPublicKey
+import java.util.Objects
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.SelectionTracker;
+class TotpImportFragment : Fragment() {
+    private var binding: FragmentTotpImportBinding? = null
+    private var keyStoreListFragment: KeyStoreListFragment? = null
+    private var outputFragment: OutputFragment? = null
+    private val cryptographyManager = CryptographyManager()
+    private val menuProvider = OtpMenuProvider()
+    private var preferences: SharedPreferences? = null
+    private var totpFragment: TotpFragment? = null
 
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentTotpImportBinding.inflate(inflater, container, false)
 
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.crypto.TotpUriTransfer;
-import com.onemoresecret.databinding.FragmentTotpImportBinding;
-
-import java.security.interfaces.RSAPublicKey;
-import java.util.Objects;
-
-public class TotpImportFragment extends Fragment {
-    private static final String TAG = TotpImportFragment.class.getSimpleName();
-    private FragmentTotpImportBinding binding;
-    private KeyStoreListFragment keyStoreListFragment;
-    private OutputFragment outputFragment;
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-    private final OtpMenuProvider menuProvider = new OtpMenuProvider();
-    private SharedPreferences preferences;
-    private TotpFragment totpFragment;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentTotpImportBinding.inflate(inflater, container, false);
-
-        return binding.getRoot();
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider)
 
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
-        outputFragment = binding.fragmentContainerView3.getFragment();
+        keyStoreListFragment = binding!!.fragmentContainerView.getFragment<KeyStoreListFragment>()
+        outputFragment = binding!!.fragmentContainerView3.getFragment<OutputFragment>()
 
-        totpFragment = binding.fragmentTotp.getFragment();
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+        totpFragment = binding!!.fragmentTotp.getFragment<TotpFragment>()
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
 
-        var message = requireArguments().getByteArray("MESSAGE");
+        val message = requireArguments().getByteArray("MESSAGE")
 
-        var otp = new OneTimePassword(new String(message));
+        val otp = OneTimePassword(String(message!!))
 
         try {
-            if (!otp.isValid()) {
-                throw new IllegalArgumentException("Invalid scheme or authority");
+            require(otp.isValid) { "Invalid scheme or authority" }
+
+            totpFragment!!.init(otp, this) { code: String? ->
+                val hasSelection = keyStoreListFragment!!.selectionTracker.hasSelection()
+                totpFragment!!.setTotpText(code)
+                if (!hasSelection) outputFragment!!.setMessage(code, "One-Time Password")
             }
 
-            totpFragment.init(otp, this, code -> {
-                var hasSelection =  keyStoreListFragment.getSelectionTracker().hasSelection();
-
-                totpFragment.setTotpText(code);
-
-                if (!hasSelection)
-                    outputFragment.setMessage(code, "One-Time Password");
-            });
-
-            keyStoreListFragment.setRunOnStart(
-                    fragmentKeyStoreListBinding -> keyStoreListFragment
-                            .getSelectionTracker()
-                            .addObserver(new SelectionTracker.SelectionObserver<>() {
-                                @Override
-                                public void onSelectionChanged() {
-                                    super.onSelectionChanged();
-                                    if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                        var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-                                        var encrypted = encrypt(selectedAlias, message);
-                                        outputFragment.setMessage(encrypted, "Encrypted OTP Configuration");
-                                    } else {
-                                        outputFragment.setMessage(null, null);
-                                    }
-                                    totpFragment.refresh();
-                                }
-                            }));
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            Util.discardBackStack(this);
+            keyStoreListFragment!!.setRunOnStart { fragmentKeyStoreListBinding: FragmentKeyStoreListBinding? ->
+                keyStoreListFragment!!
+                    .selectionTracker
+                    .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
+                        override fun onSelectionChanged() {
+                            super.onSelectionChanged()
+                            if (keyStoreListFragment!!.selectionTracker.hasSelection()) {
+                                val selectedAlias =
+                                    keyStoreListFragment!!.selectionTracker.selection.iterator()
+                                        .next()!!
+                                val encrypted = encrypt(selectedAlias, message)
+                                outputFragment!!.setMessage(
+                                    encrypted,
+                                    "Encrypted OTP Configuration"
+                                )
+                            } else {
+                                outputFragment!!.setMessage(null, null)
+                            }
+                            totpFragment!!.refresh()
+                        }
+                    })
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            Toast.makeText(
+                context,
+                Objects.requireNonNullElse(ex.message, ex.javaClass.name),
+                Toast.LENGTH_LONG
+            ).show()
+            discardBackStack(this)
         }
     }
 
-    private String encrypt(String alias, byte[] message) {
+    private fun encrypt(alias: String, message: ByteArray): String {
         try {
-            return MessageComposer.encodeAsOmsText(
-                    new TotpUriTransfer(message,
-                            (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
-                            RSAUtils.getRsaTransformationIdx(preferences),
-                            AESUtil.getKeyLength(preferences),
-                            AESUtil.getAesTransformationIdx(preferences)).getMessage());
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            return encodeAsOmsText(
+                TotpUriTransfer(
+                    message,
+                    (cryptographyManager.getCertificate(alias).publicKey as RSAPublicKey),
+                    getRsaTransformationIdx(preferences!!),
+                    getKeyLength(preferences!!),
+                    getAesTransformationIdx(preferences!!)
+                ).message
+            )
+        } catch (e: Exception) {
+            throw RuntimeException(e)
         }
     }
 
-    private class OtpMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_help, menu);
+    private inner class OtpMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu)
         }
 
-        @Override
-        public void onPrepareMenu(@NonNull Menu menu) {
-            MenuProvider.super.onPrepareMenu(menu);
+        override fun onPrepareMenu(menu: Menu) {
+            super.onPrepareMenu(menu)
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.totp_import_md_url, requireContext());
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemHelp) {
+                openUrl(R.string.totp_import_md_url, requireContext())
             } else {
-                return false;
+                return false
             }
 
-            return true;
+            return true
         }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
+    }
+
+    companion object {
+        private val TAG: String = TotpImportFragment::class.java.simpleName
     }
 }

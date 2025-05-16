@@ -1,170 +1,194 @@
-package com.onemoresecret.msg_fragment_plugins;
+package com.onemoresecret.msg_fragment_plugins
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.widget.Toast;
+import android.widget.Toast
+import androidx.biometric.BiometricPrompt
+import androidx.fragment.app.Fragment
+import com.onemoresecret.HiddenTextFragment
+import com.onemoresecret.KeyRequestPairingFragment
+import com.onemoresecret.MessageFragment
+import com.onemoresecret.OmsDataInputStream
+import com.onemoresecret.OmsDataOutputStream
+import com.onemoresecret.OutputFragment
+import com.onemoresecret.R
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.crypto.RSAUtils.getRsaTransformation
+import com.onemoresecret.crypto.RSAUtils.getRsaTransformationIdx
+import com.onemoresecret.crypto.RSAUtils.process
+import com.onemoresecret.crypto.RSAUtils.restorePublicKey
+import com.onemoresecret.crypto.RsaTransformation
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.security.NoSuchAlgorithmException
+import java.security.PublicKey
+import java.security.spec.InvalidKeySpecException
+import java.util.Arrays
+import java.util.Base64
+import java.util.Objects
+import javax.crypto.Cipher
 
-import androidx.biometric.BiometricPrompt;
-import androidx.fragment.app.Fragment;
+class MsgPluginKeyRequest(messageFragment: MessageFragment, messageData: ByteArray?) :
+    MessageFragmentPlugin(messageFragment) {
+    override var reference: String? = null
+        get() = String.format(context.getString(R.string.reference), field)
 
-import com.onemoresecret.HiddenTextFragment;
-import com.onemoresecret.KeyRequestPairingFragment;
-import com.onemoresecret.MessageFragment;
-import com.onemoresecret.OmsDataInputStream;
-import com.onemoresecret.OmsDataOutputStream;
-import com.onemoresecret.OutputFragment;
-import com.onemoresecret.R;
-import com.onemoresecret.Util;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.crypto.RsaTransformation;
+    protected var rsaPublicKey: PublicKey? = null
+    protected var cipherText: ByteArray? = null
+    protected var applicationId: Int = 0
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Objects;
+    init {
+        try {
+            ByteArrayInputStream(messageData).use { bais ->
+                OmsDataInputStream(bais).use { dataInputStream ->
 
-import javax.crypto.Cipher;
+                    //(1) Application ID
+                    applicationId = dataInputStream.readUnsignedShort()
 
-public class MsgPluginKeyRequest extends MessageFragmentPlugin {
-    protected String reference;
-    protected PublicKey rsaPublicKey;
-    protected byte[] cipherText;
-    protected int applicationId;
+                    assert(
+                        listOf(
+                            MessageComposer.APPLICATION_KEY_REQUEST,
+                            MessageComposer.APPLICATION_KEY_REQUEST_PAIRING
+                        ).contains(applicationId)
+                    )
+                    when (applicationId) {
+                        MessageComposer.APPLICATION_KEY_REQUEST -> {
+                            //(2) reference (e.g. file name)
+                            reference = dataInputStream.readString()
 
-    public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws Exception {
-        super(messageFragment);
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(messageData);
-             var dataInputStream = new OmsDataInputStream(bais)) {
+                            //(3) RSA public key
+                            rsaPublicKey = restorePublicKey(dataInputStream.readByteArray())
 
-            //(1) Application ID
-            applicationId = dataInputStream.readUnsignedShort();
+                            //(4) fingerprint of the requested key
+                            fingerprint = dataInputStream.readByteArray()
 
-            assert Arrays.asList(MessageComposer.APPLICATION_KEY_REQUEST,
-                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING).contains(applicationId);
+                            //(5) transformation index for decryption
+                            rsaTransformation =
+                                RsaTransformation.entries[dataInputStream.readUnsignedShort()].transformation
 
-            switch (applicationId) {
-                case MessageComposer.APPLICATION_KEY_REQUEST -> {
-                    //(2) reference (e.g. file name)
-                    reference = dataInputStream.readString();
+                            //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
+                            cipherText = dataInputStream.readByteArray()
+                        }
 
-                    //(3) RSA public key
-                    rsaPublicKey = RSAUtils.restorePublicKey(dataInputStream.readByteArray());
+                        MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                            // (2) reference (file name)
+                            reference = dataInputStream.readString()
 
-                    //(4) fingerprint of the requested key
-                    fingerprint = dataInputStream.readByteArray();
+                            // (3) fingerprint of the requested RSA key (from the file header)
+                            fingerprint = dataInputStream.readByteArray()
 
-                    //(5) transformation index for decryption
-                    rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+                            // (5) RSA transformation index for decryption
+                            rsaTransformation =
+                                RsaTransformation.entries[dataInputStream.readUnsignedShort()].transformation
 
-                    //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
-                    cipherText = dataInputStream.readByteArray();
-                }
-                case MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
-                    // (2) reference (file name)
-                    reference = dataInputStream.readString();
-
-                    // (3) fingerprint of the requested RSA key (from the file header)
-                    fingerprint = dataInputStream.readByteArray();
-
-                    // (5) RSA transformation index for decryption
-                    rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
-
-                    // (6) encrypted AES key from the file header
-                    cipherText = dataInputStream.readByteArray();
+                            // (6) encrypted AES key from the file header
+                            cipherText = dataInputStream.readByteArray()
+                        }
+                    }
                 }
             }
-
-
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException(e);
+        } catch (e: NoSuchAlgorithmException) {
+            throw RuntimeException(e)
+        } catch (e: InvalidKeySpecException) {
+            throw RuntimeException(e)
         }
     }
 
-    @Override
-    public Fragment getMessageView() {
+    override fun getMessageView(): Fragment? {
         if (messageView == null) {
-            messageView = new HiddenTextFragment();
-            context.getMainExecutor().execute(() -> ((HiddenTextFragment) messageView).setText(""));
+            messageView = HiddenTextFragment()
+            context.mainExecutor.execute { (messageView as HiddenTextFragment).setText("") }
         }
-        return messageView;
+        return messageView
     }
 
-    @Override
-    public FragmentWithNotificationBeforePause getOutputView() {
-        if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST)
-            return super.getOutputView();
+    override fun getOutputView(): FragmentWithNotificationBeforePause? {
+        if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST) return super.getOutputView()
 
         if (outputView == null) {
-            outputView = new KeyRequestPairingFragment();
+            outputView = KeyRequestPairingFragment()
         }
-        return outputView;
+        return outputView
     }
 
-    @Override
-    public String getReference() {
-        return String.format(context.getString(R.string.reference), reference);
-    }
-
-    @Override
-    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-        var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+        val cipher = result.cryptoObject!!.cipher
 
         try {
-            assert cipher != null;
+            checkNotNull(cipher)
 
             //decrypt AES key
-            var aesKeyMaterial = cipher.doFinal(cipherText);
+            val aesKeyMaterial = cipher.doFinal(cipherText)
 
-            switch (applicationId) {
-                case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
-                    var rsaEncryptedAesKey = RSAUtils.process(Cipher.ENCRYPT_MODE, rsaPublicKey, RSAUtils.getRsaTransformation(preferences).transformation, aesKeyMaterial);
+            when (applicationId) {
+                MessageComposer.APPLICATION_KEY_REQUEST -> { //encrypt AES key with the provided public key
+                    val rsaEncryptedAesKey = process(
+                        Cipher.ENCRYPT_MODE,
+                        rsaPublicKey,
+                        getRsaTransformation(preferences).transformation,
+                        aesKeyMaterial
+                    )
 
-                    try (var baos = new ByteArrayOutputStream();
-                         var dataOutputStream = new OmsDataOutputStream(baos)) {
+                    ByteArrayOutputStream().use { baos ->
+                        OmsDataOutputStream(baos).use { dataOutputStream ->
 
-                        // (1) Application identifier
-                        dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
+                            // (1) Application identifier
+                            dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE)
 
-                        // (2) RSA transformation
-                        dataOutputStream.writeUnsignedShort(RSAUtils.getRsaTransformationIdx(preferences));
+                            // (2) RSA transformation
+                            dataOutputStream.writeUnsignedShort(getRsaTransformationIdx(preferences))
 
-                        // (3) RSA encrypted AES key
-                        dataOutputStream.writeByteArray(rsaEncryptedAesKey);
+                            // (3) RSA encrypted AES key
+                            dataOutputStream.writeByteArray(rsaEncryptedAesKey)
 
-                        var base64Message = Base64.getEncoder().encodeToString(baos.toByteArray());
+                            val base64Message =
+                                Base64.getEncoder().encodeToString(baos.toByteArray())
 
-                        var hiddenTextFragment = (HiddenTextFragment) messageView;
-                        hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
+                            val hiddenTextFragment = messageView as HiddenTextFragment?
+                            hiddenTextFragment!!.setText(
+                                String.format(
+                                    context.getString(R.string.key_response_is_ready),
+                                    reference
+                                )
+                            )
 
-                        ((OutputFragment) outputView).setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
-
-                        activity.invalidateOptionsMenu();
+                            (outputView as OutputFragment).setMessage(
+                                base64Message + "\n",  /* hit ENTER at the end signalling omsCompanion to resume */
+                                context.getString(R.string.key_response)
+                            )
+                            activity.invalidateOptionsMenu()
+                        }
                     }
                 }
-                case MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
-                    var hiddenTextFragment = (HiddenTextFragment) messageView;
-                    hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
-                    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                         OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-                        dataOutputStream.writeByteArray(aesKeyMaterial);
-                        ((KeyRequestPairingFragment) getOutputView()).setReply(baos.toByteArray());
+
+                MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                    val hiddenTextFragment = messageView as HiddenTextFragment?
+                    hiddenTextFragment!!.setText(
+                        String.format(
+                            context.getString(R.string.key_response_is_ready),
+                            reference
+                        )
+                    )
+                    ByteArrayOutputStream().use { baos ->
+                        OmsDataOutputStream(baos).use { dataOutputStream ->
+                            dataOutputStream.writeByteArray(aesKeyMaterial)
+                            (getOutputView() as KeyRequestPairingFragment).setReply(baos.toByteArray())
+                        }
                     }
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            context.getMainExecutor().execute(() -> {
-                Toast.makeText(context,
-                        e.getMessage() == null ? String.format(context.getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
-                Util.discardBackStack(messageFragment);
-            });
+        } catch (e: Exception) {
+            e.printStackTrace()
+            context.mainExecutor.execute {
+                Toast.makeText(
+                    context,
+                    if (e.message == null) String.format(
+                        context.getString(R.string.authentication_failed_s),
+                        e.javaClass.name
+                    ) else e.message,
+                    Toast.LENGTH_SHORT
+                ).show()
+                discardBackStack(messageFragment)
+            }
         }
     }
 }

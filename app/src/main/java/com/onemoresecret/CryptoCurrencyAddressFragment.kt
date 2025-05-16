@@ -1,29 +1,26 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.onemoresecret.databinding.FragmentCryptoCurrencyAddressBinding
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+class CryptoCurrencyAddressFragment : Fragment() {
+    private var binding: FragmentCryptoCurrencyAddressBinding? = null
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-import com.onemoresecret.databinding.FragmentCryptoCurrencyAddressBinding;
-
-public class CryptoCurrencyAddressFragment extends Fragment {
-    private FragmentCryptoCurrencyAddressBinding binding;
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = FragmentCryptoCurrencyAddressBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentCryptoCurrencyAddressBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    public void setValue(String publicAddress) {
-        if (binding == null) return;
-        binding.textViewPublicAddress.setText(publicAddress);
+    fun setValue(publicAddress: String?) {
+        if (binding == null) return
+        binding!!.textViewPublicAddress.text = publicAddress
     }
 }

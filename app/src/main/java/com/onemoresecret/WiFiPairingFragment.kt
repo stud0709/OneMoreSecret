@@ -1,50 +1,43 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.onemoresecret.databinding.FragmentWiFiPairingBinding
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+class WiFiPairingFragment : Fragment() {
+    private var binding: FragmentWiFiPairingBinding? = null
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-import com.onemoresecret.databinding.FragmentWiFiPairingBinding;
-
-public class WiFiPairingFragment extends Fragment {
-    private FragmentWiFiPairingBinding binding;
-
-    @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        binding = FragmentWiFiPairingBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentWiFiPairingBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        binding.txtResponseCodeUpdate.setVisibility(View.INVISIBLE);
-        binding.txtIntroResponse.setVisibility(View.INVISIBLE);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding!!.txtResponseCodeUpdate.visibility = View.INVISIBLE
+        binding!!.txtIntroResponse.visibility = View.INVISIBLE
     }
 
-    public void setData(String requestId, String responseCode, Runnable onConfirm) {
-        binding.txtRequestId.setText(requestId);
-        binding.txtResponseCodeUpdate.setText(responseCode);
-        binding.btnConfirm.setOnClickListener(e -> {
-            binding.btnConfirm.setEnabled(false);
-            binding.btnConfirm.setText(R.string.pairing_accepted);
-            binding.txtResponseCodeUpdate.setVisibility(View.VISIBLE);
-            binding.txtIntroResponse.setVisibility(View.VISIBLE);
-            onConfirm.run();
-        });
+    fun setData(requestId: String?, responseCode: String?, onConfirm: Runnable) {
+        binding!!.txtRequestId.text = requestId
+        binding!!.txtResponseCodeUpdate.text = responseCode
+        binding!!.btnConfirm.setOnClickListener { e: View? ->
+            binding!!.btnConfirm.isEnabled = false
+            binding!!.btnConfirm.setText(R.string.pairing_accepted)
+            binding!!.txtResponseCodeUpdate.visibility = View.VISIBLE
+            binding!!.txtIntroResponse.visibility = View.VISIBLE
+            onConfirm.run()
+        }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding = null
     }
 }

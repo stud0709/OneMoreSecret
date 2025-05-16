@@ -1,116 +1,120 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import com.onemoresecret.crypto.OneTimePassword
+import com.onemoresecret.databinding.FragmentTotpBinding
+import java.util.Timer
+import java.util.TimerTask
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
+class TotpFragment : Fragment() {
+    private var binding: FragmentTotpBinding? = null
+    private val timer = Timer()
+    private var lastState = -1L
+    private var otp: OneTimePassword? = null
+    private val code = MutableLiveData<String>()
 
-import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.databinding.FragmentTotpBinding;
-
-import java.util.Timer;
-import java.util.TimerTask;
-
-public class TotpFragment extends Fragment {
-    private static final String TAG = TotpFragment.class.getSimpleName();
-    private FragmentTotpBinding binding;
-    private final Timer timer = new Timer();
-    private long lastState = -1L;
-    private OneTimePassword otp;
-    private final MutableLiveData<String> code = new MutableLiveData<>();
-
-    @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        binding = FragmentTotpBinding.inflate(inflater, container, false);
-        binding.textViewTotpValue.setText("");
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentTotpBinding.inflate(inflater, container, false)
+        binding!!.textViewTotpValue.text = ""
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        getTimerTask().run();
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        timerTask.run()
     }
 
-    public void init(OneTimePassword otp,
-                     LifecycleOwner owner,
-                     Observer<String> observer) {
-        this.otp = otp;
-        code.observe(owner, observer);
-        var name = otp.getName();
-        var issuer = otp.getIssuer();
+    fun init(
+        otp: OneTimePassword,
+        owner: LifecycleOwner,
+        observer: Observer<String>
+    ) {
+        this.otp = otp
+        code.observe(owner, observer)
+        val name = otp.name
+        val issuer = otp.issuer
 
-        requireActivity().getMainExecutor().execute(() -> {
+        requireActivity().mainExecutor.execute {
             if (issuer == null || issuer.isEmpty()) {
-                binding.textViewNameIssuer.setText(name);
+                binding!!.textViewNameIssuer.text = name
             } else {
-                binding.textViewNameIssuer.setText(String.format(getString(R.string.totp_name_issuer), name, issuer));
+                binding!!.textViewNameIssuer.text =
+                    String.format(getString(R.string.totp_name_issuer), name, issuer)
             }
-        });
+        }
     }
 
-    private TimerTask getTimerTask() {
-        return new TimerTask() {
-            @Override
-            public void run() {
+    private val timerTask: TimerTask
+        get() = object : TimerTask() {
+            override fun run() {
                 if (generateResponseCode(false)) {
-                    timer.schedule(getTimerTask(), 1000);
+                    timer.schedule(timerTask, 1000)
                 }
             }
-        };
+        }
+
+    fun setTotpText(s: String?) {
+        requireActivity().mainExecutor.execute {
+            if (binding == null) return@execute  //fragment has been destroyed
+            binding!!.textViewTotpValue.text = s
+        }
     }
 
-    public void setTotpText(String s) {
-        requireActivity().getMainExecutor().execute(() -> {
-            if (binding == null) return; //fragment has been destroyed
-            binding.textViewTotpValue.setText(s);
-        });
+    fun refresh() {
+        generateResponseCode(true)
     }
 
-    public void refresh() {
-        generateResponseCode(true);
-    }
+    private fun generateResponseCode(force: Boolean): Boolean {
+        if (otp == null) return true //otp not set (yet)
 
-    private boolean generateResponseCode(boolean force) {
-        if (otp == null) return true; //otp not set (yet)
 
         try {
-            var state = otp.getState();
+            val state = otp!!.state
 
-            requireActivity().getMainExecutor().execute(() -> {
-                if (binding == null) return; //fragment has been destroyed
-                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state.secondsUntilNext()));
-            });
-
-            if (lastState != state.current() || force) {
-                this.code.postValue(otp.generateResponseCode(state.current()));
-                lastState = state.current();
+            requireActivity().mainExecutor.execute {
+                if (binding == null) return@execute  //fragment has been destroyed
+                binding!!.textViewRemaining.text =
+                    String.format("...%ss", otp!!.period - state.secondsUntilNext)
             }
-        } catch (Exception e) {
-            Log.wtf(TAG, e);
-            requireActivity().getMainExecutor().execute(() ->
-                    Toast.makeText(requireContext(), e.getMessage(), Toast.LENGTH_LONG).show());
-            return false;
+
+            if (lastState != state.current || force) {
+                code.postValue(otp!!.generateResponseCode(state.current))
+                lastState = state.current
+            }
+        } catch (e: Exception) {
+            Log.wtf(TAG, e)
+            requireActivity().mainExecutor.execute {
+                Toast.makeText(
+                    requireContext(),
+                    e.message,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return false
         }
-        return true;
+        return true
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        timer.cancel();
-        binding.textViewTotpValue.setText("");
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        timer.cancel()
+        binding!!.textViewTotpValue.text = ""
+        binding = null
+    }
+
+    companion object {
+        private val TAG: String = TotpFragment::class.java.simpleName
     }
 }

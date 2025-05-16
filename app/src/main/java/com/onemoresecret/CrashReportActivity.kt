@@ -1,39 +1,41 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
+import android.os.Bundle
+import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.fragment.app.FragmentActivity
+import androidx.navigation.Navigation.findNavController
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.NavigationUI.navigateUp
+import androidx.navigation.ui.NavigationUI.setupActionBarWithNavController
+import com.onemoresecret.compose.CrashReportScreen
+import com.onemoresecret.databinding.ActivityCrashReportBinding
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
+class CrashReportActivity : FragmentActivity() {
 
-import com.onemoresecret.databinding.ActivityCrashReportBinding;
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-
-public class CrashReportActivity extends AppCompatActivity {
-
-    private AppBarConfiguration appBarConfiguration;
-    private ActivityCrashReportBinding binding;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        binding = ActivityCrashReportBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        setSupportActionBar(binding.toolbar);
-
-        var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_crash_report);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-        new Thread(() -> OmsFileProvider.purgeTmp(this)).start();
+        setContent { CrashReportMainScreen() }
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        var navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_crash_report);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
+    @Composable
+    fun CrashReportMainScreen() {
+        val snackbarHostState = remember { SnackbarHostState() }
+
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { contentPadding ->
+            CrashReportScreen(snackbarHostState, contentPadding)
+        }
+
+        LaunchedEffect(Unit) { OmsFileProvider.purgeTmp(applicationContext) }
     }
 }

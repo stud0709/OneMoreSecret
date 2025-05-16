@@ -1,11 +1,8 @@
-package com.onemoresecret.qr;
+package com.onemoresecret.qr
 
-import androidx.annotation.NonNull;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageProxy;
+import androidx.camera.core.ImageProxy
+import java.util.function.Consumer
 
-import java.util.function.Consumer;
-
-public interface Analyzer {
-    void analyze(@NonNull ImageProxy imageProxy, Consumer<String> onQRCodeFound);
+interface Analyzer {
+    fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>)
 }

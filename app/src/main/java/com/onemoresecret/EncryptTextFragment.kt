@@ -1,167 +1,159 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.selection.SelectionTracker
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.AESUtil.getAesTransformationIdx
+import com.onemoresecret.crypto.AESUtil.getKeyLength
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.EncryptedMessage
+import com.onemoresecret.crypto.MessageComposer.Companion.encodeAsOmsText
+import com.onemoresecret.crypto.RSAUtils.getRsaTransformationIdx
+import com.onemoresecret.databinding.FragmentEncryptTextBinding
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import java.nio.charset.StandardCharsets
+import java.security.interfaces.RSAPublicKey
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.function.Consumer
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.SelectionTracker;
+class EncryptTextFragment : Fragment() {
+    private var binding: FragmentEncryptTextBinding? = null
+    private var keyStoreListFragment: KeyStoreListFragment? = null
+    private var outputFragment: OutputFragment? = null
+    private val cryptographyManager = CryptographyManager()
+    private var encryptPhrase: Consumer<String>? = null
+    private var setPhrase: Runnable? = null
+    private val textChangeListenerActive = AtomicBoolean(true)
+    private var preferences: SharedPreferences? = null
+    private val menuProvider = EncMenuProvider()
 
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedMessage;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
-import com.onemoresecret.databinding.FragmentEncryptTextBinding;
-
-import java.nio.charset.StandardCharsets;
-import java.security.interfaces.RSAPublicKey;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-public class EncryptTextFragment extends Fragment {
-    private FragmentEncryptTextBinding binding;
-    private KeyStoreListFragment keyStoreListFragment;
-    private OutputFragment outputFragment;
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-    private Consumer<String> encryptPhrase;
-    private Runnable setPhrase;
-    private final AtomicBoolean textChangeListenerActive = new AtomicBoolean(true);
-    private SharedPreferences preferences;
-    private final EncMenuProvider menuProvider = new EncMenuProvider();
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentEncryptTextBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentEncryptTextBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
-        outputFragment = binding.fragmentContainerView5.getFragment();
-        requireActivity().addMenuProvider(menuProvider);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        keyStoreListFragment = binding!!.fragmentContainerView.getFragment<KeyStoreListFragment>()
+        outputFragment = binding!!.fragmentContainerView5.getFragment<OutputFragment>()
+        requireActivity().addMenuProvider(menuProvider)
 
         //based on pre-launch test
         //java.lang.IllegalStateException: Fragment EncryptTextFragment does not have any arguments.
-        var text = getArguments() == null ? "" : getArguments().getString(QRFragment.ARG_TEXT);
+        val text = if (arguments == null) "" else requireArguments().getString(QRFragment.ARG_TEXT)
 
-        binding.editTextPhrase.setText(text);
+        binding!!.editTextPhrase.setText(text)
 
-        setPhrase = getSetPhrase(text);
-        encryptPhrase = getEncryptPhrase(text);
+        setPhrase = getSetPhrase(text)
+        encryptPhrase = getEncryptPhrase(text!!)
 
-        keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment
-                        .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<>() {
-                            @Override
-                            public void onSelectionChanged() {
-                                super.onSelectionChanged();
-                                if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    var selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-                                    if (encryptPhrase != null)
-                                        encryptPhrase.accept(selectedAlias);
-                                } else {
-                                    if (setPhrase != null)
-                                        setPhrase.run();
-                                }
-                            }
-                        }));
-
-
-        binding.editTextPhrase.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!textChangeListenerActive.get()) return;
-
-                setPhrase = getSetPhrase(s.toString());
-                encryptPhrase = getEncryptPhrase(s.toString());
-            }
-        });
-    }
-
-    private Runnable getSetPhrase(String pwd) {
-        return () -> {
-            textChangeListenerActive.set(false);
-            binding.editTextPhrase.setText(pwd);
-            textChangeListenerActive.set(true);
-
-            binding.editTextPhrase.setEnabled(true);
-            outputFragment.setMessage(pwd, "Unprotected phrase");
-        };
-    }
-
-    private Consumer<String> getEncryptPhrase(String phrase) {
-        return alias -> {
-            try {
-                var encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedMessage(phrase.getBytes(StandardCharsets.UTF_8),
-                                (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
-                                RSAUtils.getRsaTransformationIdx(preferences),
-                                AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
-
-                textChangeListenerActive.set(false);
-                binding.editTextPhrase.setText(encrypted);
-                textChangeListenerActive.set(true);
-
-                binding.editTextPhrase.setEnabled(false);
-                outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
-
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
-    }
-
-    private class EncMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_help, menu);
+        keyStoreListFragment!!.setRunOnStart { fragmentKeyStoreListBinding: FragmentKeyStoreListBinding? ->
+            keyStoreListFragment!!
+                .selectionTracker
+                .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
+                    override fun onSelectionChanged() {
+                        super.onSelectionChanged()
+                        if (keyStoreListFragment!!.selectionTracker.hasSelection()) {
+                            val selectedAlias =
+                                keyStoreListFragment!!.selectionTracker.selection.iterator()
+                                    .next()!!
+                            if (encryptPhrase != null) encryptPhrase!!.accept(selectedAlias)
+                        } else {
+                            if (setPhrase != null) setPhrase!!.run()
+                        }
+                    }
+                })
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.encrypt_text_md_url, requireContext());
-            } else {
-                return false;
+
+        binding!!.editTextPhrase.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
             }
 
-            return true;
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            }
+
+            override fun afterTextChanged(s: Editable) {
+                if (!textChangeListenerActive.get()) return
+
+                setPhrase = getSetPhrase(s.toString())
+                encryptPhrase = getEncryptPhrase(s.toString())
+            }
+        })
+    }
+
+    private fun getSetPhrase(pwd: String?): Runnable {
+        return Runnable {
+            textChangeListenerActive.set(false)
+            binding!!.editTextPhrase.setText(pwd)
+            textChangeListenerActive.set(true)
+
+            binding!!.editTextPhrase.isEnabled = true
+            outputFragment!!.setMessage(pwd, "Unprotected phrase")
+        }
+    }
+
+    private fun getEncryptPhrase(phrase: String): Consumer<String> {
+        return Consumer { alias: String? ->
+            try {
+                val encrypted = encodeAsOmsText(
+                    EncryptedMessage(
+                        phrase.toByteArray(StandardCharsets.UTF_8),
+                        (cryptographyManager.getCertificate(alias).publicKey as RSAPublicKey),
+                        getRsaTransformationIdx(preferences!!),
+                        getKeyLength(preferences!!),
+                        getAesTransformationIdx(preferences!!)
+                    ).message
+                )
+
+                textChangeListenerActive.set(false)
+                binding!!.editTextPhrase.setText(encrypted)
+                textChangeListenerActive.set(true)
+
+                binding!!.editTextPhrase.isEnabled = false
+                outputFragment!!.setMessage(encrypted, getString(R.string.encrypted_password))
+            } catch (e: Exception) {
+                throw RuntimeException(e)
+            }
+        }
+    }
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
+    }
+
+    private inner class EncMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemHelp) {
+                openUrl(R.string.encrypt_text_md_url, requireContext())
+            } else {
+                return false
+            }
+
+            return true
         }
     }
 }

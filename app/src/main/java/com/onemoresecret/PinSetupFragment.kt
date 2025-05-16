@@ -1,238 +1,249 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.CompoundButton
+import android.widget.Toast
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.databinding.FragmentPinSetupBinding
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
+class PinSetupFragment : Fragment() {
+    private var binding: FragmentPinSetupBinding? = null
+    private var preferences: SharedPreferences? = null
+    private val menuProvider = PinMenuProvider()
 
-import com.onemoresecret.databinding.FragmentPinSetupBinding;
-
-public class PinSetupFragment extends Fragment {
-    private FragmentPinSetupBinding binding;
-    private SharedPreferences preferences;
-    public static final String PROP_PIN_ENABLED = "pin_enabled",
-            PROP_PIN_VALUE = "pin_value",
-            PROP_PANIC_PIN = "pin_panic",
-            PROP_MAX_ATTEMPTS = "pin_max_attempts",
-            PROP_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes",
-            PROP_REMAINING_ATTEMPTS = "pin_remaining_attempts";
-    private final PinMenuProvider menuProvider = new PinMenuProvider();
-
-    @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState
-    ) {
-        binding = FragmentPinSetupBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentPinSetupBinding.inflate(inflater, container, false)
+        return binding!!.root
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
 
-        boolean pinEnabled = preferences.getBoolean(PROP_PIN_ENABLED, false);
-        binding.chkEnablePin.setChecked(pinEnabled);
-        setControls(pinEnabled);
-        binding.chkEnablePin.setOnCheckedChangeListener((buttonView, isChecked) -> setControls(isChecked));
-        binding.btnSavePinSettings.setOnClickListener(v -> onSave());
-        binding.editTextPin.addTextChangedListener(textWatcherPin);
-        binding.editTextRepeatPin.addTextChangedListener(textWatcherPin);
-        binding.editTextPanicPin.addTextChangedListener(textWatcherPanicPin);
-        binding.editTextRepeatPanicPin.addTextChangedListener(textWatcherPanicPin);
+        val pinEnabled = preferences.getBoolean(PROP_PIN_ENABLED, false)
+        binding!!.chkEnablePin.isChecked = pinEnabled
+        setControls(pinEnabled)
+        binding!!.chkEnablePin.setOnCheckedChangeListener { buttonView: CompoundButton?, isChecked: Boolean ->
+            setControls(
+                isChecked
+            )
+        }
+        binding!!.btnSavePinSettings.setOnClickListener { v: View? -> onSave() }
+        binding!!.editTextPin.addTextChangedListener(textWatcherPin)
+        binding!!.editTextRepeatPin.addTextChangedListener(textWatcherPin)
+        binding!!.editTextPanicPin.addTextChangedListener(textWatcherPanicPin)
+        binding!!.editTextRepeatPanicPin.addTextChangedListener(textWatcherPanicPin)
 
         //restoring values
-        binding.editTextPin.setText(preferences.getString(PROP_PIN_VALUE, ""));
-        binding.editTextRepeatPin.setText(preferences.getString(PROP_PIN_VALUE, ""));
+        binding!!.editTextPin.setText(preferences.getString(PROP_PIN_VALUE, ""))
+        binding!!.editTextRepeatPin.setText(preferences.getString(PROP_PIN_VALUE, ""))
 
-        binding.editTextPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
-        binding.editTextRepeatPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""));
+        binding!!.editTextPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""))
+        binding!!.editTextRepeatPanicPin.setText(preferences.getString(PROP_PANIC_PIN, ""))
 
-        int maxAttempts = preferences.getInt(PROP_MAX_ATTEMPTS, 0);
-        if (maxAttempts > 0)
-            binding.editTextFailedAttempts.setText(Integer.toString(maxAttempts));
+        val maxAttempts = preferences.getInt(PROP_MAX_ATTEMPTS, 0)
+        if (maxAttempts > 0) binding!!.editTextFailedAttempts.setText(maxAttempts.toString())
 
-        long requestInterval = preferences.getLong(PROP_REQUEST_INTERVAL_MINUTES, 0);
-        if (requestInterval > 0)
-            binding.editTextRequestInterval.setText(Long.toString(requestInterval));
+        val requestInterval = preferences.getLong(PROP_REQUEST_INTERVAL_MINUTES, 0)
+        if (requestInterval > 0) binding!!.editTextRequestInterval.setText(requestInterval.toString())
 
-        requireActivity().addMenuProvider(menuProvider);
+        requireActivity().addMenuProvider(menuProvider)
     }
 
-    private void onSave() {
-        var editor = preferences.edit();
+    private fun onSave() {
+        val editor = preferences!!.edit()
 
-        editor.putBoolean(PROP_PIN_ENABLED, binding.chkEnablePin.isChecked());
+        editor.putBoolean(PROP_PIN_ENABLED, binding!!.chkEnablePin.isChecked)
 
-        if (binding.chkEnablePin.isChecked()) {
-            editor.putString(PROP_PIN_VALUE, binding.editTextPin.getText().toString());
+        if (binding!!.chkEnablePin.isChecked) {
+            editor.putString(PROP_PIN_VALUE, binding!!.editTextPin.text.toString())
 
-            if (binding.editTextRepeatPanicPin.getText().toString().isEmpty()) {
-                editor.remove(PROP_PANIC_PIN);
+            if (binding!!.editTextRepeatPanicPin.text.toString().isEmpty()) {
+                editor.remove(PROP_PANIC_PIN)
             } else {
-                editor.putString(PROP_PANIC_PIN, binding.editTextPanicPin.getText().toString());
+                editor.putString(PROP_PANIC_PIN, binding!!.editTextPanicPin.text.toString())
             }
 
-            int maxAttempts = binding.editTextFailedAttempts.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextFailedAttempts.getText().toString());
+            val maxAttempts = if (binding!!.editTextFailedAttempts.text.toString()
+                    .isEmpty()
+            ) 0 else binding!!.editTextFailedAttempts.text.toString().toInt()
             if (maxAttempts > 0) {
-                editor.putInt(PROP_MAX_ATTEMPTS, maxAttempts);
-                editor.putInt(PROP_REMAINING_ATTEMPTS, maxAttempts);
+                editor.putInt(PROP_MAX_ATTEMPTS, maxAttempts)
+                editor.putInt(PROP_REMAINING_ATTEMPTS, maxAttempts)
             } else {
-                editor.remove(PROP_MAX_ATTEMPTS);
-                editor.remove(PROP_REMAINING_ATTEMPTS);
+                editor.remove(PROP_MAX_ATTEMPTS)
+                editor.remove(PROP_REMAINING_ATTEMPTS)
             }
 
-            int request_interval = binding.editTextRequestInterval.getText().toString().isEmpty() ? 0 : Integer.parseInt(binding.editTextRequestInterval.getText().toString());
+            val request_interval = if (binding!!.editTextRequestInterval.text.toString()
+                    .isEmpty()
+            ) 0 else binding!!.editTextRequestInterval.text.toString().toInt()
             if (request_interval > 0) {
-                editor.putLong(PROP_REQUEST_INTERVAL_MINUTES, request_interval);
+                editor.putLong(PROP_REQUEST_INTERVAL_MINUTES, request_interval.toLong())
             } else {
-                editor.remove(PROP_REQUEST_INTERVAL_MINUTES);
+                editor.remove(PROP_REQUEST_INTERVAL_MINUTES)
             }
         } else {
             editor.remove(PROP_PIN_VALUE)
-                    .remove(PROP_PANIC_PIN)
-                    .remove(PROP_MAX_ATTEMPTS)
-                    .remove(PROP_REQUEST_INTERVAL_MINUTES);
+                .remove(PROP_PANIC_PIN)
+                .remove(PROP_MAX_ATTEMPTS)
+                .remove(PROP_REQUEST_INTERVAL_MINUTES)
         }
 
-        editor.apply();
+        editor.apply()
 
-        requireContext().getMainExecutor().execute(() -> {
-            Toast.makeText(getContext(), R.string.pin_preferences_saved, Toast.LENGTH_SHORT).show();
-            Util.discardBackStack(PinSetupFragment.this);
-        });
+        requireContext().mainExecutor.execute {
+            Toast.makeText(context, R.string.pin_preferences_saved, Toast.LENGTH_SHORT).show()
+            discardBackStack(this@PinSetupFragment)
+        }
     }
 
-    private void setControls(boolean isChecked) {
-        validateForm();
-        binding.editTextFailedAttempts.setEnabled(isChecked);
-        binding.editTextPin.setEnabled(isChecked);
-        binding.editTextPanicPin.setEnabled(isChecked);
-        binding.editTextRepeatPin.setEnabled(isChecked);
-        binding.editTextRequestInterval.setEnabled(isChecked);
-        binding.editTextRepeatPanicPin.setEnabled(isChecked);
-        binding.imgViewPinMatch.setVisibility(isChecked ? View.VISIBLE : View.INVISIBLE);
-        binding.imgViewPanicMatch.setVisibility(isChecked ? View.VISIBLE : View.INVISIBLE);
+    private fun setControls(isChecked: Boolean) {
+        validateForm()
+        binding!!.editTextFailedAttempts.isEnabled = isChecked
+        binding!!.editTextPin.isEnabled = isChecked
+        binding!!.editTextPanicPin.isEnabled = isChecked
+        binding!!.editTextRepeatPin.isEnabled = isChecked
+        binding!!.editTextRequestInterval.isEnabled = isChecked
+        binding!!.editTextRepeatPanicPin.isEnabled = isChecked
+        binding!!.imgViewPinMatch.visibility =
+            if (isChecked) View.VISIBLE else View.INVISIBLE
+        binding!!.imgViewPanicMatch.visibility =
+            if (isChecked) View.VISIBLE else View.INVISIBLE
     }
 
     /**
      * Check if the form data is valid and it is OK to save it
      */
-    private void validateForm() {
-        binding.btnSavePinSettings.setEnabled(!binding.chkEnablePin.isChecked() || (isPinValid() && isPanicPinValid()));
+    private fun validateForm() {
+        binding!!.btnSavePinSettings.isEnabled =
+            !binding!!.chkEnablePin.isChecked || (isPinValid && isPanicPinValid)
     }
 
-    private final TextWatcher textWatcherPin = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+    private val textWatcherPin: TextWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
         }
 
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
         }
 
-        @Override
-        public void afterTextChanged(Editable s) {
-            var drawable = ResourcesCompat.getDrawable(getResources(), isPinValid() ?
-                            R.drawable.baseline_check_circle_24 :
-                            R.drawable.baseline_cancel_24,
-                    getContext().getTheme());
+        override fun afterTextChanged(s: Editable) {
+            val drawable = ResourcesCompat.getDrawable(
+                resources,
+                if (this@PinSetupFragment.isPinValid) R.drawable.baseline_check_circle_24 else R.drawable.baseline_cancel_24,
+                context!!.theme
+            )
 
-            binding.imgViewPinMatch.setImageDrawable(drawable);
-            validateForm();
+            binding!!.imgViewPinMatch.setImageDrawable(drawable)
+            validateForm()
         }
-    };
-
-    private final TextWatcher textWatcherPanicPin = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-        }
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-        }
-
-        @Override
-        public void afterTextChanged(Editable s) {
-            var drawable = ResourcesCompat.getDrawable(getResources(), isPanicPinValid() ?
-                            R.drawable.baseline_check_circle_24 :
-                            R.drawable.baseline_cancel_24,
-                    getContext().getTheme());
-
-            binding.imgViewPanicMatch.setImageDrawable(drawable);
-            validateForm();
-        }
-    };
-
-    private boolean isPinValid() {
-        boolean b = !binding.editTextPin.getText().toString().isEmpty() &&
-                binding.editTextPin.getText().toString()
-                        .equals(binding.editTextRepeatPin.getText().toString());
-
-        if (b && !binding.editTextPanicPin.getText().toString().isEmpty() &&
-                binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
-            Toast.makeText(requireContext(), R.string.panic_pin_should_not_match_pin, Toast.LENGTH_LONG).show();
-            b = false;
-        }
-
-        return b;
     }
 
-    private boolean isPanicPinValid() {
-        boolean b = binding.editTextPanicPin.getText().toString()
-                .equals(binding.editTextRepeatPanicPin.getText().toString());
-
-        if (b && !binding.editTextPin.getText().toString().isEmpty() &&
-                binding.editTextPanicPin.getText().toString().equals(binding.editTextPin.getText().toString())) {
-            Toast.makeText(requireContext(), R.string.panic_pin_should_not_match_pin, Toast.LENGTH_LONG).show();
-            b = false;
+    private val textWatcherPanicPin: TextWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
         }
 
-        return b;
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+        }
+
+        override fun afterTextChanged(s: Editable) {
+            val drawable = ResourcesCompat.getDrawable(
+                resources,
+                if (this@PinSetupFragment.isPanicPinValid) R.drawable.baseline_check_circle_24 else R.drawable.baseline_cancel_24,
+                context!!.theme
+            )
+
+            binding!!.imgViewPanicMatch.setImageDrawable(drawable)
+            validateForm()
+        }
     }
 
-    private class PinMenuProvider implements MenuProvider {
+    private val isPinValid: Boolean
+        get() {
+            var b = !binding!!.editTextPin.text.toString().isEmpty() &&
+                    (binding!!.editTextPin.text.toString()
+                            == binding!!.editTextRepeatPin.text.toString())
 
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_help, menu);
-        }
-
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
-                Util.openUrl(R.string.pin_setup_md_url, requireContext());
-            } else {
-                return false;
+            if (b && !binding!!.editTextPanicPin.text.toString().isEmpty() &&
+                binding!!.editTextPanicPin.text.toString() == binding!!.editTextPin.text
+                    .toString()
+            ) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.panic_pin_should_not_match_pin,
+                    Toast.LENGTH_LONG
+                ).show()
+                b = false
             }
 
-            return true;
+            return b
+        }
+
+    private val isPanicPinValid: Boolean
+        get() {
+            var b = (binding!!.editTextPanicPin.text.toString()
+                    == binding!!.editTextRepeatPanicPin.text.toString())
+
+            if (b && !binding!!.editTextPin.text.toString().isEmpty() &&
+                binding!!.editTextPanicPin.text.toString() == binding!!.editTextPin.text
+                    .toString()
+            ) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.panic_pin_should_not_match_pin,
+                    Toast.LENGTH_LONG
+                ).show()
+                b = false
+            }
+
+            return b
+        }
+
+    private inner class PinMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_help, menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.menuItemHelp) {
+                openUrl(R.string.pin_setup_md_url, requireContext())
+            } else {
+                return false
+            }
+
+            return true
         }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        requireActivity().removeMenuProvider(menuProvider)
+        binding = null
+    }
+
+    companion object {
+        const val PROP_PIN_ENABLED: String = "pin_enabled"
+        const val PROP_PIN_VALUE: String = "pin_value"
+        const val PROP_PANIC_PIN: String = "pin_panic"
+        const val PROP_MAX_ATTEMPTS: String = "pin_max_attempts"
+        const val PROP_REQUEST_INTERVAL_MINUTES: String = "pin_request_interval_minutes"
+        const val PROP_REMAINING_ATTEMPTS: String = "pin_remaining_attempts"
     }
 }
