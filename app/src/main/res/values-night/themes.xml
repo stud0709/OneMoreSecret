@@ -13,4 +13,10 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <style name="Theme.OneMoreSecret.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Dark">
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textColorPrimary">@android:color/white</item>
+        <item name="android:colorControlNormal">@android:color/white</item>
+    </style>
 </resources>
