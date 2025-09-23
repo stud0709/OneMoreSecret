@@ -9,8 +9,9 @@ android {
     defaultConfig {
         applicationId = "com.onemoresecret"
         minSdk = 31
-        versionCode = 36
-        versionName = "0.36-alpha"
+        targetSdk = 36
+        versionCode = 37
+        versionName = "0.37-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
