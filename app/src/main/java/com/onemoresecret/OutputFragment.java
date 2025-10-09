@@ -424,7 +424,11 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                     refreshingBtControls.set(true);
 
                     try {
-                        binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled && !discoverable);
+                        var isTyping = typing.get();
+
+                        binding.imgButtonDiscoverable.setEnabled(bluetoothAdapterEnabled
+                                && !discoverable
+                                && !isTyping);
 
                         var status = getString(R.string.bt_off);
                         var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
@@ -434,7 +438,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                             drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
                         }
 
-                        binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled);
+                        binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled && !isTyping);
 
                         //remember selection
                         {
@@ -473,7 +477,8 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
 
                         binding.chipBtStatus.setChipIcon(drawable);
                         binding.chipBtStatus.setText(status);
-                        binding.swDelayedStrokes.setEnabled(selectedDeviceConnected);
+                        binding.swDelayedStrokes.setEnabled(selectedDeviceConnected && !isTyping);
+                        binding.spinnerKeyboardLayout.setEnabled(!isTyping);
 
                         //set TYPE button state
                         var selectedLayout = (KeyboardLayout) binding.spinnerKeyboardLayout.getSelectedItem();
@@ -481,9 +486,9 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                                 selectedLayout != null &&
                                 message != null);
 
-                        binding.btnType.setText(typing.get() ? getString(R.string.cancel) : getString(R.string.type));
+                        binding.btnType.setText(isTyping ? getString(R.string.cancel) : getString(R.string.type));
 
-                        binding.textTyping.setText(typing.get() ? getText(R.string.typing_please_wait) : shareTitle);
+                        binding.textTyping.setText(isTyping ? getText(R.string.typing_please_wait) : shareTitle);
                     } catch (IllegalStateException ex) {
                         //things are happening outside the context
                         Log.e(TAG, String.format("%s not attached to a context", OutputFragment.this));
@@ -571,7 +576,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         public void onAppStatusChanged(BluetoothDevice device, boolean registered) {
             super.onAppStatusChanged(device, registered);
 
-            if(binding == null) return;
+            if (binding == null) return;
 
             try {
                 Log.i(TAG, "onAppStatusChanged -  device: " + device + ", registered: " + registered);
