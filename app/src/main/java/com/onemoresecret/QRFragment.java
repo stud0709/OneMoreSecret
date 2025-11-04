@@ -495,6 +495,8 @@ public class QRFragment extends Fragment {
                     new TypeReference<List<RecentEntry>>() {
                     });
 
+            recentEntries.removeIf(item -> item.ttl < System.currentTimeMillis());
+
             if (!recentEntries.isEmpty() &&
                     recentEntries.get(0).message.equals(message))
                 return; //do not store duplicates in history
@@ -532,14 +534,13 @@ public class QRFragment extends Fragment {
                     new TypeReference<List<RecentEntry>>() {
                     });
 
+            recentEntries.removeIf(item -> item.ttl < System.currentTimeMillis());
+
             for (int i = 0; i < preferences.getInt(PROP_RECENT_SIZE, DEF_RECENT_SIZE); i++) {
                 if (recentEntries.size() == i)
                     break; //list too short
 
                 var recentEntry = recentEntries.get(i);
-
-                if (System.currentTimeMillis() > recentEntry.ttl)
-                    break; //this and all remaining entries have expired
 
                 //create new button
                 var b = new ImageButton(requireContext());
@@ -555,10 +556,6 @@ public class QRFragment extends Fragment {
                                 recentEntry.drawableId,
                                 requireContext().getTheme()));
                 b.setOnClickListener(v -> onMessage(recentEntry.message, false));
-                b.setOnLongClickListener(v -> {
-                    //TODO: create new preset
-                    return true;
-                });
 
                 binding.linearRecent.addView(b);
                 recentButtons.add(b);
