@@ -9,17 +9,15 @@ import com.onemoresecret.R;
 import com.onemoresecret.TotpFragment;
 import com.onemoresecret.crypto.OneTimePassword;
 
-import java.io.IOException;
-
 public class MsgPluginTotp extends MsgPluginEncryptedMessage {
-    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) throws Exception {
+    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) {
         super(messageFragment, messageData);
         context.getMainExecutor().execute(() -> {
             var message = new String(messageData);
             var totpFragment = ((TotpFragment) messageView);
             totpFragment.init(new OneTimePassword(message), messageView, code -> {
                 ((OutputFragment) outputView).setMessage(code, context.getString(R.string.one_time_password));
-                totpFragment.setTotpText(messageFragment.getHiddenState().getValue() ? "●".repeat(code.length()) : code);
+                totpFragment.setTotpText(Boolean.TRUE.equals(messageFragment.getHiddenState().getValue()) ? "●".repeat(code.length()) : code);
             });
 
             //observe hidden state

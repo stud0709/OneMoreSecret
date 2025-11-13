@@ -27,6 +27,7 @@ import com.onemoresecret.databinding.FragmentEncryptTextBinding;
 
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -121,10 +122,10 @@ public class EncryptTextFragment extends Fragment {
             try {
                 var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessage(phrase.getBytes(StandardCharsets.UTF_8),
-                                (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
+                                (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
+                                AESUtil.getAesTransformationIdx(preferences)).message);
 
                 textChangeListenerActive.set(false);
                 binding.editTextPhrase.setText(encrypted);

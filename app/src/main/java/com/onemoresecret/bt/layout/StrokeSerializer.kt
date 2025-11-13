@@ -1,22 +1,23 @@
-package com.onemoresecret.bt.layout;
+package com.onemoresecret.bt.layout
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.onemoresecret.bt.KeyboardReport
+import java.io.IOException
+import java.util.function.Consumer
 
-import java.io.IOException;
-
-public class StrokeSerializer extends JsonSerializer<Stroke> {
-    @Override
-    public void serialize(Stroke stroke, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartArray();
-        stroke.get().forEach(kr -> {
+class StrokeSerializer : JsonSerializer<Stroke?>() {
+    @Throws(IOException::class)
+    override fun serialize(stroke: Stroke?, gen: JsonGenerator, serializers: SerializerProvider?) {
+        gen.writeStartArray()
+        stroke?.get()?.forEach(Consumer { kr: KeyboardReport? ->
             try {
-                gen.writeObject(kr);
-            } catch (IOException e) {
-                e.printStackTrace();
+                gen.writeObject(kr)
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
-        });
-        gen.writeEndArray();
+        })
+        gen.writeEndArray()
     }
 }

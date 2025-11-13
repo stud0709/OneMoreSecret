@@ -26,6 +26,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -144,7 +145,7 @@ public class KeyStoreListFragment extends Fragment {
             this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
-                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
+                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey();
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
                                 RSAUtils.getFingerprint(publicKey)));

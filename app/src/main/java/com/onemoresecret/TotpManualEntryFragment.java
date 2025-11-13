@@ -37,6 +37,7 @@ import com.onemoresecret.crypto.TotpUriTransfer;
 import com.onemoresecret.databinding.FragmentTotpManualEntryBinding;
 
 import java.security.interfaces.RSAPublicKey;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
@@ -197,10 +198,10 @@ public class TotpManualEntryFragment extends Fragment {
             try {
                 var result = MessageComposer.encodeAsOmsText(
                         new TotpUriTransfer(uri.getBytes(),
-                                (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
+                                (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(selectedAlias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
+                                AESUtil.getAesTransformationIdx(preferences)).message);
 
                 outputFragment.setMessage(result, "TOTP Configuration (encrypted)");
             } catch (Exception e) {
@@ -232,19 +233,19 @@ public class TotpManualEntryFragment extends Fragment {
 
         try {
             var otpState = otp.getState();
-            var code = otp.generateResponseCode(otpState.current());
+            var code = otp.generateResponseCode(otpState.current);
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (binding == null) return; //fragment has been destroyed
-                binding.textViewTimer.setText(String.format("...%ss", otp.getPeriod() - otpState.secondsUntilNext()));
+                binding.textViewTimer.setText(String.format("...%ss", otp.getPeriod() - otpState.secondsUntilNext));
                 binding.textViewTotp.setText(code);
 
-                if (lastState != otpState.current() || force) {
+                if (lastState != otpState.current || force) {
                     //new State = new code; update output fragment
                     if (selectedAlias == null) {
                         outputFragment.setMessage(code, "One-Time-Password");
                     }
-                    lastState = otpState.current();
+                    lastState = otpState.current;
                 }
             });
         } catch (Exception e) {

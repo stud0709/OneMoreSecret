@@ -13,13 +13,12 @@ import com.onemoresecret.databinding.ActivityCrashReportBinding;
 public class CrashReportActivity extends AppCompatActivity {
 
     private AppBarConfiguration appBarConfiguration;
-    private ActivityCrashReportBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = ActivityCrashReportBinding.inflate(getLayoutInflater());
+        var binding = ActivityCrashReportBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);

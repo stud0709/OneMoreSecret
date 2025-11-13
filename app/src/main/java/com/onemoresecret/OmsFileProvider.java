@@ -2,7 +2,6 @@ package com.onemoresecret;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
@@ -26,7 +25,7 @@ public class OmsFileProvider extends FileProvider {
 
     public static FileRecord create(Context ctx, String filename, boolean deleteOnExit) throws IOException {
         var dir = new File(ctx.getCacheDir(), "tmp");
-        if (!dir.exists() && !dir.mkdirs()) return null; //something went wrong
+        assert dir.exists() || dir.mkdirs(); //otherwise something went wrong
 
         var p = dir.toPath().resolve(filename);
         File f = p.toFile();
@@ -47,11 +46,11 @@ public class OmsFileProvider extends FileProvider {
                 try {
                     Files.delete(p);
                 } catch (IOException ex) {
-                    ex.printStackTrace();
+                    Util.printStackTrace(ex);
                 }
             });
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
         }
     }
 }

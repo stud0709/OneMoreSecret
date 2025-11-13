@@ -1,267 +1,333 @@
-package com.onemoresecret.crypto;
+package com.onemoresecret.crypto
 
-import android.util.Log;
+import android.util.Log
+import com.onemoresecret.OmsDataInputStream
+import com.onemoresecret.OmsDataOutputStream
+import com.onemoresecret.R
+import com.onemoresecret.Util
+import com.onemoresecret.crypto.AESUtil.generateIv
+import com.onemoresecret.crypto.AESUtil.generateRandomSecretKey
+import com.onemoresecret.crypto.AESUtil.process
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.security.InvalidAlgorithmParameterException
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.security.interfaces.RSAPublicKey
+import java.util.Base64
+import java.util.Objects
+import java.util.Optional
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+import javax.crypto.BadPaddingException
+import javax.crypto.Cipher
+import javax.crypto.IllegalBlockSizeException
+import javax.crypto.NoSuchPaddingException
+import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
 
-import com.onemoresecret.OmsDataInputStream;
-import com.onemoresecret.OmsDataOutputStream;
-import com.onemoresecret.R;
-import com.onemoresecret.Util;
+abstract class MessageComposer {
+    @JvmRecord
+    data class AesEncryptionParameters(val secretKey: SecretKey?, val iv: IvParameterSpec?)
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Base64;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.regex.Pattern;
+    @JvmRecord
+    data class RsaAesEnvelope(
+        @JvmField val applicationId: Int,
+        @JvmField val rsaTransormation: String,
+        @JvmField val fingerprint: ByteArray,
+        @JvmField val aesTransformation: String,
+        @JvmField val iv: ByteArray,
+        @JvmField val encryptedAesSecretKey: ByteArray
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is RsaAesEnvelope) return false
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+            if (applicationId != other.applicationId) return false
+            if (rsaTransormation != other.rsaTransormation) return false
+            if (!fingerprint.contentEquals(other.fingerprint)) return false
+            if (aesTransformation != other.aesTransformation) return false
+            if (!iv.contentEquals(other.iv)) return false
+            if (!encryptedAesSecretKey.contentEquals(other.encryptedAesSecretKey)) return false
 
-public abstract class MessageComposer {
-    private static final String TAG = MessageComposer.class.getSimpleName();
-    public static final int
-            APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER = 0,
-            APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED = 1,
-            APPLICATION_TOTP_URI_DEPRECATED = 2,
-            APPLICATION_ENCRYPTED_FILE = 3,
-            APPLICATION_KEY_REQUEST = 4,
-            APPLICATION_KEY_RESPONSE = 5,
-    /**
-     * Until now, it was possible to understand what kind of information is contained in the message.
-     * The generic message will only allow to decrypt it, all other information will be found inside.
-     */
-    APPLICATION_RSA_AES_GENERIC = 6,
-            APPLICATION_BITCOIN_ADDRESS = 7,
-            APPLICATION_ENCRYPTED_MESSAGE = 8,
-            APPLICATION_TOTP_URI = 9,
-            APPLICATION_WIFI_PAIRING = 10,
-            APPLICATION_KEY_REQUEST_PAIRING = 11;
+            return true
+        }
 
-    /**
-     * Assigns a drawable to an applicationId. This is used to display recent entries.
-     * <b>ApplicationId without a drawableId wil not be added to recent entries.</b>
-     *
-     * @param applicationId
-     * @return drawableId
-     */
-    public static Optional<Integer> getDrawableIdForApplicationId(int applicationId) {
-        switch (applicationId) {
-            case APPLICATION_BITCOIN_ADDRESS -> {
-                return Optional.of(R.drawable.baseline_currency_bitcoin_24);
-            }
-            case APPLICATION_ENCRYPTED_MESSAGE,
-                    APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
-               return Optional.of(R.drawable.baseline_password_24);
-            }
-            case APPLICATION_TOTP_URI,
-                    APPLICATION_TOTP_URI_DEPRECATED -> {
-                return Optional.of(R.drawable.baseline_timelapse_24);
-            }
-            default -> {
-                return Optional.empty();
-            }
+        override fun hashCode(): Int {
+            var result = applicationId
+            result = 31 * result + (rsaTransormation?.hashCode() ?: 0)
+            result = 31 * result + (fingerprint?.contentHashCode() ?: 0)
+            result = 31 * result + (aesTransformation?.hashCode() ?: 0)
+            result = 31 * result + (iv?.contentHashCode() ?: 0)
+            result = 31 * result + (encryptedAesSecretKey?.contentHashCode() ?: 0)
+            return result
         }
     }
 
-    /**
-     * Prefix of a text encoded message.
-     */
-    public static final String OMS_PREFIX = "oms00_";
+    companion object {
+        private val TAG: String = MessageComposer::class.java.getSimpleName()
+        const val APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER: Int = 0
+        const val APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED: Int = 1
+        const val APPLICATION_TOTP_URI_DEPRECATED: Int = 2
+        const val APPLICATION_ENCRYPTED_FILE: Int = 3
+        const val APPLICATION_KEY_REQUEST: Int = 4
+        const val APPLICATION_KEY_RESPONSE: Int = 5
 
-    public static final String OMS_FILE_TYPE = "oms00";
+        /**
+         * Until now, it was possible to understand what kind of information is contained in the message.
+         * The generic message will only allow to decrypt it, all other information will be found inside.
+         */
+        const val APPLICATION_RSA_AES_GENERIC: Int = 6
+        const val APPLICATION_BITCOIN_ADDRESS: Int = 7
+        const val APPLICATION_ENCRYPTED_MESSAGE: Int = 8
+        const val APPLICATION_TOTP_URI: Int = 9
+        const val APPLICATION_WIFI_PAIRING: Int = 10
+        const val APPLICATION_KEY_REQUEST_PAIRING: Int = 11
 
-    /**
-     * Text encoded OMS messages begin with omsXX_ with XX being the protocol
-     * version.
-     */
-    public static final Pattern OMS_PATTERN = Pattern.compile("oms([\\da-f]{2})_");
+        /**
+         * Assigns a drawable to an applicationId. This is used to display recent entries.
+         * **ApplicationId without a drawableId wil not be added to recent entries.**
+         *
+         * @param applicationId
+         * @return drawableId
+         */
+        @JvmStatic
+        fun getDrawableIdForApplicationId(applicationId: Int): Optional<Int> {
+            when (applicationId) {
+                APPLICATION_BITCOIN_ADDRESS -> {
+                    return Optional.of<Int>(R.drawable.baseline_currency_bitcoin_24)
+                }
 
-    /**
-     * You can pass messages through the clipboard. A message begins with
-     * {@link MessageComposer#OMS_PREFIX}. Version 00 of OMS protocol:
-     * <ol>
-     * <li>BASE64 encode {@code message}</li></li>prepend (1) with
-     * {@link MessageComposer#OMS_PREFIX}
-     * </ol>
-     */
-    public static String encodeAsOmsText(byte[] message) {
-        return OMS_PREFIX + Base64.getEncoder().encodeToString(message);
-    }
+                APPLICATION_ENCRYPTED_MESSAGE, APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
+                    return Optional.of<Int>(R.drawable.baseline_password_24)
+                }
 
-    public static byte[] decode(String omsText) {
-        var m = OMS_PATTERN.matcher(omsText);
+                APPLICATION_TOTP_URI, APPLICATION_TOTP_URI_DEPRECATED -> {
+                    return Optional.of<Int>(R.drawable.baseline_timelapse_24)
+                }
 
-        if (!m.find()) {
-            //TOTP?
-            if (new OneTimePassword(omsText).isValid()) {
-                //this is a time based OTP, pass unchanged
-                return omsText.getBytes();
+                else -> {
+                    return Optional.empty<Int>()
+                }
             }
-            // not a valid OMS message
-            return null;
         }
 
-        byte[] result;
+        /**
+         * Prefix of a text encoded message.
+         */
+        const val OMS_PREFIX: String = "oms00_"
 
-        var version = Integer.parseInt(Objects.requireNonNull(m.group(1)));
+        const val OMS_FILE_TYPE: String = "oms00"
 
-        // (1) remove prefix and line breaks
-        omsText = omsText.substring(m.group().length());
-        omsText = omsText.replaceAll("\\s+", "");
+        /**
+         * Text encoded OMS messages begin with omsXX_ with XX being the protocol
+         * version.
+         */
+        val OMS_PATTERN: Pattern = Pattern.compile("oms([\\da-f]{2})_")
 
-        if (version == 0) {
-            // (2) convert to byte array
-            result = Base64.getDecoder().decode(omsText);
-        } else {
-            throw new UnsupportedOperationException("Unsupported version: " + version);
+        /**
+         * You can pass messages through the clipboard. A message begins with
+         * [MessageComposer.OMS_PREFIX]. Version 00 of OMS protocol:
+         *
+         *  1. BASE64 encode `message`prepend (1) with
+         * [MessageComposer.OMS_PREFIX]
+         *
+         */
+        @JvmStatic
+        fun encodeAsOmsText(message: ByteArray): String {
+            return OMS_PREFIX + Base64.getEncoder().encodeToString(message)
         }
 
-        return result;
-    }
+        @JvmStatic
+        fun decode(omsText: String): ByteArray? {
+            var omsText = omsText
+            val m: Matcher = OMS_PATTERN.matcher(omsText)
 
-    public static byte[] createRsaAesEnvelope(RSAPublicKey rsaPublicKey,
-                                              int rsaTransformationIdx,
-                                              int aesKeyLength,
-                                              int aesTransformationIdx,
-                                              byte[] payload) throws
-            NoSuchAlgorithmException,
-            NoSuchPaddingException,
-            IllegalBlockSizeException,
-            BadPaddingException,
-            InvalidKeyException,
-            InvalidAlgorithmParameterException {
+            if (!m.find()) {
+                //TOTP?
+                if (OneTimePassword(omsText).valid) {
+                    //this is a time based OTP, pass unchanged
+                    return omsText.toByteArray()
+                }
+                // not a valid OMS message
+                return null
+            }
 
-        return createRsaAesEnvelope(MessageComposer.APPLICATION_RSA_AES_GENERIC,
+            val result: ByteArray?
+
+            val version = Objects.requireNonNull(m.group(1)).toInt()
+
+            // (1) remove prefix and line breaks
+            omsText = omsText.substring(m.group().length)
+            omsText = omsText.replace("\\s+".toRegex(), "")
+
+            if (version == 0) {
+                // (2) convert to byte array
+                result = Base64.getDecoder().decode(omsText)
+            } else {
+                throw UnsupportedOperationException("Unsupported version: $version")
+            }
+
+            return result
+        }
+
+        @JvmStatic
+        @Throws(
+            NoSuchAlgorithmException::class,
+            NoSuchPaddingException::class,
+            IllegalBlockSizeException::class,
+            BadPaddingException::class,
+            InvalidKeyException::class,
+            InvalidAlgorithmParameterException::class
+        )
+        fun createRsaAesEnvelope(
+            rsaPublicKey: RSAPublicKey,
+            rsaTransformationIdx: Int,
+            aesKeyLength: Int,
+            aesTransformationIdx: Int,
+            payload: ByteArray?
+        ): ByteArray {
+            return createRsaAesEnvelope(
+                APPLICATION_RSA_AES_GENERIC,
                 rsaPublicKey,
                 rsaTransformationIdx,
                 aesKeyLength,
                 aesTransformationIdx,
-                payload);
-    }
-
-    public static byte[] createRsaAesEnvelope(int applicationId,
-                                              RSAPublicKey rsaPublicKey,
-                                              int rsaTransformationIdx,
-                                              int aesKeyLength,
-                                              int aesTransformationIdx,
-                                              byte[] payload) throws
-            NoSuchAlgorithmException,
-            NoSuchPaddingException,
-            IllegalBlockSizeException,
-            BadPaddingException,
-            InvalidKeyException,
-            InvalidAlgorithmParameterException {
-
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-
-            var aesEncryptionParameters = prepareRsaAesEnvelope(
-                    dataOutputStream,
-                    applicationId,
-                    rsaPublicKey,
-                    rsaTransformationIdx,
-                    aesKeyLength,
-                    aesTransformationIdx);
-
-            // (7) AES-encrypted message
-            dataOutputStream.writeByteArray(
-                    AESUtil.process(
-                            Cipher.ENCRYPT_MODE,
-                            payload,
-                            aesEncryptionParameters.secretKey(),
-                            aesEncryptionParameters.iv(),
-                            AesTransformation.values()[aesTransformationIdx].transformation));
-
-            return baos.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
+                payload
+            )
         }
-    }
 
-    public record AesEncryptionParameters(SecretKey secretKey, IvParameterSpec iv) {
-    }
+        @Throws(
+            NoSuchAlgorithmException::class,
+            NoSuchPaddingException::class,
+            IllegalBlockSizeException::class,
+            BadPaddingException::class,
+            InvalidKeyException::class,
+            InvalidAlgorithmParameterException::class
+        )
+        fun createRsaAesEnvelope(
+            applicationId: Int,
+            rsaPublicKey: RSAPublicKey,
+            rsaTransformationIdx: Int,
+            aesKeyLength: Int,
+            aesTransformationIdx: Int,
+            payload: ByteArray?
+        ): ByteArray {
+            try {
+                ByteArrayOutputStream().use { baos ->
+                    OmsDataOutputStream(baos).use { dataOutputStream ->
+                        val aesEncryptionParameters: AesEncryptionParameters =
+                            prepareRsaAesEnvelope(
+                                dataOutputStream,
+                                applicationId,
+                                rsaPublicKey,
+                                rsaTransformationIdx,
+                                aesKeyLength,
+                                aesTransformationIdx
+                            )
+                        // (7) AES-encrypted message
+                        dataOutputStream.writeByteArray(
+                            process(
+                                Cipher.ENCRYPT_MODE,
+                                payload,
+                                aesEncryptionParameters.secretKey,
+                                aesEncryptionParameters.iv,
+                                AesTransformation.entries[aesTransformationIdx].transformation
+                            )
+                        )
+                        return baos.toByteArray()
+                    }
+                }
+            } catch (ex: IOException) {
+                throw RuntimeException(ex)
+            }
+        }
 
-    public static AesEncryptionParameters prepareRsaAesEnvelope(OmsDataOutputStream dataOutputStream,
-                                                                int applicationId,
-                                                                RSAPublicKey rsaPublicKey,
-                                                                int rsaTransformationIdx,
-                                                                int aesKeyLength,
-                                                                int aesTransformationIdx) throws
-            NoSuchAlgorithmException,
-            IOException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        @Throws(
+            NoSuchAlgorithmException::class,
+            IOException::class,
+            NoSuchPaddingException::class,
+            InvalidKeyException::class,
+            IllegalBlockSizeException::class,
+            BadPaddingException::class
+        )
+        fun prepareRsaAesEnvelope(
+            dataOutputStream: OmsDataOutputStream,
+            applicationId: Int,
+            rsaPublicKey: RSAPublicKey,
+            rsaTransformationIdx: Int,
+            aesKeyLength: Int,
+            aesTransformationIdx: Int
+        ): AesEncryptionParameters {
+            // init AES
 
-        // init AES
-        var iv = AESUtil.generateIv();
-        var secretKey = AESUtil.generateRandomSecretKey(aesKeyLength);
+            val iv = generateIv()
+            val secretKey = generateRandomSecretKey(aesKeyLength)
 
-        // encrypt AES secret key with RSA
-        var cipher = Cipher.getInstance(RsaTransformation.values()[rsaTransformationIdx].transformation);
-        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
+            // encrypt AES secret key with RSA
+            val cipher =
+                Cipher.getInstance(RsaTransformation.entries[rsaTransformationIdx].transformation)
+            cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
 
-        var encryptedSecretKey = cipher.doFinal(secretKey.getEncoded());
+            val encryptedSecretKey = cipher.doFinal(secretKey.getEncoded())
 
-        // (1) application-ID
-        dataOutputStream.writeUnsignedShort(applicationId);
+            // (1) application-ID
+            dataOutputStream.writeUnsignedShort(applicationId)
 
-        // (2) RSA transformation index
-        dataOutputStream.writeUnsignedShort(rsaTransformationIdx);
+            // (2) RSA transformation index
+            dataOutputStream.writeUnsignedShort(rsaTransformationIdx)
 
-        // (3) fingerprint
-        dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey));
+            // (3) fingerprint
+            dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey))
 
-        // (4) AES transformation index
-        dataOutputStream.writeUnsignedShort(aesTransformationIdx);
+            // (4) AES transformation index
+            dataOutputStream.writeUnsignedShort(aesTransformationIdx)
 
-        // (5) IV
-        dataOutputStream.writeByteArray(iv.getIV());
+            // (5) IV
+            dataOutputStream.writeByteArray(iv.getIV())
 
-        // (6) RSA-encrypted AES secret key
-        dataOutputStream.writeByteArray(encryptedSecretKey);
+            // (6) RSA-encrypted AES secret key
+            dataOutputStream.writeByteArray(encryptedSecretKey)
 
-        return new AesEncryptionParameters(secretKey, iv);
-    }
+            return AesEncryptionParameters(secretKey, iv)
+        }
 
-    public record RsaAesEnvelope(int applicationId,
-                                 String rsaTransormation,
-                                 byte[] fingerprint,
-                                 String aesTransformation,
-                                 byte[] iv,
-                                 byte[] encryptedAesSecretKey) {
-    }
+        @JvmStatic
+        @Throws(IOException::class)
+        fun readRsaAesEnvelope(dataInputStream: OmsDataInputStream): RsaAesEnvelope {
+            //(1) Application ID
+            val applicationId = dataInputStream.readUnsignedShort()
 
-    public static RsaAesEnvelope readRsaAesEnvelope(OmsDataInputStream dataInputStream) throws IOException {
-        //(1) Application ID
-        var applicationId = dataInputStream.readUnsignedShort();
+            //(2) RSA transformation index
+            val rsaTransformation =
+                RsaTransformation.entries[dataInputStream.readUnsignedShort()].transformation
+            Log.d(TAG, "RSA transformation: $rsaTransformation")
 
-        //(2) RSA transformation index
-        var rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
-        Log.d(TAG, "RSA transformation: " + rsaTransformation);
+            //(3) RSA fingerprint
+            val fingerprint = dataInputStream.readByteArray()
+            Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint))
 
-        //(3) RSA fingerprint
-        var fingerprint = dataInputStream.readByteArray();
-        Log.d(TAG, "RSA fingerprint: " + Util.byteArrayToHex(fingerprint));
+            // (4) AES transformation index
+            val aesTransformation =
+                AesTransformation.entries[dataInputStream.readUnsignedShort()].transformation
+            Log.d(TAG, "AES transformation: $aesTransformation")
 
-        // (4) AES transformation index
-        var aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
-        Log.d(TAG, "AES transformation: " + aesTransformation);
+            //(5) IV
+            val iv = dataInputStream.readByteArray()
+            Log.d(TAG, "IV: " + Util.byteArrayToHex(iv))
 
-        //(5) IV
-        var iv = dataInputStream.readByteArray();
-        Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
+            //(6) RSA-encrypted AES secret key
+            val encryptedAesSecretKey = dataInputStream.readByteArray()
 
-        //(6) RSA-encrypted AES secret key
-        var encryptedAesSecretKey = dataInputStream.readByteArray();
-
-        //(7) AES-encrypted message <= leave here
-
-        return new RsaAesEnvelope(applicationId, rsaTransformation, fingerprint, aesTransformation, iv, encryptedAesSecretKey);
+            //(7) AES-encrypted message <= leave here
+            return RsaAesEnvelope(
+                applicationId,
+                rsaTransformation,
+                fingerprint,
+                aesTransformation,
+                iv,
+                encryptedAesSecretKey
+            )
+        }
     }
 }

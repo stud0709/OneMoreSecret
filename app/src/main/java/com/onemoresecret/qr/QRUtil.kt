@@ -1,91 +1,93 @@
-package com.onemoresecret.qr;
+package com.onemoresecret.qr
 
-import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.Color;
+import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.Color
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.WriterException
+import com.google.zxing.common.BitMatrix
+import com.google.zxing.qrcode.QRCodeWriter
+import kotlin.CharArray
+import kotlin.Int
+import kotlin.Throws
+import kotlin.math.ceil
+import kotlin.math.min
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.set
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.WriterException;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.qrcode.QRCodeWriter;
-
-public final class QRUtil {
-    public static final String PROP_CHUNK_SIZE = "chunk_size", PROP_BARCODE_SIZE = "barcode_size";
-
-    private QRUtil() {
-    }
+object QRUtil {
+    const val PROP_CHUNK_SIZE = "chunk_size"
+    const val PROP_BARCODE_SIZE = "barcode_size"
 
     /**
      * Cuts a message into chunks and creates a barcode for every chunk. Every barcode contains (as readable text, separated by TAB):
-     * <ul>
-     *     <li>transaction ID, same for all QR codes in the sequence</li>
-     *     <li>chunk number</li>
-     *     <li>total number of chunks</li>
-     *     <li>data length in this chunk (padding is added to the last code)</li>
-     *     <li>data</li>
-     * </ul>
+     *
+     *  * transaction ID, same for all QR codes in the sequence
+     *  * chunk number
+     *  * total number of chunks
+     *  * data length in this chunk (padding is added to the last code)
+     *  * data
+     *
      */
+    @JvmStatic
+    @Throws(WriterException::class)
+    fun getQrSequence(message: String, chunkSize: Int, barcodeSize: Int): MutableList<Bitmap> {
+        val data = message.toCharArray()
+        val writer = QRCodeWriter()
+        val list: MutableList<Bitmap> = ArrayList()
+        var cArr: CharArray
+        val chunks = ceil(data.size / chunkSize.toDouble()).toInt()
+        var charsToSend = data.size
+        val transactionId = Integer.toHexString((Math.random() * 0xffff).toInt())
 
-    public static List<Bitmap> getQrSequence(String message, int chunkSize, int barcodeSize)
-            throws WriterException {
-        char[] data = message.toCharArray();
-        QRCodeWriter writer = new QRCodeWriter();
-        List<Bitmap> list = new ArrayList<>();
-        char[] cArr;
-        int chunks = (int) Math.ceil(data.length / (double) chunkSize);
-        int charsToSend = data.length;
-        String transactionId = Integer.toHexString((int) (Math.random() * 0xffff));
-
-        for (int chunkNo = 0; chunkNo < chunks; chunkNo++) {
+        for (chunkNo in 0..<chunks) {
             // copy with padding to keep all barcodes equal in size
-            cArr = Arrays.copyOfRange(data, chunkSize * chunkNo, chunkSize * (chunkNo + 1));
+            cArr = data.copyOfRange(chunkSize * chunkNo, chunkSize * (chunkNo + 1))
 
-            List<String> bc = new ArrayList<>();
-            bc.add(transactionId);
-            bc.add(Integer.toString(chunkNo));
-            bc.add(Integer.toString(chunks));
-            bc.add(Integer.toString(Math.min(chunkSize, charsToSend)));
-            bc.add(new String(cArr));
+            val bc: MutableList<String> = ArrayList()
+            bc.add(transactionId)
+            bc.add(chunkNo.toString())
+            bc.add(chunks.toString())
+            bc.add(min(chunkSize, charsToSend).toString())
+            bc.add(String(cArr))
 
-            String bcs = String.join("\t", bc);
-            BitMatrix bitMatrix = writer.encode(bcs, BarcodeFormat.QR_CODE, barcodeSize, barcodeSize);
-            list.add(toBitmap(bitMatrix));
+            val bcs = bc.joinToString ("\t")
+            val bitMatrix = writer.encode(bcs, BarcodeFormat.QR_CODE, barcodeSize, barcodeSize)
+            list.add(toBitmap(bitMatrix))
 
-            charsToSend -= chunkSize;
+            charsToSend -= chunkSize
         }
 
-        return list;
+        return list
     }
 
-    public static Bitmap getQr(String message, int barcodeSize)
-            throws WriterException {
-        var writer = new QRCodeWriter();
-        var bitMatrix = writer.encode(message, BarcodeFormat.QR_CODE, barcodeSize, barcodeSize);
-        return toBitmap(bitMatrix);
+    @JvmStatic
+    @Throws(WriterException::class)
+    fun getQr(message: String, barcodeSize: Int): Bitmap {
+        val writer = QRCodeWriter()
+        val bitMatrix = writer.encode(message, BarcodeFormat.QR_CODE, barcodeSize, barcodeSize)
+        return toBitmap(bitMatrix)
     }
 
-    private static Bitmap toBitmap(BitMatrix bitMatrix) {
-        var height = bitMatrix.getHeight();
-        var width = bitMatrix.getWidth();
-        var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+    private fun toBitmap(bitMatrix: BitMatrix): Bitmap {
+        val height = bitMatrix.height
+        val width = bitMatrix.width
+        val bitmap = createBitmap(width, height, Bitmap.Config.RGB_565)
+        for (x in 0..<width) {
+            for (y in 0..<height) {
+                bitmap[x, y] = if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE
             }
         }
-        return bitmap;
+        return bitmap
     }
 
-    public static int getChunkSize(SharedPreferences preferences) {
-        return preferences.getInt(PROP_CHUNK_SIZE, 200);
+    @JvmStatic
+    fun getChunkSize(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_CHUNK_SIZE, 200)
     }
 
-    public static int getBarcodeSize(SharedPreferences preferences) {
-        return preferences.getInt(PROP_BARCODE_SIZE, 400);
+    @JvmStatic
+    fun getBarcodeSize(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_BARCODE_SIZE, 400)
     }
-
 }

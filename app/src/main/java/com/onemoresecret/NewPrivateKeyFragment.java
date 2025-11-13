@@ -108,7 +108,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     AESUtil.getAesTransformationIdx(preferences),
                     AESUtil.getAesKeyAlgorithmIdx(preferences),
                     aesKeyLength,
-                    aesKeySpecIterations).getMessage();
+                    aesKeySpecIterations).message;
 
             binding.checkBox.setEnabled(true);
             binding.checkBox.setChecked(false);
@@ -128,7 +128,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     //go back
                     Util.discardBackStack(this);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Util.printStackTrace(ex);
                     Toast.makeText(requireContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
                 }
             });
@@ -148,7 +148,7 @@ public class NewPrivateKeyFragment extends Fragment {
             startActivity(Intent.createChooser(intent, String.format(getString(R.string.backup_file), alias)));
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             Toast.makeText(requireContext(), ex.getMessage(), Toast.LENGTH_LONG).show();
         }
     }

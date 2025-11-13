@@ -18,7 +18,6 @@ import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.CryptographyManager;
 
-import java.io.IOException;
 import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;

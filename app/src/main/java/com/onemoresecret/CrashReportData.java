@@ -44,7 +44,7 @@ public class CrashReportData implements Serializable {
                 return sw.toString();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Util.printStackTrace(e);
         }
         return null;
     }
@@ -73,7 +73,7 @@ public class CrashReportData implements Serializable {
             pw.println("----- END OF REPORT -----");
             return sw.toString();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             return null;
         }
     }

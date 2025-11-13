@@ -77,7 +77,7 @@ public class CrashReportFragment extends Fragment {
                 }
             }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
         }
     }
 

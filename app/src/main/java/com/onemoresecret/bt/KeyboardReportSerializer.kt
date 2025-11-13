@@ -1,25 +1,30 @@
-package com.onemoresecret.bt;
+package com.onemoresecret.bt
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
+import com.fasterxml.jackson.databind.SerializerProvider
+import java.io.IOException
 
-import java.io.IOException;
-
-public class KeyboardReportSerializer extends JsonSerializer<KeyboardReport> {
-    @Override
-    public void serialize(KeyboardReport keyboardReport, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        gen.writeStartObject();
-        gen.writeStringField("usage", keyboardReport.getUsage().toString());
-        gen.writeArrayFieldStart("modifiers");
-        keyboardReport.getModifiers().stream().map(Enum::toString).forEach(s -> {
-            try {
-                gen.writeString(s);
-            } catch (IOException e) {
-                e.printStackTrace();
+class KeyboardReportSerializer : JsonSerializer<KeyboardReport>() {
+    @Throws(IOException::class)
+    override fun serialize(
+        keyboardReport: KeyboardReport,
+        gen: JsonGenerator,
+        serializers: SerializerProvider?
+    ) {
+        gen.writeStartObject()
+        gen.writeStringField("usage", keyboardReport.usage.toString())
+        gen.writeArrayFieldStart("modifiers")
+        keyboardReport.modifiers.stream()
+            .map<String?> { obj -> obj.toString() }
+            .forEach { s: String ->
+                try {
+                    gen.writeString(s)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
             }
-        });
-        gen.writeEndArray();
-        gen.writeEndObject();
+        gen.writeEndArray()
+        gen.writeEndObject()
     }
 }

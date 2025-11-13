@@ -36,7 +36,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -137,7 +137,7 @@ public class PasswordGeneratorFragment extends Fragment {
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
                         .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<String>() {
+                        .addObserver(new SelectionTracker.SelectionObserver<>() {
                             @Override
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
@@ -364,10 +364,10 @@ public class PasswordGeneratorFragment extends Fragment {
             try {
                 var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessage(pwd.getBytes(StandardCharsets.UTF_8),
-                                (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
+                                (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).getMessage());
+                                AESUtil.getAesTransformationIdx(preferences)).message);
 
                 binding.editTextPassword.setEnabled(false);
                 outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));

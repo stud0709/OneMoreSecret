@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -207,7 +208,7 @@ public class QRFragment extends Fragment {
                 trx.add(containerId, presetFragment);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
         }
 
         //finalize UI change
@@ -289,7 +290,7 @@ public class QRFragment extends Fragment {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             Toast.makeText(getContext(),
                     Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
                     Toast.LENGTH_LONG).show();
@@ -303,7 +304,7 @@ public class QRFragment extends Fragment {
 
         var fileInfo = Util.getFileInfo(requireContext(), uri);
 
-        if (fileInfo.filename().endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
+        if (fileInfo.filename.endsWith("." + MessageComposer.OMS_FILE_TYPE)) {
             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
             NavHostFragment.findNavController(QRFragment.this)
                     .navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
@@ -377,14 +378,14 @@ public class QRFragment extends Fragment {
                                 try {
                                     parser.consume(barcodeValue);
                                 } catch (Exception e) {
-                                    e.printStackTrace();
+                                    Util.printStackTrace(e);
                                 }
                             }
                         });
 
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
             } catch (Exception e) {
-                e.printStackTrace();
+                Util.printStackTrace(e);
                 Toast.makeText(getContext(), String.format(getString(R.string.error_starting_camera), e.getMessage()), Toast.LENGTH_SHORT).show();
             }
         }, requireContext().getMainExecutor());
@@ -419,7 +420,7 @@ public class QRFragment extends Fragment {
             var navController = NavHostFragment.findNavController(QRFragment.this);
 
             //other supported formats?
-            if (new OneTimePassword(message).isValid()) {
+            if (new OneTimePassword(message).getValid()) {
                 //time based OTP
                 Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
                 navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
@@ -457,8 +458,8 @@ public class QRFragment extends Fragment {
                         //(7) - cipher text
                         var cipherText = dataInputStream.readByteArray();
                         runPinProtected(() -> {
-                                    showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint(),
-                                            rsaAesEnvelope.rsaTransormation(),
+                                    showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint,
+                                            rsaAesEnvelope.rsaTransormation,
                                             getAuthenticationCallback(rsaAesEnvelope, cipherText, callSetRecent ? Optional.of(message) : Optional.empty()));
                                 }, () -> {
                                     //close socket if WiFiPairing active
@@ -480,7 +481,7 @@ public class QRFragment extends Fragment {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             messageReceived.set(false);
             //close socket if WiFiPairing active
             ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
@@ -520,7 +521,7 @@ public class QRFragment extends Fragment {
                     .putString(PROP_RECENT_ENTRIES, Util.JACKSON_MAPPER.writeValueAsString(recentEntries))
                     .apply();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
         }
     }
 
@@ -569,7 +570,7 @@ public class QRFragment extends Fragment {
                 binding.txtRecent.setVisibility(View.VISIBLE);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
         }
     }
 
@@ -812,7 +813,7 @@ public class QRFragment extends Fragment {
             });
         } catch (Exception ex) {
             messageReceived.set(false);
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             requireContext().getMainExecutor().execute(() -> {
                 Toast.makeText(getContext(),
                         Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
@@ -845,18 +846,18 @@ public class QRFragment extends Fragment {
 
                 try {
                     assert cipher != null;
-                    var aesSecretKeyData = cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey());
+                    var aesSecretKeyData = cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey);
                     var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
 
                     var payload = AESUtil.process(Cipher.DECRYPT_MODE, cipherText,
                             aesSecretKey,
-                            new IvParameterSpec(rsaAesEnvelope.iv()),
-                            rsaAesEnvelope.aesTransformation());
+                            new IvParameterSpec(rsaAesEnvelope.iv),
+                            rsaAesEnvelope.aesTransformation);
 
                     //payload starts with its own application identifier.
                     afterDecrypt(rsaAesEnvelope, payload, optOriginalMessage);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Util.printStackTrace(ex);
                     messageReceived.set(false);
                     Toast.makeText(requireActivity(),
                             ex.getMessage() == null ?
@@ -890,7 +891,7 @@ public class QRFragment extends Fragment {
             bundle.putByteArray(ARG_MESSAGE, payload);
             var navController = NavHostFragment.findNavController(QRFragment.this);
 
-            switch (rsaAesEnvelope.applicationId()) {
+            switch (rsaAesEnvelope.applicationId) {
                 case MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
                     //(1) - application identifier Payload
                     var applicationId = dataInputStream.readUnsignedShort();
@@ -919,28 +920,28 @@ public class QRFragment extends Fragment {
                         }
                         default ->
                                 throw new IllegalArgumentException("No processor defined for application ID " +
-                                        Integer.toHexString(rsaAesEnvelope.applicationId())
+                                        Integer.toHexString(rsaAesEnvelope.applicationId)
                                 );
                     }
                 }
                 case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                         MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
                     //support for legacy formats
-                    bundle.putInt(ARG_APPLICATION_ID, rsaAesEnvelope.applicationId());
+                    bundle.putInt(ARG_APPLICATION_ID, rsaAesEnvelope.applicationId);
                     Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
                     navController.navigate(R.id.action_QRFragment_to_MessageFragment, bundle);
                 }
                 default ->
                         throw new IllegalArgumentException("No processor defined for application ID " +
-                                Integer.toHexString(rsaAesEnvelope.applicationId()));
+                                Integer.toHexString(rsaAesEnvelope.applicationId));
             }
 
-            if (!optOriginalMessage.isPresent())
+            if (optOriginalMessage.isEmpty())
                 return; //do not update history
 
             var optDrawableId = MessageComposer.getDrawableIdForApplicationId(bundle.getInt(ARG_APPLICATION_ID));
 
-            if (!optDrawableId.isPresent())
+            if (optDrawableId.isEmpty())
                 return;
 
             setRecent(optOriginalMessage.get(), optDrawableId.get());

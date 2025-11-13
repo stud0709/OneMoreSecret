@@ -63,7 +63,7 @@ public class TotpImportFragment extends Fragment {
         var otp = new OneTimePassword(new String(message));
 
         try {
-            if (!otp.isValid()) {
+            if (!otp.getValid()) {
                 throw new IllegalArgumentException("Invalid scheme or authority");
             }
 
@@ -95,7 +95,7 @@ public class TotpImportFragment extends Fragment {
                             }));
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             Util.discardBackStack(this);
         }
@@ -108,7 +108,7 @@ public class TotpImportFragment extends Fragment {
                             (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
-                            AESUtil.getAesTransformationIdx(preferences)).getMessage());
+                            AESUtil.getAesTransformationIdx(preferences)).message);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

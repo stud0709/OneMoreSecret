@@ -73,11 +73,11 @@ public class KeyImportFragment extends Fragment {
             Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
             // (5) AES transformation index
-            var aesTransformation = AesTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+            var aesTransformation = AesTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
             Log.d(TAG, "cipher algorithm: " + aesTransformation);
 
             // (6) key algorithm index
-            var aesKeyAlg = AesKeyAlgorithm.values()[dataInputStream.readUnsignedShort()].keyAlgorithm;
+            var aesKeyAlg = AesKeyAlgorithm.getEntries().get(dataInputStream.readUnsignedShort()).keyAlgorithm;
             Log.d(TAG, "AES key algorithm: " + aesKeyAlg);
 
             // (7) key length
@@ -107,8 +107,11 @@ public class KeyImportFragment extends Fragment {
                                     iterations)).start()
             );
         } catch (IOException ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
+            Util.printStackTrace(ex);
+            Toast.makeText(
+                    getContext(),
+                    Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
+                    Toast.LENGTH_LONG).show();
             Util.discardBackStack(this);
         }
     }
@@ -171,7 +174,7 @@ public class KeyImportFragment extends Fragment {
                                         try {
                                             cryptographyManager.deleteKey(a);
                                         } catch (KeyStoreException ex) {
-                                            ex.printStackTrace();
+                                            Util.printStackTrace(ex);
                                         }
                                     });
 
@@ -193,7 +196,7 @@ public class KeyImportFragment extends Fragment {
                                             });
 
                                 } catch (Exception ex) {
-                                    ex.printStackTrace();
+                                    Util.printStackTrace(ex);
                                     requireContext().getMainExecutor().execute(
                                             () -> Toast.makeText(this.getContext(),
                                                     ex.getMessage(),
@@ -203,10 +206,10 @@ public class KeyImportFragment extends Fragment {
                     );
                 });
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Util.printStackTrace(ex);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             requireContext().getMainExecutor().execute(
                     () -> Toast.makeText(this.getContext(),
                             "Could not decrypt. Wrong passphrase?",
@@ -235,7 +238,7 @@ public class KeyImportFragment extends Fragment {
             String warning = null;
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
-                var publicKey = (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey();
+                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey();
                 var fingerprint = RSAUtils.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
                     warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
@@ -255,7 +258,7 @@ public class KeyImportFragment extends Fragment {
             });
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Util.printStackTrace(e);
         }
     }
 

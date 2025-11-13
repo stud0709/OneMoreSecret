@@ -1,5 +1,6 @@
 package com.onemoresecret.msg_fragment_plugins;
 
+import androidx.annotation.NonNull;
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
 
@@ -8,7 +9,6 @@ import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 
-import java.io.IOException;
 import java.security.KeyStoreException;
 
 
@@ -23,7 +23,7 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
     }
 
     @Override
-    public void showBiometricPromptForDecryption() throws KeyStoreException {
+    public void showBiometricPromptForDecryption() {
         //nothing to decrypt
     }
 
@@ -43,7 +43,7 @@ public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
     }
 
     @Override
-    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
         //no authentication
     }
 }

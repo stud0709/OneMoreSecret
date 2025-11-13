@@ -1,7 +1,5 @@
 package com.onemoresecret.msg_fragment_plugins;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.widget.Toast;
 
 import androidx.biometric.BiometricPrompt;
@@ -21,7 +19,6 @@ import com.onemoresecret.crypto.RsaTransformation;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -60,7 +57,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     fingerprint = dataInputStream.readByteArray();
 
                     //(5) transformation index for decryption
-                    rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
 
                     //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
                     cipherText = dataInputStream.readByteArray();
@@ -73,7 +70,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     fingerprint = dataInputStream.readByteArray();
 
                     // (5) RSA transformation index for decryption
-                    rsaTransformation = RsaTransformation.values()[dataInputStream.readUnsignedShort()].transformation;
+                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
 
                     // (6) encrypted AES key from the file header
                     cipherText = dataInputStream.readByteArray();
@@ -123,7 +120,11 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
-                    var rsaEncryptedAesKey = RSAUtils.process(Cipher.ENCRYPT_MODE, rsaPublicKey, RSAUtils.getRsaTransformation(preferences).transformation, aesKeyMaterial);
+                    var rsaEncryptedAesKey = RSAUtils.process(
+                            Cipher.ENCRYPT_MODE,
+                            rsaPublicKey,
+                            RSAUtils.getRsaTransformation(preferences).transformation,
+                            aesKeyMaterial);
 
                     try (var baos = new ByteArrayOutputStream();
                          var dataOutputStream = new OmsDataOutputStream(baos)) {
@@ -158,7 +159,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Util.printStackTrace(e);
             context.getMainExecutor().execute(() -> {
                 Toast.makeText(context,
                         e.getMessage() == null ? String.format(context.getString(R.string.authentication_failed_s), e.getClass().getName()) : e.getMessage(),

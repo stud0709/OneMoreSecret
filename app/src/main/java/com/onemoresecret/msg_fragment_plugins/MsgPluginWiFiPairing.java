@@ -26,7 +26,7 @@ import java.security.KeyStoreException;
 import java.util.Arrays;
 
 public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
-    private static String TAG = MsgPluginWiFiPairing.class.getSimpleName();
+    private static final String TAG = MsgPluginWiFiPairing.class.getSimpleName();
     private static final long ttl_default = 12L * 3600_000L; //12 hours
 
     public record IpAndPort(byte[] ipAddress, int port, byte[] responseCode) {
@@ -124,7 +124,7 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
     }
 
     @Override
-    public void showBiometricPromptForDecryption() throws KeyStoreException {
+    public void showBiometricPromptForDecryption() {
         //not used
     }
 }

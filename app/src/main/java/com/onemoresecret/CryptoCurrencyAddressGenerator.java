@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -86,7 +87,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
         keyStoreListFragment.setRunOnStart(
                 fragmentKeyStoreListBinding -> keyStoreListFragment
                         .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<String>() {
+                        .addObserver(new SelectionTracker.SelectionObserver<>() {
                             @Override
                             public void onSelectionChanged() {
                                 super.onSelectionChanged();
@@ -108,10 +109,10 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
     private void newBitcoinAddress() {
         try {
             var btcKeyPair = BTCAddress.newKeyPair().toBTCKeyPair();
-            address = btcKeyPair.getBtcAddressBase58();
+            address = btcKeyPair.btcAddressBase58();
             encryptWif = getEncryptWif(btcKeyPair);
         } catch (Exception e) {
-            e.printStackTrace();
+            Util.printStackTrace(e);
             Toast.makeText(requireContext(),
                     e.getMessage(),
                     Toast.LENGTH_LONG).show();
@@ -132,14 +133,14 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
             try {
                 var encrypted = new EncryptedCryptoCurrencyAddress(
                         MessageComposer.APPLICATION_BITCOIN_ADDRESS,
-                        btcKeyPair.wif(),
-                        (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
+                        btcKeyPair.wif,
+                        (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey(),
                         RSAUtils.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
-                        AESUtil.getAesTransformationIdx(preferences)).getMessage();
+                        AESUtil.getAesTransformationIdx(preferences)).message;
 
                 outputFragment.setMessage(MessageComposer.encodeAsOmsText(encrypted), getString(R.string.wif_encrypted));
-                backupSupplier = getBackupSupplier(btcKeyPair.getBtcAddressBase58(), encrypted);
+                backupSupplier = getBackupSupplier(btcKeyPair.btcAddressBase58(), encrypted);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

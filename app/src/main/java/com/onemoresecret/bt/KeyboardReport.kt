@@ -1,55 +1,46 @@
-package com.onemoresecret.bt;
+package com.onemoresecret.bt
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import java.util.Arrays
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
-@JsonSerialize(using = KeyboardReportSerializer.class)
-public class KeyboardReport {
-    private final Set<KeyModifier> modifiers = new HashSet<>();
-    private final KeyboardUsage usage;
-
-    public static final int
-            NUM_LOCK = 1,
-            CAPS_LOCK = 1 << 1,
-            SCROLL_LOCK = 1 << 2,
-            COMPOSE = 1 << 3,
-            KANA = 1 << 4;
+@JsonSerialize(using = KeyboardReportSerializer::class)
+class KeyboardReport {
+    val modifiers: MutableSet<KeyModifier> = HashSet()
+    val usage: KeyboardUsage
 
     /**
      * Report data.
      *
-     * @param modifiers Use {@link KeyModifier#value} combined with boolean AND, e.g. {@code LEFT_CONTROL.value & LEFT_SHIFT.value }
+     * @param modifiers Use [KeyModifier.value] combined with boolean AND, e.g. `LEFT_CONTROL.value & LEFT_SHIFT.value `
      * @param usage       Physical key according to USB HID Usage Tables.
      */
-    public KeyboardReport(KeyboardUsage usage, KeyModifier... modifiers) {
-        this.modifiers.addAll(Arrays.asList(modifiers));
-        this.usage = usage;
+    constructor(usage: KeyboardUsage, vararg modifiers: KeyModifier) {
+        this.modifiers.addAll(Arrays.asList(*modifiers))
+        this.usage = usage
     }
 
-    public KeyboardReport(KeyboardUsage usage) {
-        this.usage = usage;
+    constructor(usage: KeyboardUsage) {
+        this.usage = usage
     }
 
-    /**
-     * Keyboard report. byte[0] = modifiers, byte[1] = keyboard usage (i.e. key which is currently pressed)
-     * @return Keyboard report
-     */
-    public byte[] getReport() {
-        byte mByte = 0;
-        for(var m : modifiers) {
-            mByte |= m.value;
+    val report: ByteArray
+        /**
+         * Keyboard report. byte[0] = modifiers, byte[1] = keyboard usage (i.e. key which is currently pressed)
+         * @return Keyboard report
+         */
+        get() {
+            var mByte: Byte = 0
+            for (m in modifiers) {
+                mByte = (mByte.toInt() or m.value.toInt()).toByte()
+            }
+            return byteArrayOf(mByte, usage.value)
         }
-        return new byte[] {mByte, usage.value};
-    }
 
-    public Set<KeyModifier> getModifiers() {
-        return modifiers;
-    }
-
-    public KeyboardUsage getUsage() {
-        return usage;
+    companion object {
+        const val NUM_LOCK: Int = 1
+        val CAPS_LOCK: Int = 1 shl 1
+        val SCROLL_LOCK: Int = 1 shl 2
+        val COMPOSE: Int = 1 shl 3
+        val KANA: Int = 1 shl 4
     }
 }

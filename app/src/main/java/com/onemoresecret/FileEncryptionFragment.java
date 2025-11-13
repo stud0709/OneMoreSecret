@@ -31,6 +31,7 @@ import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 import java.nio.file.Files;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Locale;
+import java.util.Objects;
 
 public class FileEncryptionFragment extends Fragment {
     private FragmentFileEncryptionBinding binding;
@@ -73,10 +74,10 @@ public class FileEncryptionFragment extends Fragment {
         uri = getArguments().getParcelable(QRFragment.ARG_URI);
         fileInfo = Util.getFileInfo(requireContext(), uri);
 
-        getContext().getMainExecutor().execute(() ->
+        requireContext().getMainExecutor().execute(() ->
                 ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
-                        fileInfo.filename(),
-                        fileInfo.fileSize()));
+                        fileInfo.filename,
+                        fileInfo.fileSize));
 
 
         keyStoreListFragment.setRunOnStart(
@@ -113,12 +114,12 @@ public class FileEncryptionFragment extends Fragment {
             new Thread(() -> {
                 try {
                     var fileRecord = OmsFileProvider.create(requireContext(),
-                            fileInfo.filename() + "." + MessageComposer.OMS_FILE_TYPE,
+                            fileInfo.filename + "." + MessageComposer.OMS_FILE_TYPE,
                             true);
 
                     EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
                             fileRecord.path().toFile(),
-                            (RSAPublicKey) cryptographyManager.getCertificate(selectedAlias).getPublicKey(),
+                            (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(selectedAlias)).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformationIdx(preferences),
@@ -127,7 +128,7 @@ public class FileEncryptionFragment extends Fragment {
                     );
 
                     if (encryptionRunning) {
-                        updateProgress(fileInfo.fileSize()); //100%
+                        updateProgress(fileInfo.fileSize); //100%
                         requireContext().getMainExecutor().execute(() -> {
                             if (binding == null) return;
                             binding.btnEncrypt.setText(R.string.encrypt);
@@ -154,7 +155,7 @@ public class FileEncryptionFragment extends Fragment {
                     }
                     encryptionRunning = false;
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Util.printStackTrace(ex);
                     requireActivity().getMainExecutor().execute(() -> Toast.makeText(requireContext(),
                             String.format("%s: %s", ex.getClass().getSimpleName(), ex.getMessage()),
                             Toast.LENGTH_LONG).show());
@@ -166,7 +167,7 @@ public class FileEncryptionFragment extends Fragment {
     private void updateProgress(@Nullable Integer value) {
         String s = "";
         if (value != null) {
-            var progressPrc = (int) ((double) value / (double) fileInfo.fileSize() * 100D);
+            var progressPrc = (int) ((double) value / (double) fileInfo.fileSize * 100D);
             if (lastProgressPrc == progressPrc) return;
 
             lastProgressPrc = progressPrc;

@@ -92,7 +92,7 @@ public class MessageFragment extends Fragment {
 
             messageFragmentPlugin.showBiometricPromptForDecryption();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Util.printStackTrace(ex);
             Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
             Util.discardBackStack(this);
         }
@@ -154,13 +154,13 @@ public class MessageFragment extends Fragment {
             MenuProvider.super.onPrepareMenu(menu);
             //visibility switch will only be shown if there are active observers
             menu.findItem(R.id.menuItemMsgVisibility).setVisible(hiddenState.hasActiveObservers());
-            menu.findItem(R.id.menuItemMsgVisibility).setIcon(hiddenState.getValue() ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
+            menu.findItem(R.id.menuItemMsgVisibility).setIcon(Boolean.TRUE.equals(hiddenState.getValue()) ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
         }
 
         @Override
         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
             if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
-                hiddenState.setValue(!hiddenState.getValue());
+                hiddenState.setValue(Boolean.FALSE.equals(hiddenState.getValue()));
                 requireActivity().invalidateOptionsMenu();
             } else if (menuItem.getItemId() == R.id.menuItemMsgHelp) {
                 Util.openUrl(R.string.decrypted_message_md_url, requireContext());

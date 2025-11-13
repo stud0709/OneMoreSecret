@@ -1,63 +1,66 @@
-package com.onemoresecret.bt.layout;
+package com.onemoresecret.bt.layout
 
-import android.util.Log;
+import android.util.Log
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.onemoresecret.Util
+import java.util.TreeMap
+import java.util.function.Consumer
+import java.util.stream.Collectors
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.onemoresecret.Util;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-
-public abstract class KeyboardLayout {
-    protected final Map<Character, Stroke> layout = new TreeMap<>();
-    public static final Class<?>[] knownSubclasses = {USLayout.class, GermanLayout.class, SwissLayout.class};
-
-    public abstract Stroke forKey(char c);
+abstract class KeyboardLayout {
+    @JvmField
+    protected val layout: MutableMap<Char?, Stroke?> = TreeMap<Char?, Stroke?>()
+    abstract fun forKey(c: Char): Stroke?
 
     /**
-     * Convert a {@link String} to key strokes
+     * Convert a [String] to key strokes
      *
      * @param s text to be converted into key strokes
      * @return key strokes
      */
-    public List<Stroke> forString(String s) {
-        var cArr = s.toCharArray();
-        List<Stroke> list = new ArrayList<>();
+    fun forString(s: String): MutableList<Stroke?> {
+        val cArr = s.toCharArray()
+        val list: MutableList<Stroke?> = ArrayList()
 
-        for (char c : cArr) {
-            list.add(forKey(c));
+        for (c in cArr) {
+            list.add(forKey(c))
         }
 
-        return list;
+        return list
     }
 
     /**
-     * Remove {@link Stroke}s associated with the parent layout, but not present in the current one.
+     * Remove [Stroke]s associated with the parent layout, but not present in the current one.
      * @param cArr characters to remove
      */
-    protected void remove(char... cArr) {
-        List<Character> cList = new ArrayList<>();
-        for(var c : cArr) {
-            cList.add(c);
+    protected fun remove(vararg cArr: Char) {
+        val cList: MutableList<Char?> = ArrayList()
+        for (c in cArr) {
+            cList.add(c)
         }
-        var toBeRemoved = cList.stream().filter(layout::containsKey).collect(Collectors.toSet());
-        toBeRemoved.forEach(layout::remove);
+        val toBeRemoved =
+            cList.stream().filter { o -> layout.containsKey(o) }.collect(
+                Collectors.toSet()
+            )
+        toBeRemoved.forEach(Consumer { o: Char? -> layout.remove(o) })
     }
 
-    public void logLayout() {
-        layout.entrySet().forEach(entry -> {
+    fun logLayout() {
+        layout.entries.forEach(Consumer { entry: MutableMap.MutableEntry<Char?, Stroke?>? ->
             try {
-                Log.d(getClass().getName(), Util.JACKSON_MAPPER.writeValueAsString(entry));
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
+                Log.d(this::class.qualifiedName, Util.JACKSON_MAPPER.writeValueAsString(entry))
+            } catch (e: JsonProcessingException) {
+                e.printStackTrace()
             }
-        });
+        })
+    }
+
+    companion object {
+        @JvmField
+        val knownSubclasses: Array<Class<*>> = arrayOf<Class<*>>(
+            USLayout::class.java,
+            GermanLayout::class.java,
+            SwissLayout::class.java
+        )
     }
 }

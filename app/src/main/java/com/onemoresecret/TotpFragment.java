@@ -90,12 +90,12 @@ public class TotpFragment extends Fragment {
 
             requireActivity().getMainExecutor().execute(() -> {
                 if (binding == null) return; //fragment has been destroyed
-                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state.secondsUntilNext()));
+                binding.textViewRemaining.setText(String.format("...%ss", otp.getPeriod() - state.secondsUntilNext));
             });
 
-            if (lastState != state.current() || force) {
-                this.code.postValue(otp.generateResponseCode(state.current()));
-                lastState = state.current();
+            if (lastState != state.current || force) {
+                this.code.postValue(otp.generateResponseCode(state.current));
+                lastState = state.current;
             }
         } catch (Exception e) {
             Log.wtf(TAG, e);

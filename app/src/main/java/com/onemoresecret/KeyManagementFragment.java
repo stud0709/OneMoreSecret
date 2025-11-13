@@ -22,6 +22,7 @@ import com.onemoresecret.databinding.FragmentKeyManagementBinding;
 
 import java.security.KeyStoreException;
 import java.util.Base64;
+import java.util.Objects;
 
 public class KeyManagementFragment extends Fragment {
     private FragmentKeyManagementBinding binding;
@@ -69,7 +70,7 @@ public class KeyManagementFragment extends Fragment {
 
     private String getPublicKeyMessage(String alias) {
         try {
-            var bArr = cryptographyManager.getCertificate(alias).getPublicKey().getEncoded();
+            var bArr = Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey().getEncoded();
             return Base64.getEncoder().encodeToString(bArr);
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -113,7 +114,7 @@ public class KeyManagementFragment extends Fragment {
                                 Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
                                 keyStoreListFragment.onItemRemoved(alias);
                             } catch (KeyStoreException e) {
-                                e.printStackTrace();
+                                Util.printStackTrace(e);
                                 Toast.makeText(getContext(),
                                         e.getMessage() == null ? String.format(requireContext().getString(R.string.operation_failed_s), e.getClass().getSimpleName()) : e.getMessage(),
                                         Toast.LENGTH_LONG).show();

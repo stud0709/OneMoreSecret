@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.d(TAG, "sendReplyViaSocket: Data successfully sent");
             } catch (Exception ex) {
-                ex.printStackTrace();
+                Util.printStackTrace(ex);
                 closeSocket = true;
             } finally {
                 if (closeSocket) {
@@ -250,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
                             serverSocket.close();
                             Log.d(TAG, "Server socket closed");
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            Util.printStackTrace(e);
                         }
                     };
 
@@ -274,13 +274,13 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         onWiFiConnection(serverSocket.accept(), messageConsumer);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+                        Util.printStackTrace(ex);
                         break;
                     }
                 }
             } catch (Exception ex) {
                 //server socket is broken
-                ex.printStackTrace();
+                Util.printStackTrace(ex);
 
                 setWiFiComm(null);
 
@@ -318,12 +318,12 @@ public class MainActivity extends AppCompatActivity {
 
                 // decrypt AES key
                 var aesSecretKeyData = RSAUtils.process(Cipher.DECRYPT_MODE, getWiFiComm().privateKey,
-                        envelope.rsaTransormation(), envelope.encryptedAesSecretKey());
+                        envelope.rsaTransormation, envelope.encryptedAesSecretKey);
                 var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
 
                 // (7) AES-encrypted message
                 var decryptedMessage = AESUtil.process(Cipher.DECRYPT_MODE, encryptedMessage, aesSecretKey,
-                        new IvParameterSpec(envelope.iv()), envelope.aesTransformation());
+                        new IvParameterSpec(envelope.iv), envelope.aesTransformation);
 
                 synchronized (MainActivity.class) {
                     //keep socket open, wait for the reply
@@ -332,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
 
                 messageConsumer.accept(MessageComposer.encodeAsOmsText(decryptedMessage));
             } catch (Exception ex) {
-                ex.printStackTrace();
+                Util.printStackTrace(ex);
                 this.getMainExecutor().execute(() -> {
                     Toast.makeText(this,
                             Objects.requireNonNullElse(

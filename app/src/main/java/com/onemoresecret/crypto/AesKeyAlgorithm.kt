@@ -1,18 +1,13 @@
-package com.onemoresecret.crypto;
+package com.onemoresecret.crypto
 
 /**
- * See <a href="https://docs.oracle.com/javase/7/docs/api/javax/crypto/Cipher.html">javax.crypto.Cipher Java API</a> for
+ * See [javax.crypto.Cipher Java API](https://docs.oracle.com/javase/7/docs/api/javax/crypto/Cipher.html) for
  * the list of supported transformations
  *
- * See <a href="https://developer.android.com/reference/javax/crypto/Cipher">java.crypto.Cipher Android API</a>
+ * See [java.crypto.Cipher Android API](https://developer.android.com/reference/javax/crypto/Cipher)
  *
  */
-public enum AesKeyAlgorithm {
+enum class AesKeyAlgorithm(@JvmField val keyAlgorithm: String) {
     PBKDF2WithHmacSHA256("PBKDF2WithHmacSHA256");
 
-    public final String keyAlgorithm;
-
-    AesKeyAlgorithm(String transformation) {
-        this.keyAlgorithm = transformation;
-    }
 }

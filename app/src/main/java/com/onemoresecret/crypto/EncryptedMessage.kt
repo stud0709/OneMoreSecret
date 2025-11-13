@@ -1,59 +1,48 @@
-package com.onemoresecret.crypto;
+package com.onemoresecret.crypto
 
-import com.onemoresecret.OmsDataOutputStream;
+import com.onemoresecret.OmsDataOutputStream
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.security.interfaces.RSAPublicKey
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPublicKey;
+open class EncryptedMessage(
+    message: ByteArray,
+    rsaPublicKey: RSAPublicKey,
+    rsaTransformationIdx: Int,
+    aesKeyLength: Int,
+    aesTransformationIdx: Int
+) {
+    @JvmField
+    val message: ByteArray
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
-public class EncryptedMessage {
-    private final byte[] message;
-
-    public EncryptedMessage(byte[] message,
-                            RSAPublicKey rsaPublicKey,
-                            int rsaTransformationIdx,
-                            int aesKeyLength,
-                            int aesTransformationIdx)
-            throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException,
-            BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
-
+    init {
         this.message = MessageComposer.createRsaAesEnvelope(
-                rsaPublicKey,
-                rsaTransformationIdx,
-                aesKeyLength,
-                aesTransformationIdx,
-                createPayload(getApplicationId(), message));
+            rsaPublicKey,
+            rsaTransformationIdx,
+            aesKeyLength,
+            aesTransformationIdx,
+            createPayload(this.applicationId, message)
+        )
     }
 
-    private byte[] createPayload(int ai, byte[] message) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
+    private fun createPayload(ai: Int, message: ByteArray): ByteArray {
+        try {
+            ByteArrayOutputStream().use { baos ->
+                OmsDataOutputStream(baos).use { dataOutputStream ->
 
-            // (1) the real Application Identifier
-            dataOutputStream.writeUnsignedShort(ai);
+                    // (1) the real Application Identifier
+                    dataOutputStream.writeUnsignedShort(ai)
 
-            // (2) message key as byte array
-            dataOutputStream.writeByteArray(message);
-
-            return baos.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
+                    // (2) message key as byte array
+                    dataOutputStream.writeByteArray(message)
+                    return baos.toByteArray()
+                }
+            }
+        } catch (ex: IOException) {
+            throw RuntimeException(ex)
         }
     }
 
-    protected int getApplicationId() {
-        return MessageComposer.APPLICATION_ENCRYPTED_MESSAGE;
-    }
-
-    public byte[] getMessage() {
-        return message;
-    }
-
+    protected open val applicationId: Int
+        get() = MessageComposer.APPLICATION_ENCRYPTED_MESSAGE
 }

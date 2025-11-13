@@ -1,149 +1,138 @@
-package com.onemoresecret.crypto;
+package com.onemoresecret.crypto
 
-import android.net.Uri;
+import android.net.Uri
+import com.onemoresecret.crypto.Base32.decode
+import java.io.ByteArrayInputStream
+import java.io.DataInputStream
+import java.io.IOException
+import java.math.BigDecimal
+import java.nio.ByteBuffer
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.util.Arrays
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import androidx.core.net.toUri
 
+class OneTimePassword(s: String) {
+    val uri: Uri = s.toUri()
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-public class OneTimePassword {
-    public static final String OTP_SCHEME = "otpauth";
-    public static final String TOTP = "totp"; // time-based
-    private static final String ISSUER_PARAM = "issuer";
-    public static final String SECRET_PARAM = "secret";
-
-    public static final int DEFAULT_PERIOD = 30;
-    public static final String PERIOD_PARAM = "period";
-    public static final String[] DIGITS = {"6", "8"};
-    public static final String DIGITS_PARAM = "digits";
-    public static final String ALGORITHM_PARAM = "algorithm";
-    public static final String[] ALGORITHM = {"SHA1", "SHA256", "SHA512"};
-
-    private static final String TAG = OneTimePassword.class.getSimpleName();
-
-    private final Uri uri;
-
-    public OneTimePassword(String s) {
-        this.uri = Uri.parse(s);
-//        Log.d(TAG, s);
+    init {
+        //        Log.d(TAG, s);
     }
 
-    public Uri getUri() {
-        return uri;
-    }
-
-    public boolean isValid() {
-        if (OneTimePassword.OTP_SCHEME.equals(uri.getScheme())
-                && OneTimePassword.TOTP.equals(uri.getAuthority())
-                && getName() != null
-                && !getName().isEmpty()) {
-            try {
-                getDigits();
-                getAlgorithm();
-                generateResponseCode(0);
-                return true;
-            } catch (Exception ignored) {
-
+    val valid: Boolean
+        get() {
+            if (OTP_SCHEME == uri.scheme
+                && TOTP == uri.authority
+                && this.name != null && !this.name!!.isEmpty()
+            ) {
+                try {
+                    this.digits
+                    this.algorithm
+                    generateResponseCode(0)
+                    return true
+                } catch (_: Exception) {
+                }
             }
+            return false
         }
-        return false;
-    }
 
-    public String getName() {
-        var path = uri.getPath();
-        if (path == null || !path.startsWith("/")) {
-            return null;
+    val name: String?
+        get() {
+            val path = uri.path
+            if (path == null || !path.startsWith("/")) {
+                return null
+            }
+            // path is "/name", so remove leading "/", and trailing white spaces
+            val name = path.substring(1).trim { it <= ' ' }
+            if (name.isEmpty()) {
+                return null // only white spaces.
+            }
+            return name
         }
-        // path is "/name", so remove leading "/", and trailing white spaces
-        var name = path.substring(1).trim();
-        if (name.length() == 0) {
-            return null; // only white spaces.
+
+    val issuer: String?
+        get() = uri.getQueryParameter(ISSUER_PARAM)
+
+    val secret: String
+        get() = uri.getQueryParameter(SECRET_PARAM)!!
+            .uppercase(Locale.getDefault())
+
+    val period: Int
+        get() {
+            val s = uri.getQueryParameter(PERIOD_PARAM)
+            return if (s == null || s.isEmpty()) DEFAULT_PERIOD else s.toInt()
         }
-        return name;
-    }
 
-    public String getIssuer() {
-        return uri.getQueryParameter(ISSUER_PARAM);
-    }
-
-    public String getSecret() {
-        return uri.getQueryParameter(SECRET_PARAM).toUpperCase();
-    }
-
-    public int getPeriod() {
-        var s = uri.getQueryParameter(PERIOD_PARAM);
-        return (s == null || s.isEmpty()) ? DEFAULT_PERIOD : Integer.parseInt(s);
-    }
-
-    /**
-     * Length of the TOTP token
-     * @return
-     */
-    public int getDigits() {
-        var s = uri.getQueryParameter(DIGITS_PARAM);
-        var d = (s == null || s.isEmpty()) ? DIGITS[0] : s;
-        if (!Arrays.stream(DIGITS).anyMatch(d::equals)) {
-            throw new IllegalArgumentException("Invalid digits: " + d);
+    val digits: Int
+        /**
+         * Length of the TOTP token
+         * @return
+         */
+        get() {
+            val s = uri.getQueryParameter(DIGITS_PARAM)
+            val d: String =
+                if (s == null || s.isEmpty()) DIGITS[0] else s
+            require(
+                Arrays.stream(DIGITS)
+                    .anyMatch { anObject -> d == anObject }) { "Invalid digits: $d" }
+            return d.toInt()
         }
-        return Integer.parseInt(d);
-    }
 
-    public String getAlgorithm() {
-        var s = uri.getQueryParameter(ALGORITHM_PARAM);
-        var alg = (s == null || s.isEmpty()) ? ALGORITHM[0] : s;
-        if (!Arrays.stream(ALGORITHM).anyMatch(alg::equals)) {
-            throw new IllegalArgumentException("invalid algorithm: " + alg);
+    val algorithm: String
+        get() {
+            val s = uri.getQueryParameter(ALGORITHM_PARAM)
+            val alg: String =
+                if (s == null || s.isEmpty()) ALGORITHM[0] else s
+            require(
+                Arrays.stream(ALGORITHM)
+                    .anyMatch { anObject ->
+                        alg == anObject
+                    }) { "invalid algorithm: $alg" }
+            return alg
         }
-        return alg;
+
+    @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class)
+    fun sign(data: ByteArray?): ByteArray {
+        val mac = Mac.getInstance("Hmac${this.algorithm}")
+        mac.init(SecretKeySpec(decode(this.secret), ""))
+        return mac.doFinal(data)
     }
 
-    public byte[] sign(byte[] data) throws NoSuchAlgorithmException, InvalidKeyException {
-        var mac = Mac.getInstance("Hmac" + getAlgorithm());
-        mac.init(new SecretKeySpec(Base32.decode(getSecret()), ""));
-        return mac.doFinal(data);
+    @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class, IOException::class)
+    fun generateResponseCode(state: Long): String {
+        val value = ByteBuffer.allocate(8).putLong(state).array()
+        return generateResponseCode(value)
     }
 
-    public String generateResponseCode(long state)
-            throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-        var value = ByteBuffer.allocate(8).putLong(state).array();
-        return generateResponseCode(value);
-    }
-
-    public String generateResponseCode(long state, byte[] challenge)
-            throws NoSuchAlgorithmException, InvalidKeyException, IOException {
+    @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class, IOException::class)
+    fun generateResponseCode(state: Long, challenge: ByteArray?): String {
         if (challenge == null) {
-            return generateResponseCode(state);
+            return generateResponseCode(state)
         } else {
             // Allocate space for combination and store.
-            var value = ByteBuffer.allocate(8 + challenge.length)
-                    .putLong(state) // Write out OTP state
-                    .put(challenge, 0, challenge.length) // Concatenate with challenge.
-                    .array();
-            return generateResponseCode(value);
+            val value = ByteBuffer.allocate(8 + challenge.size)
+                .putLong(state) // Write out OTP state
+                .put(challenge, 0, challenge.size) // Concatenate with challenge.
+                .array()
+            return generateResponseCode(value)
         }
     }
 
-    public String generateResponseCode(byte[] challenge)
-            throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-        var hash = sign(challenge);
+    @Throws(NoSuchAlgorithmException::class, InvalidKeyException::class, IOException::class)
+    fun generateResponseCode(challenge: ByteArray?): String {
+        val hash = sign(challenge)
 
         // Dynamically truncate the hash
         // OffsetBits are the low order bits of the last byte of the hash
-        var offset = hash[hash.length - 1] & 0xF;
+        val offset = hash[hash.size - 1].toInt() and 0xF
         // Grab a positive integer value starting at the given offset.
-        var truncatedHash = hashToInt(hash, offset) & 0x7FFFFFFF;
-        var pinValue = truncatedHash % BigDecimal.TEN.pow(getDigits()).intValue();
-        return padOutput(pinValue);
+        val truncatedHash = hashToInt(hash, offset) and 0x7FFFFFFF
+        val pinValue = truncatedHash % BigDecimal.TEN.pow(this.digits).toInt()
+        return padOutput(pinValue)
     }
 
     /**
@@ -154,28 +143,50 @@ public class OneTimePassword {
      * @param start the index into the array to start grabbing bytes
      * @return the integer constructed from the four bytes in the array
      */
-    private int hashToInt(byte[] bytes, int start) throws IOException {
-        return new DataInputStream(
-                new ByteArrayInputStream(
-                        bytes,
-                        start,
-                        bytes.length - start
-                )).readInt();
+    @Throws(IOException::class)
+    private fun hashToInt(bytes: ByteArray, start: Int): Int {
+        return DataInputStream(
+            ByteArrayInputStream(
+                bytes,
+                start,
+                bytes.size - start
+            )
+        ).readInt()
     }
 
-    private String padOutput(int value) {
-        var result = Integer.toString(value);
-        while (result.length() < getDigits()) {
-            result = "0" + result;
+    private fun padOutput(value: Int): String {
+        var result = value.toString()
+        while (result.length < this.digits) {
+            result = "0" + result
         }
-        return result;
+        return result
     }
 
-    public record OtpState(long current, long secondsUntilNext){};
+    @JvmRecord
+    data class OtpState(@JvmField val current: Long, @JvmField val secondsUntilNext: Long)
 
-    public OtpState getState() {
-        var now_s = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
-        return new OtpState(now_s / getPeriod(), now_s % getPeriod());
+    val state: OtpState
+        get() {
+            val nowSeconds =
+                TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
+            return OtpState(nowSeconds / this.period, nowSeconds % this.period)
+        }
+
+    companion object {
+        const val OTP_SCHEME: String = "otpauth"
+        const val TOTP: String = "totp" // time-based
+        private const val ISSUER_PARAM = "issuer"
+        const val SECRET_PARAM: String = "secret"
+
+        const val DEFAULT_PERIOD: Int = 30
+        const val PERIOD_PARAM: String = "period"
+        @JvmField
+        val DIGITS: Array<String> = arrayOf<String>("6", "8")
+        const val DIGITS_PARAM: String = "digits"
+        const val ALGORITHM_PARAM: String = "algorithm"
+        @JvmField
+        val ALGORITHM: Array<String> = arrayOf<String>("SHA1", "SHA256", "SHA512")
+
+        private val TAG: String = OneTimePassword::class.java.simpleName
     }
-
 }

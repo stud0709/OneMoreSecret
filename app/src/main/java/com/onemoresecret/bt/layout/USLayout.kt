@@ -1,219 +1,216 @@
-package com.onemoresecret.bt.layout;
+package com.onemoresecret.bt.layout
 
-import static com.onemoresecret.bt.KeyModifier.LEFT_SHIFT;
-
-import android.util.Log;
-
-import androidx.annotation.NonNull;
-
-import com.onemoresecret.bt.KeyboardUsage;
+import android.util.Log
+import com.onemoresecret.bt.KeyModifier
+import com.onemoresecret.bt.KeyboardUsage
 
 /**
  * US Keyboard Layout
  */
-public class USLayout extends KeyboardLayout {
-    private static final String TAG = USLayout.class.getSimpleName();
+open class USLayout : KeyboardLayout() {
+    init {
+        layout['a'] = Stroke()
+            .type(KeyboardUsage.KBD_A)
+        layout['b'] = Stroke()
+            .type(KeyboardUsage.KBD_B)
+        layout['c'] = Stroke()
+            .type(KeyboardUsage.KBD_C)
+        layout['d'] = Stroke()
+            .type(KeyboardUsage.KBD_D)
+        layout['e'] = Stroke()
+            .type(KeyboardUsage.KBD_E)
+        layout['f'] = Stroke()
+            .type(KeyboardUsage.KBD_F)
+        layout['g'] = Stroke()
+            .type(KeyboardUsage.KBD_G)
+        layout['h'] = Stroke()
+            .type(KeyboardUsage.KBD_H)
+        layout['i'] = Stroke()
+            .type(KeyboardUsage.KBD_I)
+        layout['j'] = Stroke()
+            .type(KeyboardUsage.KBD_J)
+        layout['k'] = Stroke()
+            .type(KeyboardUsage.KBD_K)
+        layout['l'] = Stroke()
+            .type(KeyboardUsage.KBD_L)
+        layout['m'] = Stroke()
+            .type(KeyboardUsage.KBD_M)
+        layout['n'] = Stroke()
+            .type(KeyboardUsage.KBD_N)
+        layout['o'] = Stroke()
+            .type(KeyboardUsage.KBD_O)
+        layout['p'] = Stroke()
+            .type(KeyboardUsage.KBD_P)
+        layout['q'] = Stroke()
+            .type(KeyboardUsage.KBD_Q)
+        layout['r'] = Stroke()
+            .type(KeyboardUsage.KBD_R)
+        layout['s'] = Stroke()
+            .type(KeyboardUsage.KBD_S)
+        layout['t'] = Stroke()
+            .type(KeyboardUsage.KBD_T)
+        layout['u'] = Stroke()
+            .type(KeyboardUsage.KBD_U)
+        layout['v'] = Stroke()
+            .type(KeyboardUsage.KBD_V)
+        layout['w'] = Stroke()
+            .type(KeyboardUsage.KBD_W)
+        layout['x'] = Stroke()
+            .type(KeyboardUsage.KBD_X)
+        layout['y'] = Stroke()
+            .type(KeyboardUsage.KBD_Y)
+        layout['z'] = Stroke()
+            .type(KeyboardUsage.KBD_Z)
 
-    public USLayout() {
-        layout.put('a', new Stroke()
-                .type(KeyboardUsage.KBD_A));
-        layout.put('b', new Stroke()
-                .type(KeyboardUsage.KBD_B));
-        layout.put('c', new Stroke()
-                .type(KeyboardUsage.KBD_C));
-        layout.put('d', new Stroke()
-                .type(KeyboardUsage.KBD_D));
-        layout.put('e', new Stroke()
-                .type(KeyboardUsage.KBD_E));
-        layout.put('f', new Stroke()
-                .type(KeyboardUsage.KBD_F));
-        layout.put('g', new Stroke()
-                .type(KeyboardUsage.KBD_G));
-        layout.put('h', new Stroke()
-                .type(KeyboardUsage.KBD_H));
-        layout.put('i', new Stroke()
-                .type(KeyboardUsage.KBD_I));
-        layout.put('j', new Stroke()
-                .type(KeyboardUsage.KBD_J));
-        layout.put('k', new Stroke()
-                .type(KeyboardUsage.KBD_K));
-        layout.put('l', new Stroke()
-                .type(KeyboardUsage.KBD_L));
-        layout.put('m', new Stroke()
-                .type(KeyboardUsage.KBD_M));
-        layout.put('n', new Stroke()
-                .type(KeyboardUsage.KBD_N));
-        layout.put('o', new Stroke()
-                .type(KeyboardUsage.KBD_O));
-        layout.put('p', new Stroke()
-                .type(KeyboardUsage.KBD_P));
-        layout.put('q', new Stroke()
-                .type(KeyboardUsage.KBD_Q));
-        layout.put('r', new Stroke()
-                .type(KeyboardUsage.KBD_R));
-        layout.put('s', new Stroke()
-                .type(KeyboardUsage.KBD_S));
-        layout.put('t', new Stroke()
-                .type(KeyboardUsage.KBD_T));
-        layout.put('u', new Stroke()
-                .type(KeyboardUsage.KBD_U));
-        layout.put('v', new Stroke()
-                .type(KeyboardUsage.KBD_V));
-        layout.put('w', new Stroke()
-                .type(KeyboardUsage.KBD_W));
-        layout.put('x', new Stroke()
-                .type(KeyboardUsage.KBD_X));
-        layout.put('y', new Stroke()
-                .type(KeyboardUsage.KBD_Y));
-        layout.put('z', new Stroke()
-                .type(KeyboardUsage.KBD_Z));
+        layout['1'] = Stroke()
+            .type(KeyboardUsage.KBD_1)
+        layout['2'] = Stroke()
+            .type(KeyboardUsage.KBD_2)
+        layout['3'] = Stroke()
+            .type(KeyboardUsage.KBD_3)
+        layout['4'] = Stroke()
+            .type(KeyboardUsage.KBD_4)
+        layout['5'] = Stroke()
+            .type(KeyboardUsage.KBD_5)
+        layout['6'] = Stroke()
+            .type(KeyboardUsage.KBD_6)
+        layout['7'] = Stroke()
+            .type(KeyboardUsage.KBD_7)
+        layout['8'] = Stroke()
+            .type(KeyboardUsage.KBD_8)
+        layout['9'] = Stroke()
+            .type(KeyboardUsage.KBD_9)
+        layout['0'] = Stroke()
+            .type(KeyboardUsage.KBD_0)
 
-        layout.put('1', new Stroke()
-                .type(KeyboardUsage.KBD_1));
-        layout.put('2', new Stroke()
-                .type(KeyboardUsage.KBD_2));
-        layout.put('3', new Stroke()
-                .type(KeyboardUsage.KBD_3));
-        layout.put('4', new Stroke()
-                .type(KeyboardUsage.KBD_4));
-        layout.put('5', new Stroke()
-                .type(KeyboardUsage.KBD_5));
-        layout.put('6', new Stroke()
-                .type(KeyboardUsage.KBD_6));
-        layout.put('7', new Stroke()
-                .type(KeyboardUsage.KBD_7));
-        layout.put('8', new Stroke()
-                .type(KeyboardUsage.KBD_8));
-        layout.put('9', new Stroke()
-                .type(KeyboardUsage.KBD_9));
-        layout.put('0', new Stroke()
-                .type(KeyboardUsage.KBD_0));
+        layout['!'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_1)
+        layout['@'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_2)
+        layout['#'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_3)
+        layout['$'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_4)
+        layout['%'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_5)
+        layout['^'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_6)
+        layout['&'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_7)
+        layout['*'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_8)
+        layout['('] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_9)
+        layout[')'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_0)
 
-        layout.put('!', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_1));
-        layout.put('@', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_2));
-        layout.put('#', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_3));
-        layout.put('$', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_4));
-        layout.put('%', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_5));
-        layout.put('^', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_6));
-        layout.put('&', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_7));
-        layout.put('*', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_8));
-        layout.put('(', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_9));
-        layout.put(')', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_0));
+        layout['\\'] = Stroke()
+            .type(KeyboardUsage.KBD_BACKSLASH)
+        layout['|'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_BACKSLASH)
 
-        layout.put('\\', new Stroke()
-                .type(KeyboardUsage.KBD_BACKSLASH));
-        layout.put('|', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_BACKSLASH));
+        layout['='] = Stroke()
+            .type(KeyboardUsage.KBD_EQUAL)
+        layout['+'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_EQUAL)
 
-        layout.put('=', new Stroke()
-                .type(KeyboardUsage.KBD_EQUAL));
-        layout.put('+', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_EQUAL));
+        layout[','] = Stroke()
+            .type(KeyboardUsage.KBD_COMMA)
+        layout['<'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_COMMA)
 
-        layout.put(',', new Stroke()
-                .type(KeyboardUsage.KBD_COMMA));
-        layout.put('<', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_COMMA));
+        layout['.'] = Stroke()
+            .type(KeyboardUsage.KBD_DOT)
+        layout['>'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_DOT)
 
-        layout.put('.', new Stroke()
-                .type(KeyboardUsage.KBD_DOT));
-        layout.put('>', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_DOT));
+        layout['/'] = Stroke()
+            .type(KeyboardUsage.KBD_SLASH)
+        layout['?'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_SLASH)
 
-        layout.put('/', new Stroke()
-                .type(KeyboardUsage.KBD_SLASH));
-        layout.put('?', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_SLASH));
+        layout[';'] = Stroke()
+            .type(KeyboardUsage.KBD_SEMICOLON)
+        layout[':'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_SEMICOLON)
 
-        layout.put(';', new Stroke()
-                .type(KeyboardUsage.KBD_SEMICOLON));
-        layout.put(':', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_SEMICOLON));
+        layout['\''] = Stroke()
+            .type(KeyboardUsage.KBD_APOSTROPHE)
+        layout['"'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_APOSTROPHE)
 
-        layout.put('\'', new Stroke()
-                .type(KeyboardUsage.KBD_APOSTROPHE));
-        layout.put('"', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_APOSTROPHE));
+        layout['['] = Stroke()
+            .type(KeyboardUsage.KBD_LEFTBRACE)
+        layout['{'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_LEFTBRACE)
 
-        layout.put('[', new Stroke()
-                .type(KeyboardUsage.KBD_LEFTBRACE));
-        layout.put('{', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_LEFTBRACE));
+        layout[']'] = Stroke()
+            .type(KeyboardUsage.KBD_RIGHTBRACE)
+        layout['}'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_RIGHTBRACE)
 
-        layout.put(']', new Stroke()
-                .type(KeyboardUsage.KBD_RIGHTBRACE));
-        layout.put('}', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_RIGHTBRACE));
+        layout['-'] = Stroke()
+            .type(KeyboardUsage.KBD_MINUS)
+        layout['_'] = Stroke()
+            .press(KeyModifier.LEFT_SHIFT)
+            .type(KeyboardUsage.KBD_MINUS)
 
-        layout.put('-', new Stroke()
-                .type(KeyboardUsage.KBD_MINUS));
-        layout.put('_', new Stroke()
-                .press(LEFT_SHIFT)
-                .type(KeyboardUsage.KBD_MINUS));
-
-        layout.put('\t', new Stroke()
-                .type(KeyboardUsage.KBD_TAB));
-        layout.put(' ', new Stroke()
-                .type(KeyboardUsage.KBD_SPACE));
-        layout.put('\r', new Stroke()); //will be ignored
-        layout.put('\n', new Stroke()
-                .type(KeyboardUsage.KBD_ENTER));
+        layout['\t'] = Stroke()
+            .type(KeyboardUsage.KBD_TAB)
+        layout[' '] = Stroke()
+            .type(KeyboardUsage.KBD_SPACE)
+        layout['\r'] = Stroke() //will be ignored
+        layout['\n'] = Stroke()
+            .type(KeyboardUsage.KBD_ENTER)
     }
 
-    @Override
-    public Stroke forKey(char c) {
-        var s = layout.get(c);
+    override fun forKey(c: Char): Stroke? {
+        var s = layout[c]
 
         if (s == null) {
             //lookup lower case character and set it uppercase
-            var cLower = Character.toLowerCase(c);
-            s = layout.get(cLower);
+            val cLower = c.lowercaseChar()
+            s = layout.get(cLower)
 
             if (s != null) {
-                s = s.toUpper();
-                if (s == null)
-                    Log.e(TAG, "Cannot capitalize " + c + ", create dedicated Stroke definition");
-                return s;
+                s = s.toUpper()
+                if (s == null) Log.e(
+                    TAG,
+                    "Cannot capitalize $c, create dedicated Stroke definition"
+                )
+                return s
             }
         } else {
-            return s;
+            return s
         }
 
-        return null;
+        return null
     }
 
-    @NonNull
-    @Override
-    public String toString() {
-        return "English (US)";
+    override fun toString(): String {
+        return "English (US)"
+    }
+
+    companion object {
+        private val TAG: String = USLayout::class.java.getSimpleName()
     }
 }

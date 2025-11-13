@@ -153,7 +153,7 @@ public class PinSetupFragment extends Fragment {
             var drawable = ResourcesCompat.getDrawable(getResources(), isPinValid() ?
                             R.drawable.baseline_check_circle_24 :
                             R.drawable.baseline_cancel_24,
-                    getContext().getTheme());
+                    requireContext().getTheme());
 
             binding.imgViewPinMatch.setImageDrawable(drawable);
             validateForm();
@@ -176,7 +176,7 @@ public class PinSetupFragment extends Fragment {
             var drawable = ResourcesCompat.getDrawable(getResources(), isPanicPinValid() ?
                             R.drawable.baseline_check_circle_24 :
                             R.drawable.baseline_cancel_24,
-                    getContext().getTheme());
+                    requireContext().getTheme());
 
             binding.imgViewPanicMatch.setImageDrawable(drawable);
             validateForm();

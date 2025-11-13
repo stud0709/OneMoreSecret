@@ -198,7 +198,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                     try {
                         return (KeyboardLayout) clazz.getDeclaredConstructor().newInstance();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Util.printStackTrace(e);
                         return null;
                     }
                 })
@@ -211,7 +211,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         //select last used keyboard layout
         var lastSelectedKeyboardLayout = preferences.getString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, null);
         for (var i = 0; i < keyboardLayoutAdapter.getCount(); i++) {
-            if (keyboardLayoutAdapter.getItem(i).getClass().getName().equals(lastSelectedKeyboardLayout)) {
+            if (Objects.requireNonNull(keyboardLayoutAdapter.getItem(i)).getClass().getName().equals(lastSelectedKeyboardLayout)) {
                 binding.spinnerKeyboardLayout.setSelection(i);
                 break;
             }
@@ -321,7 +321,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                                             0,
                                             r.getReport());
                         } catch (Exception ex) {
-                            ex.printStackTrace();
+                            Util.printStackTrace(ex);
                             typing.set(false);
                             return;
                         }
@@ -329,7 +329,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                         try {
                             Thread.sleep(binding.swDelayedStrokes.isChecked() ? getKeyStrokeDelayOn() : getKeyStrokeDelayOff());
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            Util.printStackTrace(e);
                         }
                     });
 
@@ -371,7 +371,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                         refreshingBtControls.set(true);
 
                         try {
-                            var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                            var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, requireContext().getTheme());
                             binding.chipBtStatus.setChipIcon(drawable);
                             binding.chipBtStatus.setText(getString(R.string.bt_not_available));
 
@@ -431,11 +431,11 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                                 && !isTyping);
 
                         var status = getString(R.string.bt_off);
-                        var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, getContext().getTheme());
+                        var drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_disabled_24, requireContext().getTheme());
 
                         if (bluetoothAdapterEnabled) {
                             status = getString(R.string.bt_disconnected);
-                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, getContext().getTheme());
+                            drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_24, requireContext().getTheme());
                         }
 
                         binding.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled && !isTyping);
@@ -454,7 +454,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                             //restore selection
                             if (selectedBtAddress != null) {
                                 for (var i = 0; i < arrayAdapterDevice.getCount(); i++) {
-                                    if (arrayAdapterDevice.getItem(i).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
+                                    if (Objects.requireNonNull(arrayAdapterDevice.getItem(i)).getBluetoothDevice().getAddress().equals(selectedBtAddress)) {
                                         binding.spinnerBluetoothTarget.setSelection(i);
                                         break;
                                     }
@@ -471,7 +471,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                             selectedDeviceConnected = connectedDevices.stream().anyMatch(d -> d.getAddress().equals(selectedBtAddress));
                             if (selectedDeviceConnected) {
                                 status = getString(R.string.bt_connected);
-                                drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_connected_24, getContext().getTheme());
+                                drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_baseline_bluetooth_connected_24, requireContext().getTheme());
                             }
                         }
 
@@ -675,7 +675,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
         // Initialize the ListView and Button
         ListView listView = dialogView.findViewById(R.id.listViewUsbUsage);
 
-        var items = KeyboardUsage.values();
+        var items = KeyboardUsage.getEntries();
 
         // Set up the ListView with an ArrayAdapter
         var adapter = new ArrayAdapter<>(
@@ -692,7 +692,7 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
 
         // Set item click listener for the ListView
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            KeyboardUsage selectedItem = items[position];
+            KeyboardUsage selectedItem = items.get(position);
             Toast.makeText(requireContext(), selectedItem.toString(), Toast.LENGTH_SHORT).show();
 
             if (requireContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -721,9 +721,8 @@ public class OutputFragment extends FragmentWithNotificationBeforePause {
                                     r.getReport());
                     Log.d(TAG, "sent: " + r);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Util.printStackTrace(ex);
                     typing.set(false);
-                    return;
                 }
             });
         });

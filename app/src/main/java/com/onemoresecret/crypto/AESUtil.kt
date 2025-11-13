@@ -1,135 +1,159 @@
-package com.onemoresecret.crypto;
+package com.onemoresecret.crypto
 
-import android.content.SharedPreferences;
+import android.content.SharedPreferences
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.security.InvalidAlgorithmParameterException
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.security.SecureRandom
+import java.security.spec.InvalidKeySpecException
+import java.util.function.Consumer
+import java.util.function.Supplier
+import javax.crypto.BadPaddingException
+import javax.crypto.Cipher
+import javax.crypto.IllegalBlockSizeException
+import javax.crypto.NoSuchPaddingException
+import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-
-public final class AESUtil {
-    private AESUtil() {
+object AESUtil {
+    @JvmStatic
+    @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
+    fun getKeyFromPassword(
+        password: CharArray?,
+        salt: ByteArray?,
+        keyAlgorithm: String?,
+        keyLength: Int,
+        keySpecIterations: Int
+    ): SecretKey {
+        val factory = SecretKeyFactory.getInstance(keyAlgorithm)
+        val spec = PBEKeySpec(password, salt, keySpecIterations, keyLength)
+        return SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES")
     }
 
-    public static SecretKey getKeyFromPassword(char[] password, byte[] salt, String keyAlgorithm, int keyLength, int keySpecIterations)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
-
-        var factory = SecretKeyFactory.getInstance(keyAlgorithm);
-        var spec = new PBEKeySpec(password, salt, keySpecIterations, keyLength);
-        return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
+    @JvmStatic
+    fun generateIv(): IvParameterSpec {
+        val iv = ByteArray(16)
+        SecureRandom().nextBytes(iv)
+        return IvParameterSpec(iv)
     }
 
-    public static IvParameterSpec generateIv() {
-        var iv = new byte[16];
-        new SecureRandom().nextBytes(iv);
-        return new IvParameterSpec(iv);
+    @JvmStatic
+    fun generateRandomSecretKey(keyLength: Int): SecretKey {
+        val bArr = ByteArray(keyLength / 8)
+        SecureRandom().nextBytes(bArr)
+        return SecretKeySpec(bArr, "AES")
     }
 
-    public static SecretKey generateRandomSecretKey(int keyLength) {
-        var bArr = new byte[keyLength / 8];
-        new SecureRandom().nextBytes(bArr);
-        return new SecretKeySpec(bArr, "AES");
+    @JvmStatic
+    fun generateSalt(saltLength: Int): ByteArray {
+        val salt = ByteArray(saltLength)
+        SecureRandom().nextBytes(salt)
+        return salt
     }
 
-    public static byte[] generateSalt(int saltLength) {
-        var salt = new byte[saltLength];
-        new SecureRandom().nextBytes(salt);
-        return salt;
+    @JvmStatic
+    @Throws(
+        NoSuchPaddingException::class,
+        NoSuchAlgorithmException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        BadPaddingException::class,
+        IllegalBlockSizeException::class
+    )
+    fun process(
+        cipherMode: Int,
+        input: ByteArray?,
+        key: SecretKey?,
+        iv: IvParameterSpec?,
+        aesTransformation: String?
+    ): ByteArray? {
+        val cipher = Cipher.getInstance(aesTransformation)
+        cipher.init(cipherMode, key, iv)
+        return cipher.doFinal(input)
     }
 
-    public static byte[] process(int cipherMode, byte[] input,
-                                 SecretKey key,
-                                 IvParameterSpec iv,
-                                 String aesTransformation) throws
-            NoSuchPaddingException,
-            NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException,
-            InvalidKeyException,
-            BadPaddingException,
-            IllegalBlockSizeException {
+    @Throws(
+        NoSuchPaddingException::class,
+        NoSuchAlgorithmException::class,
+        InvalidAlgorithmParameterException::class,
+        InvalidKeyException::class,
+        BadPaddingException::class,
+        IllegalBlockSizeException::class,
+        IOException::class
+    )
+    @JvmStatic
+    fun process(
+        cipherMode: Int,
+        `is`: InputStream,
+        os: OutputStream,
+        key: SecretKey?,
+        iv: IvParameterSpec?,
+        aesTransformation: String?,
+        cancellationSupplier: Supplier<Boolean?>?,
+        progressConsumer: Consumer<Int?>?
+    ) {
+        val cipher = Cipher.getInstance(aesTransformation)
+        cipher.init(cipherMode, key, iv)
 
-        var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(cipherMode, key, iv);
-        return cipher.doFinal(input);
-    }
+        val iArr = ByteArray(1024)
+        var length: Int
+        var bytesProcessed = 0
 
-    public static void process(int cipherMode, InputStream is,
-                               OutputStream os,
-                               SecretKey key,
-                               IvParameterSpec iv,
-                               String aesTransformation,
-                               Supplier<Boolean> cancellationSupplier,
-                               Consumer<Integer> progressConsumer) throws
-            NoSuchPaddingException,
-            NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException,
-            InvalidKeyException,
-            BadPaddingException,
-            IllegalBlockSizeException,
-            IOException {
-
-        var cipher = Cipher.getInstance(aesTransformation);
-        cipher.init(cipherMode, key, iv);
-
-        var iArr = new byte[1024];
-        int length;
-        int bytesProcessed = 0;
-
-        while ((length = is.read(iArr)) > 0 &&
-                (cancellationSupplier == null || !cancellationSupplier.get())) {
-            os.write(cipher.update(iArr, 0, length));
-            bytesProcessed += length;
-            if (progressConsumer != null) progressConsumer.accept(bytesProcessed);
+        while ((`is`.read(iArr).also { length = it }) > 0 &&
+            (cancellationSupplier == null || !cancellationSupplier.get()!!)
+        ) {
+            os.write(cipher.update(iArr, 0, length))
+            bytesProcessed += length
+            progressConsumer?.accept(bytesProcessed)
         }
 
-        os.write(cipher.doFinal());
+        os.write(cipher.doFinal())
     }
 
 
-    public static final String PROP_AES_KEY_LENGTH = "aes_key_length", PROP_AES_KEY_ITERATIONS = "aes_key_iterations",
-            PROP_AES_SALT_LENGTH = "aes_salt_length", PROP_AES_TRANSFORMATION_IDX = "aes_transformation_idx", PROP_AES_KEY_ALGORITHM_IDX = "aes_key_algorithm_idx";
+    const val PROP_AES_KEY_LENGTH: String = "aes_key_length"
+    const val PROP_AES_KEY_ITERATIONS: String = "aes_key_iterations"
+    const val PROP_AES_SALT_LENGTH: String = "aes_salt_length"
+    const val PROP_AES_TRANSFORMATION_IDX: String = "aes_transformation_idx"
+    const val PROP_AES_KEY_ALGORITHM_IDX: String = "aes_key_algorithm_idx"
 
-    public static int getAesTransformationIdx(SharedPreferences preferences) {
-        return preferences.getInt(PROP_AES_TRANSFORMATION_IDX, 0);
+    @JvmStatic
+    fun getAesTransformationIdx(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_AES_TRANSFORMATION_IDX, 0)
     }
 
-    public static AesTransformation getAesTransformation(SharedPreferences preferences) {
-        return AesTransformation.values()[getAesTransformationIdx(preferences)];
+    fun getAesTransformation(preferences: SharedPreferences): AesTransformation {
+        return AesTransformation.entries[getAesTransformationIdx(preferences)]
     }
 
-    public static int getAesKeyAlgorithmIdx(SharedPreferences preferences) {
-        return preferences.getInt(PROP_AES_KEY_ALGORITHM_IDX, 0);
+    @JvmStatic
+    fun getAesKeyAlgorithmIdx(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_AES_KEY_ALGORITHM_IDX, 0)
     }
 
-    public static AesKeyAlgorithm getAesKeyAlgorithm(SharedPreferences preferences) {
-        return AesKeyAlgorithm.values()[getAesKeyAlgorithmIdx(preferences)];
+    @JvmStatic
+    fun getAesKeyAlgorithm(preferences: SharedPreferences): AesKeyAlgorithm {
+        return AesKeyAlgorithm.entries[getAesKeyAlgorithmIdx(preferences)]
     }
 
-    public static int getSaltLength(SharedPreferences preferences) {
-        return preferences.getInt(PROP_AES_SALT_LENGTH, 16);
+    @JvmStatic
+    fun getSaltLength(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_AES_SALT_LENGTH, 16)
     }
 
-    public static int getKeyspecIterations(SharedPreferences preferences) {
-        return preferences.getInt(PROP_AES_KEY_ITERATIONS, 1024);
+    @JvmStatic
+    fun getKeyspecIterations(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_AES_KEY_ITERATIONS, 1024)
     }
 
-    public static int getKeyLength(SharedPreferences preferences) {
-        return preferences.getInt(PROP_AES_KEY_LENGTH, 256);
+    @JvmStatic
+    fun getKeyLength(preferences: SharedPreferences): Int {
+        return preferences.getInt(PROP_AES_KEY_LENGTH, 256)
     }
 }
