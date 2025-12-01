@@ -70,12 +70,12 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
         binding.btnBackup.setOnClickListener(btn -> {
             try {
                 var fileRecord = OmsFileProvider.create(requireContext(), address + "_backup.html", true);
-                Files.write(fileRecord.path(), backupSupplier.get().getBytes(StandardCharsets.UTF_8));
-                fileRecord.path().toFile().deleteOnExit();
+                Files.write(fileRecord.path, backupSupplier.get().getBytes(StandardCharsets.UTF_8));
+                fileRecord.path.toFile().deleteOnExit();
 
                 var intent = new Intent();
                 intent.setAction(Intent.ACTION_SEND);
-                intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+                intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.setType("text/html");
                 startActivity(Intent.createChooser(intent, String.format(getString(R.string.backup_file), address)));

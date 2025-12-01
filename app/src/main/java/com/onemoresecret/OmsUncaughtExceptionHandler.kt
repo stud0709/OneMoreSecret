@@ -1,25 +1,20 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.app.Activity;
-import android.content.Intent;
+import android.app.Activity
+import android.content.Intent
 
-import androidx.annotation.NonNull;
-
-public class OmsUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
-    public static final String EXTRA_CRASH_REPORT = "CRASH_REPORT";
-    private final Activity activity;
-
-    public OmsUncaughtExceptionHandler(Activity context) {
-        this.activity = context;
+class OmsUncaughtExceptionHandler(private val activity: Activity) :
+    Thread.UncaughtExceptionHandler {
+    override fun uncaughtException(t: Thread, e: Throwable) {
+        val crashReportData = CrashReportData(e)
+        val intent = Intent(activity, CrashReportActivity::class.java)
+        intent.putExtra(EXTRA_CRASH_REPORT, crashReportData)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        activity.startActivity(intent)
+        activity.finish()
     }
 
-    @Override
-    public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
-        var crashReportData = new CrashReportData(e);
-        var intent = new Intent(activity, CrashReportActivity.class);
-        intent.putExtra(EXTRA_CRASH_REPORT, crashReportData);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        activity.startActivity(intent);
-        activity.finish();
+    companion object {
+        const val EXTRA_CRASH_REPORT: String = "CRASH_REPORT"
     }
 }

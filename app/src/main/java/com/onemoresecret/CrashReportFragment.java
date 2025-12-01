@@ -52,9 +52,9 @@ public class CrashReportFragment extends Fragment {
         try {
             var crashReport = crashReportData.toString(binding.chkLogcat.isChecked());
             var fileRecord = OmsFileProvider.create(requireContext(), "crash_report.txt", false);
-            Files.write(fileRecord.path(), crashReport.getBytes(StandardCharsets.UTF_8));
+            Files.write(fileRecord.path, crashReport.getBytes(StandardCharsets.UTF_8));
             var intentSend = intentFx.apply(Intent.ACTION_SEND);
-            intentSend.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+            intentSend.putExtra(Intent.EXTRA_STREAM, fileRecord.uri);
             intentSend.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intentSend.putExtra(Intent.EXTRA_TEXT, "The report file has been attached. Please use this email to provide additional feedback (this is optional).");
 

@@ -118,7 +118,7 @@ public class FileEncryptionFragment extends Fragment {
                             true);
 
                     EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
-                            fileRecord.path().toFile(),
+                            fileRecord.path.toFile(),
                             (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(selectedAlias)).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
@@ -137,13 +137,13 @@ public class FileEncryptionFragment extends Fragment {
 
                         var intent = new Intent(Intent.ACTION_SEND);
                         intent.setType("application/octet-stream");
-                        intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+                        intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri);
                         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
                         startActivity(intent);
                     } else {
                         //operation has been cancelled
-                        Files.delete(fileRecord.path());
+                        Files.delete(fileRecord.path);
                         requireContext().getMainExecutor().execute(() -> {
                             if (binding == null) return;
                             binding.btnEncrypt.setText(R.string.encrypt);

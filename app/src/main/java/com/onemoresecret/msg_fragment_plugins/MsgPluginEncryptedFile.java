@@ -89,7 +89,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
                             fileInfo.filename.substring(0, fileInfo.filename.length() - (MessageComposer.OMS_FILE_TYPE.length() + 1 /*the dot*/)),
                             true);
 
-                    try (FileOutputStream fos = new FileOutputStream(fileRecord.path().toFile())) {
+                    try (FileOutputStream fos = new FileOutputStream(fileRecord.path.toFile())) {
                         AESUtil.process(Cipher.DECRYPT_MODE, dataInputStream,
                                 fos,
                                 aesSecretKey,
@@ -100,10 +100,10 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
                     }
 
                     if (destroyed) {
-                        Files.delete(fileRecord.path());
+                        Files.delete(fileRecord.path);
                     } else {
                         updateProgress(fileInfo.fileSize); //100%
-                        ((FileOutputFragment) outputView).setUri(fileRecord.uri());
+                        ((FileOutputFragment) outputView).setUri(fileRecord.uri);
                     }
                 } catch (Exception ex) {
                     Util.printStackTrace(ex);

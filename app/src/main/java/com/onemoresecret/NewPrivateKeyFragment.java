@@ -137,12 +137,12 @@ public class NewPrivateKeyFragment extends Fragment {
             var html = getKeyBackupHtml(alias, fingerprint, message);
             var fingerprintString = Util.byteArrayToHex(fingerprint).replaceAll("\\s", "_");
             var fileRecord = OmsFileProvider.create(requireContext(), "pk_" + fingerprintString + ".html", true);
-            Files.write(fileRecord.path(), html.getBytes(StandardCharsets.UTF_8));
-            fileRecord.path().toFile().deleteOnExit();
+            Files.write(fileRecord.path, html.getBytes(StandardCharsets.UTF_8));
+            fileRecord.path.toFile().deleteOnExit();
 
             var intent = new Intent();
             intent.setAction(Intent.ACTION_SEND);
-            intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri());
+            intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.setType("text/html");
             startActivity(Intent.createChooser(intent, String.format(getString(R.string.backup_file), alias)));

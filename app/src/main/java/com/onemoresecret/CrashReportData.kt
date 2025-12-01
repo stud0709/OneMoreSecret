@@ -1,80 +1,91 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Build;
-import android.util.Log;
+import android.os.Build
+import android.util.Log
+import com.onemoresecret.Util.printStackTrace
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.io.Serializable
+import java.io.StringWriter
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.Serializable;
-import java.io.StringWriter;
-import java.util.Arrays;
+class CrashReportData(private val throwable: Throwable?) : Serializable {
+    private val logcat: String? = getLogcat()
 
-public class CrashReportData implements Serializable {
-
-    private final Throwable throwable;
-    private final String logcat;
-
-    private static final String TAG = CrashReportData.class.getSimpleName();
-
-    public CrashReportData(Throwable throwable) {
-        this.throwable = throwable;
-        logcat = getLogcat();
-    }
-
-    public static String getLogcat() {
-        return getProcessOutput("logcat", "-b", "all", "-d");
-    }
-
-    public static String getProcessOutput(String... sArr) {
-        Log.d(TAG, String.format("Collecting data from %s...", Arrays.toString(sArr)));
+    fun toString(includeLogcat: Boolean): String? {
         try {
-            var p = Runtime.getRuntime().exec(sArr);
-
-            try (BufferedReader bais = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                 StringWriter sw = new StringWriter();
-                 PrintWriter pw = new PrintWriter(sw)) {
-
-                String line;
-                while ((line = bais.readLine()) != null) {
-                    pw.println(line);
+            StringWriter().use { sw ->
+                PrintWriter(sw).use { pw ->
+                    pw.println(
+                        String.format(
+                            "OneMoreSecret version: %s (%s)",
+                            BuildConfig.VERSION_NAME,
+                            BuildConfig.FLAVOR
+                        )
+                    )
+                    if (throwable != null) {
+                        pw.println("\n----- STACK TRACE -----")
+                        throwable.printStackTrace(pw)
+                    }
+                    pw.println("\n----- DEVICE -----")
+                    pw.println("Brand: " + Build.BRAND)
+                    pw.println("Device: " + Build.DEVICE)
+                    pw.println("Model: " + Build.MODEL)
+                    pw.println("ID: " + Build.ID)
+                    pw.println("Product: " + Build.PRODUCT)
+                    pw.println("\n----- ANDROID OS -----")
+                    pw.println("Android SDK: " + Build.VERSION.SDK_INT)
+                    pw.println("Android release: " + Build.VERSION.RELEASE)
+                    pw.println("Android incremental: " + Build.VERSION.INCREMENTAL)
+                    if (includeLogcat) {
+                        pw.println("\n----- LOGCAT -----")
+                        pw.println(logcat)
+                    }
+                    pw.println("----- END OF REPORT -----")
+                    return sw.toString()
                 }
-                Log.d(TAG, String.format("Done collecting data from %s...", Arrays.toString(sArr)));
-                return sw.toString();
             }
-        } catch (IOException e) {
-            Util.printStackTrace(e);
+        } catch (ex: IOException) {
+            printStackTrace(ex)
+            return null
         }
-        return null;
     }
 
-    public String toString(boolean includeLogcat) {
-        try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
-            pw.println(String.format("OneMoreSecret version: %s (%s)", BuildConfig.VERSION_NAME, BuildConfig.FLAVOR));
-            if (throwable != null) {
-                pw.println("\n----- STACK TRACE -----");
-                throwable.printStackTrace(pw);
+    companion object {
+        private val TAG: String = CrashReportData::class.java.simpleName
+
+        fun getLogcat(): String? {
+            return getProcessOutput("logcat", "-b", "all", "-d")
+        }
+
+        fun getProcessOutput(vararg sArr: String?): String? {
+            Log.d(TAG, String.format("Collecting data from %s...", sArr.contentToString()))
+            try {
+                val p = Runtime.getRuntime().exec(sArr)
+
+                BufferedReader(InputStreamReader(p.inputStream)).use { bais ->
+                    StringWriter().use { sw ->
+                        PrintWriter(sw).use { pw ->
+                            var line: String?
+                            while ((bais.readLine().also { line = it }) != null) {
+                                pw.println(line)
+                            }
+                            Log.d(
+                                TAG,
+                                String.format(
+                                    "Done collecting data from %s...",
+                                    sArr.contentToString()
+                                )
+                            )
+                            return sw.toString()
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                printStackTrace(e)
             }
-            pw.println("\n----- DEVICE -----");
-            pw.println("Brand: " + Build.BRAND);
-            pw.println("Device: " + Build.DEVICE);
-            pw.println("Model: " + Build.MODEL);
-            pw.println("ID: " + Build.ID);
-            pw.println("Product: " + Build.PRODUCT);
-            pw.println("\n----- ANDROID OS -----");
-            pw.println("Android SDK: " + Build.VERSION.SDK_INT);
-            pw.println("Android release: " + Build.VERSION.RELEASE);
-            pw.println("Android incremental: " + Build.VERSION.INCREMENTAL);
-            if (includeLogcat) {
-                pw.println("\n----- LOGCAT -----");
-                pw.println(logcat);
-            }
-            pw.println("----- END OF REPORT -----");
-            return sw.toString();
-        } catch (IOException ex) {
-            Util.printStackTrace(ex);
-            return null;
+            return null
         }
     }
 }
