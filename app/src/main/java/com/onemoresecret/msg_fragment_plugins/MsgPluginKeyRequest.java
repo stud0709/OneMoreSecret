@@ -57,7 +57,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     fingerprint = dataInputStream.readByteArray();
 
                     //(5) transformation index for decryption
-                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
+                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
 
                     //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
                     cipherText = dataInputStream.readByteArray();
@@ -70,7 +70,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     fingerprint = dataInputStream.readByteArray();
 
                     // (5) RSA transformation index for decryption
-                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
+                    rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
 
                     // (6) encrypted AES key from the file header
                     cipherText = dataInputStream.readByteArray();
@@ -123,7 +123,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     var rsaEncryptedAesKey = RSAUtils.process(
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKey,
-                            RSAUtils.getRsaTransformation(preferences).transformation,
+                            RSAUtils.getRsaTransformation(preferences),
                             aesKeyMaterial);
 
                     try (var baos = new ByteArrayOutputStream();

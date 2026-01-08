@@ -20,7 +20,7 @@ import javax.crypto.spec.IvParameterSpec
 class AesEncryptedPrivateKeyTransfer(
     alias: String,
     rsaKeyPair: KeyPair,
-    aesKey: SecretKey?,
+    aesKey: SecretKey,
     iv: IvParameterSpec,
     salt: ByteArray,
     aesTransformationIdx: Int,
@@ -50,7 +50,7 @@ class AesEncryptedPrivateKeyTransfer(
                     dataOutputStream.writeByteArray(salt)
 
                     // (4) iv
-                    dataOutputStream.writeByteArray(iv.getIV())
+                    dataOutputStream.writeByteArray(iv.iv)
 
                     // (5) AES transformation index
                     dataOutputStream.writeUnsignedShort(aesTransformationIdx)
@@ -93,26 +93,26 @@ class AesEncryptedPrivateKeyTransfer(
     )
     private fun getCipherText(
         rsaKeyPair: KeyPair,
-        aesKey: SecretKey?,
-        iv: IvParameterSpec?,
+        aesKey: SecretKey,
+        iv: IvParameterSpec,
         aesTransformationIdx: Int
     ): ByteArray? {
         try {
             ByteArrayOutputStream().use { baos ->
                 OmsDataOutputStream(baos).use { dataOutputStreamCipher ->
-                    val publicKey = rsaKeyPair.getPublic() as RSAPublicKey
-                    val privateKey = rsaKeyPair.getPrivate() as RSAPrivateKey
+                    val publicKey = rsaKeyPair.public as RSAPublicKey
+                    val privateKey = rsaKeyPair.private as RSAPrivateKey
 
                     // (9.1) - private key material
-                    dataOutputStreamCipher.writeByteArray(privateKey.getEncoded())
+                    dataOutputStreamCipher.writeByteArray(privateKey.encoded)
 
                     // (9.2) - public key material
-                    dataOutputStreamCipher.writeByteArray(publicKey.getEncoded())
+                    dataOutputStreamCipher.writeByteArray(publicKey.encoded)
                     return process(
                         Cipher.ENCRYPT_MODE, baos.toByteArray(),
                         aesKey,
                         iv,
-                        AesTransformation.entries[aesTransformationIdx].transformation
+                        AesTransformation.entries[aesTransformationIdx]
                     )
                 }
             }

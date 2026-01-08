@@ -33,11 +33,14 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.InvalidKeySpecException
+import java.security.spec.MGF1ParameterSpec
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.Objects
 import javax.crypto.Cipher
 import javax.crypto.NoSuchPaddingException
+import javax.crypto.spec.OAEPParameterSpec
+import javax.crypto.spec.PSource
 
 class CryptographyManager {
     @JvmField
@@ -69,11 +72,12 @@ class CryptographyManager {
         return cipher
     }
 
-    fun getInitializedCipherForDecryption(keyName: String?, transformation: String?): Cipher {
+    fun getInitializedCipherForDecryption(keyName: String, rsaTransformation: RsaTransformation): Cipher {
         try {
-            val cipher = Cipher.getInstance(transformation)
-            val secretKey = Objects.requireNonNull<PrivateKey>(getPrivateKey(keyName))
+            val cipher = Cipher.getInstance(rsaTransformation.transformation)
+            val secretKey = Objects.requireNonNull(getPrivateKey(keyName))
             cipher.init(Cipher.DECRYPT_MODE, secretKey)
+
             return cipher
         } catch (ex: Exception) {
             throw RuntimeException(ex)

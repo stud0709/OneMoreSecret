@@ -28,14 +28,14 @@ import javax.crypto.spec.IvParameterSpec
 
 abstract class MessageComposer {
     @JvmRecord
-    data class AesEncryptionParameters(val secretKey: SecretKey?, val iv: IvParameterSpec?)
+    data class AesEncryptionParameters(val secretKey: SecretKey, val iv: IvParameterSpec)
 
     @JvmRecord
     data class RsaAesEnvelope(
         @JvmField val applicationId: Int,
-        @JvmField val rsaTransormation: String,
+        @JvmField val rsaTransormation: RsaTransformation,
         @JvmField val fingerprint: ByteArray,
-        @JvmField val aesTransformation: String,
+        @JvmField val aesTransformation: AesTransformation,
         @JvmField val iv: ByteArray,
         @JvmField val encryptedAesSecretKey: ByteArray
     ) {
@@ -185,7 +185,7 @@ abstract class MessageComposer {
             rsaTransformationIdx: Int,
             aesKeyLength: Int,
             aesTransformationIdx: Int,
-            payload: ByteArray?
+            payload: ByteArray
         ): ByteArray {
             return createRsaAesEnvelope(
                 APPLICATION_RSA_AES_GENERIC,
@@ -211,7 +211,7 @@ abstract class MessageComposer {
             rsaTransformationIdx: Int,
             aesKeyLength: Int,
             aesTransformationIdx: Int,
-            payload: ByteArray?
+            payload: ByteArray
         ): ByteArray {
             try {
                 ByteArrayOutputStream().use { baos ->
@@ -232,7 +232,7 @@ abstract class MessageComposer {
                                 payload,
                                 aesEncryptionParameters.secretKey,
                                 aesEncryptionParameters.iv,
-                                AesTransformation.entries[aesTransformationIdx].transformation
+                                AesTransformation.entries[aesTransformationIdx]
                             )
                         )
                         return baos.toByteArray()
@@ -265,11 +265,12 @@ abstract class MessageComposer {
             val secretKey = generateRandomSecretKey(aesKeyLength)
 
             // encrypt AES secret key with RSA
+            val rsaTransformation = RsaTransformation.entries[rsaTransformationIdx]
             val cipher =
-                Cipher.getInstance(RsaTransformation.entries[rsaTransformationIdx].transformation)
+                Cipher.getInstance(rsaTransformation.transformation)
             cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
 
-            val encryptedSecretKey = cipher.doFinal(secretKey.getEncoded())
+            val encryptedSecretKey = cipher.doFinal(secretKey.encoded)
 
             // (1) application-ID
             dataOutputStream.writeUnsignedShort(applicationId)
@@ -300,8 +301,8 @@ abstract class MessageComposer {
 
             //(2) RSA transformation index
             val rsaTransformation =
-                RsaTransformation.entries[dataInputStream.readUnsignedShort()].transformation
-            Log.d(TAG, "RSA transformation: $rsaTransformation")
+                RsaTransformation.entries[dataInputStream.readUnsignedShort()]
+            Log.d(TAG, "RSA transformation: ${rsaTransformation.transformation}")
 
             //(3) RSA fingerprint
             val fingerprint = dataInputStream.readByteArray()
@@ -309,8 +310,8 @@ abstract class MessageComposer {
 
             // (4) AES transformation index
             val aesTransformation =
-                AesTransformation.entries[dataInputStream.readUnsignedShort()].transformation
-            Log.d(TAG, "AES transformation: $aesTransformation")
+                AesTransformation.entries[dataInputStream.readUnsignedShort()]
+            Log.d(TAG, "AES transformation: ${aesTransformation.transformation}")
 
             //(5) IV
             val iv = dataInputStream.readByteArray()
@@ -318,6 +319,7 @@ abstract class MessageComposer {
 
             //(6) RSA-encrypted AES secret key
             val encryptedAesSecretKey = dataInputStream.readByteArray()
+            Log.d(TAG, "RSA-encrypted AES secret key: " + Util.byteArrayToHex(encryptedAesSecretKey))
 
             //(7) AES-encrypted message <= leave here
             return RsaAesEnvelope(

@@ -21,7 +21,10 @@ object RSAUtils {
 
     @JvmStatic
     fun getRsaTransformationIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(PROP_RSA_TRANSFORMATION_IDX, 0)
+        return preferences.getInt(
+            PROP_RSA_TRANSFORMATION_IDX,
+            RsaTransformation.RSA_ECB_OAEPWithSHA_256AndMGF1Padding.ordinal
+        )
     }
 
     @JvmStatic
@@ -33,8 +36,8 @@ object RSAUtils {
     @Throws(NoSuchAlgorithmException::class)
     fun getFingerprint(publicKey: RSAPublicKey): ByteArray {
         val sha256 = MessageDigest.getInstance("SHA-256")
-        sha256.update(publicKey.getModulus().toByteArray())
-        return sha256.digest(publicKey.getPublicExponent().toByteArray())
+        sha256.update(publicKey.modulus.toByteArray())
+        return sha256.digest(publicKey.publicExponent.toByteArray())
     }
 
     @JvmStatic
@@ -53,8 +56,13 @@ object RSAUtils {
         IllegalBlockSizeException::class,
         BadPaddingException::class
     )
-    fun process(cipherMode: Int, key: Key, transformation: String, data: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance(transformation)
+    fun process(
+        cipherMode: Int,
+        key: Key,
+        rsaTransformation: RsaTransformation,
+        data: ByteArray
+    ): ByteArray {
+        val cipher = Cipher.getInstance(rsaTransformation.transformation)
         cipher.init(cipherMode, key)
 
         return cipher.doFinal(data)

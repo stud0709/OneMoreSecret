@@ -44,6 +44,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
+import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
@@ -779,7 +780,7 @@ public class QRFragment extends Fragment {
     }
 
     public void showBiometricPromptForDecryption(byte[] fingerprint,
-                                                 String rsaTransformation,
+                                                 RsaTransformation rsaTransformation,
                                                  BiometricPrompt.AuthenticationCallback authenticationCallback) {
         var cryptographyManager = new CryptographyManager();
         List<String> aliases;

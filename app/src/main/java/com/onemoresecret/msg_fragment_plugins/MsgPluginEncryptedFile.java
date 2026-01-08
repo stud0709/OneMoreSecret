@@ -17,6 +17,7 @@ import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.MessageComposer;
+import com.onemoresecret.crypto.RsaTransformation;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;

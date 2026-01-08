@@ -17,6 +17,7 @@ import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.RsaTransformation;
 
 import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
@@ -28,7 +29,7 @@ public abstract class MessageFragmentPlugin extends BiometricPrompt.Authenticati
     protected final FragmentActivity activity;
     protected byte[] fingerprint;
     protected final SharedPreferences preferences;
-    protected String rsaTransformation;
+    protected RsaTransformation rsaTransformation;
     protected final String TAG = getClass().getSimpleName();
     protected Fragment messageView;
     protected FragmentWithNotificationBeforePause outputView;

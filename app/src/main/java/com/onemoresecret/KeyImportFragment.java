@@ -73,7 +73,7 @@ public class KeyImportFragment extends Fragment {
             Log.d(TAG, "IV: " + Util.byteArrayToHex(iv));
 
             // (5) AES transformation index
-            var aesTransformation = AesTransformation.getEntries().get(dataInputStream.readUnsignedShort()).transformation;
+            var aesTransformation = AesTransformation.getEntries().get(dataInputStream.readUnsignedShort());
             Log.d(TAG, "cipher algorithm: " + aesTransformation);
 
             // (6) key algorithm index
@@ -120,7 +120,7 @@ public class KeyImportFragment extends Fragment {
             byte[] salt,
             byte[] iv,
             byte[] cipherText,
-            String aesTransformation,
+            AesTransformation aesTransformation,
             String keyAlg,
             int keyLength,
             int iterations) {

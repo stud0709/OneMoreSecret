@@ -55,7 +55,7 @@ object EncryptedFile {
                         dataOutputStream,
                         aesEncryptionParameters.secretKey,
                         aesEncryptionParameters.iv,
-                        AesTransformation.entries[aesTransformationIdx].transformation,
+                        AesTransformation.entries[aesTransformationIdx],
                         cancellationSupplier,
                         progressConsumer
                     )

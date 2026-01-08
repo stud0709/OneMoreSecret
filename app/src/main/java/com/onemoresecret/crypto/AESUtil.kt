@@ -68,12 +68,12 @@ object AESUtil {
     )
     fun process(
         cipherMode: Int,
-        input: ByteArray?,
-        key: SecretKey?,
-        iv: IvParameterSpec?,
-        aesTransformation: String?
+        input: ByteArray,
+        key: SecretKey,
+        iv: IvParameterSpec,
+        aesTransformation: AesTransformation
     ): ByteArray? {
-        val cipher = Cipher.getInstance(aesTransformation)
+        val cipher = Cipher.getInstance(aesTransformation.transformation)
         cipher.init(cipherMode, key, iv)
         return cipher.doFinal(input)
     }
@@ -92,13 +92,13 @@ object AESUtil {
         cipherMode: Int,
         `is`: InputStream,
         os: OutputStream,
-        key: SecretKey?,
-        iv: IvParameterSpec?,
-        aesTransformation: String?,
+        key: SecretKey,
+        iv: IvParameterSpec,
+        aesTransformation: AesTransformation,
         cancellationSupplier: Supplier<Boolean?>?,
         progressConsumer: Consumer<Int?>?
     ) {
-        val cipher = Cipher.getInstance(aesTransformation)
+        val cipher = Cipher.getInstance(aesTransformation.transformation)
         cipher.init(cipherMode, key, iv)
 
         val iArr = ByteArray(1024)
@@ -125,7 +125,10 @@ object AESUtil {
 
     @JvmStatic
     fun getAesTransformationIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(PROP_AES_TRANSFORMATION_IDX, 0)
+        return preferences.getInt(
+            PROP_AES_TRANSFORMATION_IDX,
+            AesTransformation.AES_CBC_PKCS5Padding.ordinal
+        )
     }
 
     fun getAesTransformation(preferences: SharedPreferences): AesTransformation {
@@ -134,7 +137,10 @@ object AESUtil {
 
     @JvmStatic
     fun getAesKeyAlgorithmIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(PROP_AES_KEY_ALGORITHM_IDX, 0)
+        return preferences.getInt(
+            PROP_AES_KEY_ALGORITHM_IDX,
+            AesKeyAlgorithm.PBKDF2WithHmacSHA256.ordinal
+        )
     }
 
     @JvmStatic
