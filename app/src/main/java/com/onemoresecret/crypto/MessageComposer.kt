@@ -5,14 +5,13 @@ import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.OmsDataOutputStream
 import com.onemoresecret.R
 import com.onemoresecret.Util
-import com.onemoresecret.crypto.AESUtil.generateIv
-import com.onemoresecret.crypto.AESUtil.generateRandomSecretKey
 import com.onemoresecret.crypto.AESUtil.process
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.security.InvalidAlgorithmParameterException
 import java.security.InvalidKeyException
 import java.security.NoSuchAlgorithmException
+import java.security.SecureRandom
 import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import java.util.Objects
@@ -23,17 +22,31 @@ import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import javax.crypto.IllegalBlockSizeException
 import javax.crypto.NoSuchPaddingException
-import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
 
 abstract class MessageComposer {
     @JvmRecord
-    data class AesEncryptionParameters(val secretKey: SecretKey, val iv: IvParameterSpec)
+    data class AesEncryptionParameters(val aesKeyMaterial: ByteArray, val iv: ByteArray) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is AesEncryptionParameters) return false
+
+            if (!aesKeyMaterial.contentEquals(other.aesKeyMaterial)) return false
+            if (!iv.contentEquals(other.iv)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = aesKeyMaterial.contentHashCode()
+            result = 31 * result + iv.hashCode()
+            return result
+        }
+    }
 
     @JvmRecord
     data class RsaAesEnvelope(
         @JvmField val applicationId: Int,
-        @JvmField val rsaTransormation: RsaTransformation,
+        @JvmField val rsaTransformation: RsaTransformation,
         @JvmField val fingerprint: ByteArray,
         @JvmField val aesTransformation: AesTransformation,
         @JvmField val iv: ByteArray,
@@ -44,7 +57,7 @@ abstract class MessageComposer {
             if (other !is RsaAesEnvelope) return false
 
             if (applicationId != other.applicationId) return false
-            if (rsaTransormation != other.rsaTransormation) return false
+            if (rsaTransformation != other.rsaTransformation) return false
             if (!fingerprint.contentEquals(other.fingerprint)) return false
             if (aesTransformation != other.aesTransformation) return false
             if (!iv.contentEquals(other.iv)) return false
@@ -55,11 +68,11 @@ abstract class MessageComposer {
 
         override fun hashCode(): Int {
             var result = applicationId
-            result = 31 * result + (rsaTransormation?.hashCode() ?: 0)
-            result = 31 * result + (fingerprint?.contentHashCode() ?: 0)
-            result = 31 * result + (aesTransformation?.hashCode() ?: 0)
-            result = 31 * result + (iv?.contentHashCode() ?: 0)
-            result = 31 * result + (encryptedAesSecretKey?.contentHashCode() ?: 0)
+            result = 31 * result + rsaTransformation.hashCode()
+            result = 31 * result + fingerprint.contentHashCode()
+            result = 31 * result + aesTransformation.hashCode()
+            result = 31 * result + iv.contentHashCode()
+            result = 31 * result + encryptedAesSecretKey.contentHashCode()
             return result
         }
     }
@@ -230,11 +243,14 @@ abstract class MessageComposer {
                             process(
                                 Cipher.ENCRYPT_MODE,
                                 payload,
-                                aesEncryptionParameters.secretKey,
-                                aesEncryptionParameters.iv,
+                                aesEncryptionParameters.aesKeyMaterial,
+                                Util.Ref(aesEncryptionParameters.iv),
                                 AesTransformation.entries[aesTransformationIdx]
                             )
                         )
+                        //wipe
+                        aesEncryptionParameters.aesKeyMaterial.fill(0)
+                        aesEncryptionParameters.iv.fill(0)
                         return baos.toByteArray()
                     }
                 }
@@ -261,16 +277,16 @@ abstract class MessageComposer {
         ): AesEncryptionParameters {
             // init AES
 
-            val iv = generateIv()
-            val secretKey = generateRandomSecretKey(aesKeyLength)
+            val aesKeyMaterial = ByteArray(aesKeyLength/8)
+            SecureRandom().nextBytes(aesKeyMaterial)
 
             // encrypt AES secret key with RSA
             val rsaTransformation = RsaTransformation.entries[rsaTransformationIdx]
-            val cipher =
-                Cipher.getInstance(rsaTransformation.transformation)
+            val cipher = Cipher.getInstance(rsaTransformation.transformation)
             cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
+            val iv = cipher.iv
 
-            val encryptedSecretKey = cipher.doFinal(secretKey.encoded)
+            val encryptedSecretKey = cipher.doFinal(aesKeyMaterial)
 
             // (1) application-ID
             dataOutputStream.writeUnsignedShort(applicationId)
@@ -285,12 +301,12 @@ abstract class MessageComposer {
             dataOutputStream.writeUnsignedShort(aesTransformationIdx)
 
             // (5) IV
-            dataOutputStream.writeByteArray(iv.getIV())
+            dataOutputStream.writeByteArray(iv)
 
             // (6) RSA-encrypted AES secret key
             dataOutputStream.writeByteArray(encryptedSecretKey)
 
-            return AesEncryptionParameters(secretKey, iv)
+            return AesEncryptionParameters(aesKeyMaterial, iv)
         }
 
         @JvmStatic

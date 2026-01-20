@@ -1,6 +1,7 @@
 package com.onemoresecret.crypto
 
 import android.content.SharedPreferences
+import com.onemoresecret.Util
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -15,7 +16,6 @@ import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import javax.crypto.IllegalBlockSizeException
 import javax.crypto.NoSuchPaddingException
-import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
@@ -24,30 +24,16 @@ import javax.crypto.spec.SecretKeySpec
 object AESUtil {
     @JvmStatic
     @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
-    fun getKeyFromPassword(
-        password: CharArray?,
-        salt: ByteArray?,
-        keyAlgorithm: String?,
+    fun getAesKeyMaterialFromPassword(
+        password: CharArray,
+        salt: ByteArray,
+        keyAlgorithm: String,
         keyLength: Int,
         keySpecIterations: Int
-    ): SecretKey {
+    ): ByteArray {
         val factory = SecretKeyFactory.getInstance(keyAlgorithm)
         val spec = PBEKeySpec(password, salt, keySpecIterations, keyLength)
-        return SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES")
-    }
-
-    @JvmStatic
-    fun generateIv(): IvParameterSpec {
-        val iv = ByteArray(16)
-        SecureRandom().nextBytes(iv)
-        return IvParameterSpec(iv)
-    }
-
-    @JvmStatic
-    fun generateRandomSecretKey(keyLength: Int): SecretKey {
-        val bArr = ByteArray(keyLength / 8)
-        SecureRandom().nextBytes(bArr)
-        return SecretKeySpec(bArr, "AES")
+        return factory.generateSecret(spec).encoded
     }
 
     @JvmStatic
@@ -69,12 +55,25 @@ object AESUtil {
     fun process(
         cipherMode: Int,
         input: ByteArray,
-        key: SecretKey,
-        iv: IvParameterSpec,
+        aesKeyMaterial: ByteArray,
+        iv: Util.Ref<ByteArray>,
         aesTransformation: AesTransformation
-    ): ByteArray? {
+    ): ByteArray {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
-        cipher.init(cipherMode, key, iv)
+        if (iv.value == null) {
+            cipher.init(
+                cipherMode,
+                SecretKeySpec(aesKeyMaterial, "AES")
+            )
+            iv.value = cipher.iv
+        } else {
+            cipher.init(
+                cipherMode,
+                SecretKeySpec(aesKeyMaterial, "AES"),
+                IvParameterSpec(iv.value)
+            )
+        }
+
         return cipher.doFinal(input)
     }
 
@@ -92,14 +91,29 @@ object AESUtil {
         cipherMode: Int,
         `is`: InputStream,
         os: OutputStream,
-        key: SecretKey,
-        iv: IvParameterSpec,
+        aesKeyMaterial: ByteArray,
+        iv: Util.Ref<ByteArray>,
         aesTransformation: AesTransformation,
         cancellationSupplier: Supplier<Boolean?>?,
         progressConsumer: Consumer<Int?>?
     ) {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
-        cipher.init(cipherMode, key, iv)
+        if (iv.value == null) {
+            cipher.init(
+                cipherMode,
+                SecretKeySpec(aesKeyMaterial, "AES")
+            )
+            iv.value = cipher.iv
+        } else {
+            cipher.init(
+                cipherMode,
+                SecretKeySpec(
+                    aesKeyMaterial,
+                    "AES"
+                ),
+                IvParameterSpec(iv.value)
+            )
+        }
 
         val iArr = ByteArray(1024)
         var length: Int
@@ -115,7 +129,6 @@ object AESUtil {
 
         os.write(cipher.doFinal())
     }
-
 
     const val PROP_AES_KEY_LENGTH: String = "aes_key_length"
     const val PROP_AES_KEY_ITERATIONS: String = "aes_key_iterations"

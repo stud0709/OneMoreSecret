@@ -105,7 +105,7 @@ public class TotpImportFragment extends Fragment {
         try {
             return MessageComposer.encodeAsOmsText(
                     new TotpUriTransfer(message,
-                            (RSAPublicKey) cryptographyManager.getCertificate(alias).getPublicKey(),
+                            (RSAPublicKey) cryptographyManager.keyStore.getCertificate(alias).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformationIdx(preferences)).message);

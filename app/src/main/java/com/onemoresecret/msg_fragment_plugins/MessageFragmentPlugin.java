@@ -16,12 +16,15 @@ import com.onemoresecret.OmsFileProvider;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
+import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.RsaTransformation;
 
 import java.security.KeyStoreException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+
+import javax.crypto.Cipher;
 
 public abstract class MessageFragmentPlugin extends BiometricPrompt.AuthenticationCallback {
     protected final MessageFragment messageFragment;
@@ -54,27 +57,21 @@ public abstract class MessageFragmentPlugin extends BiometricPrompt.Authenticati
 
     public void showBiometricPromptForDecryption() throws KeyStoreException {
         var cryptographyManager = new CryptographyManager();
-        var aliases = cryptographyManager.getByFingerprint(fingerprint);
-
-        if (aliases.isEmpty())
+        var keyStoreEntry = cryptographyManager.getByFingerprint(fingerprint, preferences);
+        if (keyStoreEntry == null)
             throw new NoSuchElementException(String.format(context.getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
 
-        if (aliases.size() > 1)
-            throw new NoSuchElementException(context.getString(R.string.multiple_keys_found));
-
         var biometricPrompt = new BiometricPrompt(activity, this);
-        var alias = aliases.get(0);
 
         var promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle(context.getString(R.string.prompt_info_title))
-                .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), alias))
+                .setSubtitle(String.format(context.getString(R.string.prompt_info_subtitle), keyStoreEntry.getAlias()))
                 .setDescription(Objects.requireNonNullElse(getReference(), context.getString(R.string.prompt_info_description)))
                 .setNegativeButtonText(context.getString(android.R.string.cancel))
                 .setConfirmationRequired(false)
                 .build();
 
-        var cipher = new CryptographyManager().getInitializedCipherForDecryption(
-                alias, rsaTransformation);
+        var cipher = cryptographyManager.getInitializedMasterRsaCipher(Cipher.DECRYPT_MODE);
 
         context.getMainExecutor().execute(() -> {
             biometricPrompt.authenticate(

@@ -1,5 +1,6 @@
 package com.onemoresecret;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -16,15 +17,17 @@ import androidx.recyclerview.selection.SelectionTracker;
 import androidx.recyclerview.selection.StorageStrategy;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.onemoresecret.crypto.CryptographyManager;
+import com.onemoresecret.crypto.KeyStoreEntry;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
 import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 
-import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -78,15 +81,16 @@ public class KeyStoreListFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         aliasList.clear();
 
-        try {
-            var aliasesEnum = cryptographyManager.keyStore.aliases();
-            while (aliasesEnum.hasMoreElements()) {
-                aliasList.add(aliasesEnum.nextElement());
+        var preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+        var keysEntries = preferences.getStringSet(CryptographyManager.PROP_KEYSTORE, new HashSet<>());
+        keysEntries.stream().map(s -> {
+            try {
+                return Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
             }
-            Collections.sort(aliasList);
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
-        }
+        }).forEach(e -> aliasList.add(e.getAlias()));
+        Collections.sort(aliasList);
 
         binding.list.setAdapter(itemAdapter);
 
@@ -145,7 +149,7 @@ public class KeyStoreListFragment extends Fragment {
             this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
-                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey();
+                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey();
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
                                 RSAUtils.getFingerprint(publicKey)));

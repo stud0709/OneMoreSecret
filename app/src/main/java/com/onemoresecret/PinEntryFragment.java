@@ -153,22 +153,18 @@ public class PinEntryFragment extends DialogFragment {
 
         try {
             var aliasesEnum = cryptographyManager.keyStore.aliases();
-
             while (aliasesEnum.hasMoreElements()) {
-                cryptographyManager.deleteKey(aliasesEnum.nextElement());
+                cryptographyManager.keyStore.deleteEntry(aliasesEnum.nextElement());
             }
         } catch (KeyStoreException e) {
             throw new RuntimeException(e);
         }
 
         var editor = preferences.edit();
-
-        if (preferences.contains(QRFragment.PROP_RECENT_ENTRIES))
-            editor.remove(QRFragment.PROP_RECENT_ENTRIES);
-
-        if (preferences.contains(QRFragment.PROP_PRESETS))
-            editor.remove(QRFragment.PROP_PRESETS);
-
+        editor.remove(QRFragment.PROP_RECENT_ENTRIES);
+        editor.remove(QRFragment.PROP_PRESETS);
+        editor.remove(CryptographyManager.PROP_KEYSTORE);
+        editor.remove((CryptographyManager.MASTER_KEY_ALIAS));
         editor.apply();
 
         if (runOnPanic != null) runOnPanic.run();

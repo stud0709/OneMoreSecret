@@ -16,18 +16,17 @@ import com.onemoresecret.OmsFileProvider;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.AESUtil;
+import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RsaTransformation;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
     private final Util.UriFileInfo fileInfo;
@@ -45,7 +44,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
              var dataInputStream = new OmsDataInputStream(is)) {
             //read file header
             var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
-            rsaTransformation = rsaAesEnvelope.rsaTransormation;
+            rsaTransformation = rsaAesEnvelope.rsaTransformation;
             fingerprint = rsaAesEnvelope.fingerprint;
         }
     }
@@ -71,18 +70,27 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
     @Override
     public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
         new Thread(() -> {
-            var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+            var masterRsaCipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+            assert masterRsaCipher != null;
+
+            var keyStoreEntry = new CryptographyManager().getByFingerprint(fingerprint, preferences);
+            assert keyStoreEntry != null;
+
+            var userRsaCipherBox = new CryptographyManager().getInitializedUserRsaCipher(
+                    masterRsaCipher,
+                    keyStoreEntry,
+                    rsaTransformation,
+                    Cipher.DECRYPT_MODE);
 
             try (var is = context.getContentResolver().openInputStream(uri);
                  var dataInputStream = new OmsDataInputStream(is)) {
 
-                assert cipher != null;
-
                 //re-read header to get to the start position of the encrypted data
                 var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
 
-                var aesSecretKeyData = cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey);
-                var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                var aesSecretKeyData = userRsaCipherBox.getCipher().doFinal(rsaAesEnvelope.encryptedAesSecretKey);
+                userRsaCipherBox.getWipe().invoke(); //wipe User RSA key data
+
                 lastProgressPrc = -1;
 
                 try {
@@ -93,11 +101,13 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
                     try (FileOutputStream fos = new FileOutputStream(fileRecord.path.toFile())) {
                         AESUtil.process(Cipher.DECRYPT_MODE, dataInputStream,
                                 fos,
-                                aesSecretKey,
-                                new IvParameterSpec(rsaAesEnvelope.iv),
+                                aesSecretKeyData,
+                                new Util.Ref<>(rsaAesEnvelope.iv),
                                 rsaAesEnvelope.aesTransformation,
                                 () -> destroyed,
                                 this::updateProgress);
+
+                        Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
                     }
 
                     if (destroyed) {

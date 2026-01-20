@@ -1,27 +1,24 @@
 package com.onemoresecret.crypto
 
 import com.onemoresecret.OmsDataOutputStream
+import com.onemoresecret.Util
 import com.onemoresecret.crypto.AESUtil.process
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.security.InvalidAlgorithmParameterException
 import java.security.InvalidKeyException
-import java.security.KeyPair
 import java.security.NoSuchAlgorithmException
-import java.security.interfaces.RSAPrivateKey
-import java.security.interfaces.RSAPublicKey
 import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
 import javax.crypto.IllegalBlockSizeException
 import javax.crypto.NoSuchPaddingException
-import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
 
 class AesEncryptedPrivateKeyTransfer(
     alias: String,
-    rsaKeyPair: KeyPair,
-    aesKey: SecretKey,
-    iv: IvParameterSpec,
+    privateKeyMaterial: ByteArray,
+    publicKeyMaterial: ByteArray,
+    aesKeyMaterial: ByteArray,
+    iv: ByteArray,
     salt: ByteArray,
     aesTransformationIdx: Int,
     aesKeyAlgorithmIdx: Int,
@@ -50,7 +47,7 @@ class AesEncryptedPrivateKeyTransfer(
                     dataOutputStream.writeByteArray(salt)
 
                     // (4) iv
-                    dataOutputStream.writeByteArray(iv.iv)
+                    dataOutputStream.writeByteArray(iv)
 
                     // (5) AES transformation index
                     dataOutputStream.writeUnsignedShort(aesTransformationIdx)
@@ -69,8 +66,9 @@ class AesEncryptedPrivateKeyTransfer(
                     // (9) cipher text
                     dataOutputStream.writeByteArray(
                         getCipherText(
-                            rsaKeyPair,
-                            aesKey,
+                            publicKeyMaterial,
+                            privateKeyMaterial,
+                            aesKeyMaterial,
                             iv,
                             aesTransformationIdx
                         )
@@ -92,26 +90,25 @@ class AesEncryptedPrivateKeyTransfer(
         InvalidKeyException::class
     )
     private fun getCipherText(
-        rsaKeyPair: KeyPair,
-        aesKey: SecretKey,
-        iv: IvParameterSpec,
+        publicKeyMaterial: ByteArray,
+        privateKeyMaterial: ByteArray,
+        aesKeyMaterial: ByteArray,
+        iv: ByteArray,
         aesTransformationIdx: Int
     ): ByteArray? {
         try {
             ByteArrayOutputStream().use { baos ->
                 OmsDataOutputStream(baos).use { dataOutputStreamCipher ->
-                    val publicKey = rsaKeyPair.public as RSAPublicKey
-                    val privateKey = rsaKeyPair.private as RSAPrivateKey
-
                     // (9.1) - private key material
-                    dataOutputStreamCipher.writeByteArray(privateKey.encoded)
+                    dataOutputStreamCipher.writeByteArray(privateKeyMaterial)
 
                     // (9.2) - public key material
-                    dataOutputStreamCipher.writeByteArray(publicKey.encoded)
+                    dataOutputStreamCipher.writeByteArray(publicKeyMaterial)
                     return process(
-                        Cipher.ENCRYPT_MODE, baos.toByteArray(),
-                        aesKey,
-                        iv,
+                        Cipher.ENCRYPT_MODE,
+                        baos.toByteArray(),
+                        aesKeyMaterial,
+                        Util.Ref(iv),
                         AesTransformation.entries[aesTransformationIdx]
                     )
                 }

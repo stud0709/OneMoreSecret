@@ -1,6 +1,9 @@
 package com.onemoresecret;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.security.keystore.KeyProperties;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -27,8 +30,10 @@ import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.KeyFactory;
 import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -42,12 +47,13 @@ public class KeyImportFragment extends Fragment {
     private FragmentKeyImportBinding binding;
     private static final String TAG = KeyImportFragment.class.getSimpleName();
     private final CryptographyManager cryptographyManager = new CryptographyManager();
-
     private final KeyImportMenu menuProvider = new KeyImportMenu();
+    private SharedPreferences preferences;
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
         requireActivity().addMenuProvider(menuProvider);
 
         assert getArguments() != null;
@@ -127,7 +133,7 @@ public class KeyImportFragment extends Fragment {
 
         try {
             //try decrypt
-            var secretKey = AESUtil.getKeyFromPassword(
+            var aesKeyMaterial = AESUtil.getAesKeyMaterialFromPassword(
                     binding.editTextPassphrase.getText().toString().toCharArray(),
                     salt,
                     keyAlg,
@@ -137,9 +143,11 @@ public class KeyImportFragment extends Fragment {
             var bArr = AESUtil.process(
                     Cipher.DECRYPT_MODE,
                     cipherText,
-                    secretKey,
-                    new IvParameterSpec(iv),
+                    aesKeyMaterial,
+                    new Util.Ref<>(iv),
                     aesTransformation);
+
+            Arrays.fill(aesKeyMaterial, (byte)0);
 
             try (OmsDataInputStream dataInputStream = new OmsDataInputStream(new ByteArrayInputStream(bArr))) {
                 // (9.1) - private key material
@@ -148,10 +156,9 @@ public class KeyImportFragment extends Fragment {
                 // (9.2) - public key material
                 var publicKeyMaterial = dataInputStream.readByteArray();
 
-                var keyPair = CryptographyManager.restoreKeyPair(privateKeyMaterial, publicKeyMaterial);
-
-                var publicKey = (RSAPublicKey) keyPair.getPublic();
-
+                var publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
+                var keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
+                var publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
                 var fingerprintBytes = RSAUtils.getFingerprint(publicKey);
                 var fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
@@ -169,24 +176,27 @@ public class KeyImportFragment extends Fragment {
                             new Thread(() -> {
                                 try {
                                     //delete other keys with the same fingerprint
-                                    var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes);
-                                    sameFingerprint.forEach(a -> {
-                                        try {
-                                            cryptographyManager.deleteKey(a);
-                                        } catch (KeyStoreException ex) {
-                                            Util.printStackTrace(ex);
-                                        }
-                                    });
+                                    var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintBytes, preferences);
+                                    if (sameFingerprint != null)
+                                        cryptographyManager.deleteKey(sameFingerprint.getAlias(), preferences);
 
                                     var keyAlias = binding.
                                             editTextKeyAlias.
                                             getText().
                                             toString().
                                             trim();
-                                    cryptographyManager.importKey(
-                                            keyAlias,
-                                            keyPair,
-                                            requireContext());
+                                    cryptographyManager.importRsaKey(
+                                            preferences,
+                                            privateKeyMaterial,
+                                            publicKeyMaterial,
+                                            keyAlias);
+
+                                    //neuer Keystore
+                                    cryptographyManager.importRsaKey(
+                                            requireActivity().getPreferences(Context.MODE_PRIVATE),
+                                            privateKeyMaterial,
+                                            publicKeyMaterial,
+                                            keyAlias);
                                     requireContext().getMainExecutor().execute(
                                             () -> {
                                                 Toast.makeText(this.getContext(),
@@ -238,16 +248,16 @@ public class KeyImportFragment extends Fragment {
             String warning = null;
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
-                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey();
+                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey();
                 var fingerprint = RSAUtils.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
                     warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
                 }
             }
 
-            var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew);
-            if (!sameFingerprint.isEmpty()) {
-                warning = String.format(getString(R.string.warning_same_fingerprint), sameFingerprint.get(0));
+            var sameFingerprint = cryptographyManager.getByFingerprint(fingerprintNew, preferences);
+            if (sameFingerprint != null) {
+                warning = String.format(getString(R.string.warning_same_fingerprint), sameFingerprint.getAlias());
             }
 
             var _warning = warning;

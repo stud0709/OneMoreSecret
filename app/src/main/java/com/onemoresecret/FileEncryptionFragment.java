@@ -119,7 +119,7 @@ public class FileEncryptionFragment extends Fragment {
 
                     EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
                             fileRecord.path.toFile(),
-                            (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(selectedAlias)).getPublicKey(),
+                            (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(selectedAlias)).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformationIdx(preferences),

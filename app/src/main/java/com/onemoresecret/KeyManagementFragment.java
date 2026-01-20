@@ -1,6 +1,7 @@
 package com.onemoresecret;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,10 +20,7 @@ import androidx.recyclerview.selection.SelectionTracker;
 
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.databinding.FragmentKeyManagementBinding;
-
-import java.security.KeyStoreException;
 import java.util.Base64;
-import java.util.Objects;
 
 public class KeyManagementFragment extends Fragment {
     private FragmentKeyManagementBinding binding;
@@ -70,8 +68,9 @@ public class KeyManagementFragment extends Fragment {
 
     private String getPublicKeyMessage(String alias) {
         try {
-            var bArr = Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey().getEncoded();
-            return Base64.getEncoder().encodeToString(bArr);
+            var keyStoreEnty = cryptographyManager.getByAlias(alias, requireActivity().getPreferences(Context.MODE_PRIVATE));
+            assert keyStoreEnty != null;
+            return Base64.getEncoder().encodeToString(keyStoreEnty.getPublic());
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
@@ -109,16 +108,9 @@ public class KeyManagementFragment extends Fragment {
                         .setMessage(String.format(getString(R.string.ok_to_delete), alias))
                         .setIcon(android.R.drawable.ic_dialog_alert)
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                            try {
-                                cryptographyManager.deleteKey(alias);
+                                cryptographyManager.deleteKey(alias, requireActivity().getPreferences(Context.MODE_PRIVATE));
                                 Toast.makeText(getContext(), String.format(getString(R.string.key_deleted), alias), Toast.LENGTH_LONG).show();
                                 keyStoreListFragment.onItemRemoved(alias);
-                            } catch (KeyStoreException e) {
-                                Util.printStackTrace(e);
-                                Toast.makeText(getContext(),
-                                        e.getMessage() == null ? String.format(requireContext().getString(R.string.operation_failed_s), e.getClass().getSimpleName()) : e.getMessage(),
-                                        Toast.LENGTH_LONG).show();
-                            }
                         }).setNegativeButton(android.R.string.cancel, null).show();
             } else if (menuItem.getItemId() == R.id.menuItemKeyMgtHelp) {
                 Util.openUrl(R.string.key_management_md_url, requireContext());

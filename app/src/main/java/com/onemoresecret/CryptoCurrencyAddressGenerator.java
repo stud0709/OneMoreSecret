@@ -134,7 +134,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                 var encrypted = new EncryptedCryptoCurrencyAddress(
                         MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                         btcKeyPair.wif,
-                        (RSAPublicKey) Objects.requireNonNull(cryptographyManager.getCertificate(alias)).getPublicKey(),
+                        (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
                         RSAUtils.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformationIdx(preferences)).message;

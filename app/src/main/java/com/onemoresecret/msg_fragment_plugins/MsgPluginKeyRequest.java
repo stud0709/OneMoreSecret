@@ -13,6 +13,7 @@ import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
+import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
 import com.onemoresecret.crypto.RsaTransformation;
@@ -110,13 +111,22 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
     @Override
     public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-        var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+        var masterRsaCipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+        assert masterRsaCipher != null;
+
+        var keyStoreEntry = new CryptographyManager().getByFingerprint(fingerprint, preferences);
+        assert keyStoreEntry != null;
+
+        var userRsaCipherBox = new CryptographyManager().getInitializedUserRsaCipher(
+                masterRsaCipher,
+                keyStoreEntry,
+                rsaTransformation,
+                Cipher.DECRYPT_MODE);
 
         try {
-            assert cipher != null;
-
             //decrypt AES key
-            var aesKeyMaterial = cipher.doFinal(cipherText);
+            var aesSecretKeyData = userRsaCipherBox.getCipher().doFinal(cipherText);
+            userRsaCipherBox.getWipe().invoke(); //wipe User RSA key data
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
@@ -124,7 +134,9 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKey,
                             RSAUtils.getRsaTransformation(preferences),
-                            aesKeyMaterial);
+                            aesSecretKeyData);
+
+                    Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
 
                     try (var baos = new ByteArrayOutputStream();
                          var dataOutputStream = new OmsDataOutputStream(baos)) {
@@ -153,7 +165,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
                     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                          OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-                        dataOutputStream.writeByteArray(aesKeyMaterial);
+                        dataOutputStream.writeByteArray(aesSecretKeyData);
                         ((KeyRequestPairingFragment) getOutputView()).setReply(baos.toByteArray());
                     }
                 }

@@ -34,7 +34,6 @@
     <string name="wrong_application">wrong applicationId:</string>
     <string name="insufficient_permissions">Insufficient permissions</string>
     <string name="delay">delay</string>
-    <string name="multiple_keys_found">Multiple keys found</string>
     <string name="typing_please_wait">typing, please wait&#8230;</string>
     <string name="share_public_key_title">%s - Public Key</string>
     <string name="warning_alias_exists">Warning: this alias is already assigned to a key with fingerprint %s. It will be overwritten.</string>

@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.security.keystore.KeyProperties;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -22,6 +23,7 @@ import androidx.fragment.app.Fragment;
 import com.google.zxing.WriterException;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
+import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
@@ -32,7 +34,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.KeyFactory;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -84,16 +90,22 @@ public class NewPrivateKeyFragment extends Fragment {
                 throw new IllegalArgumentException(getString(R.string.password_mismatch));
             }
 
-            var keyPair = CryptographyManager.generateKeyPair(binding.sw4096bit.isChecked() ? 4096 : 2048);
-            var publicKey = (RSAPublicKey) keyPair.getPublic();
+            var keyMaterial = CryptographyManager.generateKeyPair(binding.sw4096bit.isChecked() ? 4096 : 2048);
+            var publicKeyMaterial = keyMaterial.getFirst();
+            var privateKeyMaterial = keyMaterial.getSecond();
+            var keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
+            var publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
+            var publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
             var fingerprint = RSAUtils.getFingerprint(publicKey);
-            var iv = AESUtil.generateIv();
+            var ivSize = AesTransformation.values()[AESUtil.getAesTransformationIdx(preferences)].getIvSize();
+            var iv = new byte[ivSize];
+            new SecureRandom().nextBytes(iv);
             var salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
             var aesKeyLength = AESUtil.getKeyLength(preferences);
             var aesKeySpecIterations = AESUtil.getKeyspecIterations(preferences);
             var aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
 
-            var aesSecretKey = AESUtil.getKeyFromPassword(
+            var aesKeyMaterial = AESUtil.getAesKeyMaterialFromPassword(
                     binding.txtNewTransportPassword.getText().toString().toCharArray(),
                     salt,
                     aesKeyAlgorithm,
@@ -101,8 +113,9 @@ public class NewPrivateKeyFragment extends Fragment {
                     aesKeySpecIterations);
 
             var message = new AesEncryptedPrivateKeyTransfer(alias,
-                    keyPair,
-                    aesSecretKey,
+                    privateKeyMaterial,
+                    publicKeyMaterial,
+                    aesKeyMaterial,
                     iv,
                     salt,
                     AESUtil.getAesTransformationIdx(preferences),
@@ -110,15 +123,20 @@ public class NewPrivateKeyFragment extends Fragment {
                     aesKeyLength,
                     aesKeySpecIterations).message;
 
+            Arrays.fill(aesKeyMaterial, (byte)0);
+
             binding.checkBox.setEnabled(true);
             binding.checkBox.setChecked(false);
 
             binding.btnActivatePrivateKey.setOnClickListener(e -> {
                 try {
-                    cryptographyManager.importKey(
-                            alias,
-                            keyPair,
-                            requireContext());
+                    cryptographyManager.importRsaKey(
+                            requireActivity().getPreferences(Context.MODE_PRIVATE),
+                            privateKeyMaterial,
+                            publicKeyMaterial,
+                            alias);
+
+                    Arrays.fill(privateKeyMaterial, (byte)0); //wipe private key data
 
                     Toast.makeText(
                             requireContext(),

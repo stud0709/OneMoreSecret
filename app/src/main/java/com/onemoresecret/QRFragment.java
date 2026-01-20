@@ -10,7 +10,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -44,7 +43,6 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.crypto.RsaTransformation;
 import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
@@ -52,7 +50,9 @@ import com.onemoresecret.qr.QRCodeAnalyzer;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
+import java.security.KeyStoreException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -92,6 +92,7 @@ public class QRFragment extends Fragment {
                                 View.VISIBLE :
                                 View.INVISIBLE);
             });
+    private final CryptographyManager cryptographyManager = new CryptographyManager();
 
     public static final String
             ARG_URI = "URI",
@@ -139,6 +140,15 @@ public class QRFragment extends Fragment {
             NavHostFragment.findNavController(QRFragment.this)
                     .navigate(R.id.action_QRFragment_to_permissionsFragment);
             return;
+        }
+
+        try {
+            if(!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
+                cryptographyManager.createMasterRsaKey(requireContext());
+                Log.d(TAG, "RSA master key created");
+            }
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
         }
 
         clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
@@ -458,10 +468,14 @@ public class QRFragment extends Fragment {
                         var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
                         //(7) - cipher text
                         var cipherText = dataInputStream.readByteArray();
+
                         runPinProtected(() -> {
-                                    showBiometricPromptForDecryption(rsaAesEnvelope.fingerprint,
-                                            rsaAesEnvelope.rsaTransormation,
-                                            getAuthenticationCallback(rsaAesEnvelope, cipherText, callSetRecent ? Optional.of(message) : Optional.empty()));
+                                    showBiometricPromptForDecryption(
+                                            rsaAesEnvelope,
+                                            getAuthenticationCallback(
+                                                    rsaAesEnvelope,
+                                                    cipherText,
+                                                    callSetRecent ? Optional.of(message) : Optional.empty()));
                                 }, () -> {
                                     //close socket if WiFiPairing active
                                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
@@ -779,33 +793,23 @@ public class QRFragment extends Fragment {
         }
     }
 
-    public void showBiometricPromptForDecryption(byte[] fingerprint,
-                                                 RsaTransformation rsaTransformation,
-                                                 BiometricPrompt.AuthenticationCallback authenticationCallback) {
-        var cryptographyManager = new CryptographyManager();
-        List<String> aliases;
+    public void showBiometricPromptForDecryption(MessageComposer.RsaAesEnvelope rsaAesEnvelope, BiometricPrompt.AuthenticationCallback authenticationCallback) {
         try {
-            aliases = cryptographyManager.getByFingerprint(fingerprint);
-
-            if (aliases.isEmpty())
-                throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(fingerprint)));
-
-            if (aliases.size() > 1)
-                throw new IllegalStateException(requireContext().getString(R.string.multiple_keys_found));
+            var keyStoreEntry = cryptographyManager.getByFingerprint(rsaAesEnvelope.fingerprint, preferences);
+            if (keyStoreEntry == null)
+                throw new NoSuchElementException(String.format(requireContext().getString(R.string.no_key_found), Util.byteArrayToHex(rsaAesEnvelope.fingerprint)));
 
             var biometricPrompt = new BiometricPrompt(requireActivity(), authenticationCallback);
-            var alias = aliases.get(0);
 
             var promptInfo = new BiometricPrompt.PromptInfo.Builder()
                     .setTitle(requireContext().getString(R.string.prompt_info_title))
-                    .setSubtitle(String.format(requireContext().getString(R.string.prompt_info_subtitle), alias))
+                    .setSubtitle(String.format(requireContext().getString(R.string.prompt_info_subtitle), keyStoreEntry.getAlias()))
                     .setDescription(requireContext().getString(R.string.prompt_info_description))
                     .setNegativeButtonText(requireContext().getString(android.R.string.cancel))
                     .setConfirmationRequired(false)
                     .build();
 
-            var cipher = new CryptographyManager().getInitializedCipherForDecryption(
-                    alias, rsaTransformation);
+            var cipher = cryptographyManager.getInitializedMasterRsaCipher(Cipher.DECRYPT_MODE);
 
             requireContext().getMainExecutor().execute(() -> {
                 biometricPrompt.authenticate(
@@ -843,17 +847,30 @@ public class QRFragment extends Fragment {
 
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
-                var cipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+                var masterRsaCipher = Objects.requireNonNull(result.getCryptoObject()).getCipher();
+                assert masterRsaCipher != null;
+
+                var keyStoreEntry = cryptographyManager.getByFingerprint(rsaAesEnvelope.fingerprint, preferences);
+                assert keyStoreEntry != null;
+
+                var userRsaCipherBox = new CryptographyManager().getInitializedUserRsaCipher(
+                        masterRsaCipher,
+                        keyStoreEntry,
+                        rsaAesEnvelope.rsaTransformation,
+                        Cipher.DECRYPT_MODE);
 
                 try {
-                    assert cipher != null;
-                    var aesSecretKeyData = cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey);
-                    var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                    var aesSecretKeyData = userRsaCipherBox.getCipher().doFinal(rsaAesEnvelope.encryptedAesSecretKey);
+                    userRsaCipherBox.getWipe().invoke(); //wipe User RSA key data
 
-                    var payload = AESUtil.process(Cipher.DECRYPT_MODE, cipherText,
-                            aesSecretKey,
-                            new IvParameterSpec(rsaAesEnvelope.iv),
+                    var payload = AESUtil.process(
+                            Cipher.DECRYPT_MODE,
+                            cipherText,
+                            aesSecretKeyData,
+                            new Util.Ref<>(rsaAesEnvelope.iv),
                             rsaAesEnvelope.aesTransformation);
+
+                    Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
 
                     //payload starts with its own application identifier.
                     afterDecrypt(rsaAesEnvelope, payload, optOriginalMessage);

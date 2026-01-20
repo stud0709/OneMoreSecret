@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -317,13 +318,22 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, String.format("onWiFiConnection: Message has been received, %s bytes", encryptedMessage.length));
 
                 // decrypt AES key
-                var aesSecretKeyData = RSAUtils.process(Cipher.DECRYPT_MODE, getWiFiComm().privateKey,
-                        envelope.rsaTransormation, envelope.encryptedAesSecretKey);
-                var aesSecretKey = new SecretKeySpec(aesSecretKeyData, "AES");
+                var aesSecretKeyData = RSAUtils.process(
+                        Cipher.DECRYPT_MODE,
+                        getWiFiComm().privateKey,
+                        envelope.rsaTransformation,
+                        envelope.encryptedAesSecretKey);
 
                 // (7) AES-encrypted message
-                var decryptedMessage = AESUtil.process(Cipher.DECRYPT_MODE, encryptedMessage, aesSecretKey,
-                        new IvParameterSpec(envelope.iv), envelope.aesTransformation);
+                var decryptedMessage = AESUtil.process(
+                        Cipher.DECRYPT_MODE,
+                        encryptedMessage,
+                        aesSecretKeyData,
+                        new Util.Ref<>(envelope.iv),
+                        envelope.aesTransformation);
+
+                //wipe AES key data
+                Arrays.fill(aesSecretKeyData, (byte)0);
 
                 synchronized (MainActivity.class) {
                     //keep socket open, wait for the reply

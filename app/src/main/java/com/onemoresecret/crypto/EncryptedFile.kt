@@ -1,6 +1,7 @@
 package com.onemoresecret.crypto
 
 import com.onemoresecret.OmsDataOutputStream
+import com.onemoresecret.Util
 import com.onemoresecret.crypto.AESUtil.process
 import java.io.File
 import java.io.FileOutputStream
@@ -53,12 +54,13 @@ object EncryptedFile {
                         Cipher.ENCRYPT_MODE,
                         fis!!,
                         dataOutputStream,
-                        aesEncryptionParameters.secretKey,
-                        aesEncryptionParameters.iv,
+                        aesEncryptionParameters.aesKeyMaterial,
+                        Util.Ref(aesEncryptionParameters.iv),
                         AesTransformation.entries[aesTransformationIdx],
                         cancellationSupplier,
                         progressConsumer
                     )
+                    aesEncryptionParameters.aesKeyMaterial.fill(0)
                 }
             }
         } catch (ex: IOException) {

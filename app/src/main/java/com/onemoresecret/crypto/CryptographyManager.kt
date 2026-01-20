@@ -1,44 +1,35 @@
 package com.onemoresecret.crypto
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.security.keystore.KeyProtection
-import android.util.Log
+import android.security.keystore.StrongBoxUnavailableException
+import com.onemoresecret.Util
+import com.onemoresecret.crypto.RSAUtils.getFingerprint
 import org.spongycastle.crypto.generators.RSAKeyPairGenerator
 import org.spongycastle.crypto.params.RSAKeyGenerationParameters
 import org.spongycastle.crypto.util.PrivateKeyInfoFactory
 import org.spongycastle.crypto.util.SubjectPublicKeyInfoFactory
 import org.spongycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator
-import org.spongycastle.operator.OperatorCreationException
-import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.math.BigInteger
 import java.security.InvalidAlgorithmParameterException
-import java.security.InvalidKeyException
 import java.security.KeyFactory
-import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
-import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
-import java.security.PrivateKey
 import java.security.SecureRandom
-import java.security.UnrecoverableKeyException
-import java.security.cert.Certificate
-import java.security.cert.CertificateException
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.InvalidKeySpecException
-import java.security.spec.MGF1ParameterSpec
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
-import java.util.Objects
 import javax.crypto.Cipher
-import javax.crypto.NoSuchPaddingException
+import androidx.core.content.edit
+import java.security.Key
+import java.security.spec.MGF1ParameterSpec
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
 
@@ -60,23 +51,78 @@ class CryptographyManager {
         }
     }
 
-    @Throws(
-        KeyStoreException::class,
-        NoSuchPaddingException::class,
-        NoSuchAlgorithmException::class,
-        InvalidKeyException::class
-    )
-    fun getInitializedCipherForEncryption(keyName: String?, rsaTransformation: String?): Cipher {
-        val cipher = Cipher.getInstance(rsaTransformation)
-        cipher.init(Cipher.ENCRYPT_MODE, keyStore.getCertificate(keyName).publicKey)
-        return cipher
-    }
+    data class UserRsaCipherBox(val cipher: Cipher, val wipe: () -> Unit)
 
-    fun getInitializedCipherForDecryption(keyName: String, rsaTransformation: RsaTransformation): Cipher {
+    /**
+     * Initialize Cipher for user RSA key.
+     * @param masterRsaCihper ready to use Master RSA cipher (decryption)
+     * @param opmode Cipher.DECRYPT_MODE or Cipher.ENCRYPT_MODE
+     * @return Cipher ready to use along with a function to wipe the cipher
+     */
+    fun getInitializedUserRsaCipher(
+        masterRsaCihper: Cipher,
+        keyStoreEntry: KeyStoreEntry,
+        rsaTransformation: RsaTransformation,
+        opmode: Int
+    ): UserRsaCipherBox {
         try {
             val cipher = Cipher.getInstance(rsaTransformation.transformation)
-            val secretKey = Objects.requireNonNull(getPrivateKey(keyName))
-            cipher.init(Cipher.DECRYPT_MODE, secretKey)
+            val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+
+            var key: Key
+            var wipeKey: () -> Unit = {}
+
+            if (opmode == Cipher.ENCRYPT_MODE) {
+                val publicKeySpec = X509EncodedKeySpec(keyStoreEntry.public)
+                key = keyFactory.generatePublic(publicKeySpec) as RSAPublicKey
+            } else {
+                //decrypt AES key
+                val aesKeyMaterial = masterRsaCihper.doFinal(keyStoreEntry.aesRawBytesEncrypted)
+                val privateKeyMaterial = AESUtil.process(
+                    Cipher.DECRYPT_MODE,
+                    keyStoreEntry.private,
+                    aesKeyMaterial,
+                    Util.Ref(keyStoreEntry.iv),
+                    AesTransformation.AES_GCM_NO_PADDING
+                )
+
+                aesKeyMaterial.fill(0) //wipe
+
+                val keySpec = PKCS8EncodedKeySpec(privateKeyMaterial)
+                key = keyFactory.generatePrivate(keySpec)
+                wipeKey = { privateKeyMaterial.fill(0) }
+            }
+            cipher.init(Cipher.DECRYPT_MODE, key)
+
+            return UserRsaCipherBox(cipher, wipeKey)
+        } catch (ex: Exception) {
+            throw RuntimeException(ex)
+        }
+    }
+
+    /**
+     * Initialize Cipher for Master RSA key. Decryption requires biometric authentication.
+     */
+    fun getInitializedMasterRsaCipher(opmode: Int): Cipher {
+        try {
+            val cipher =
+                Cipher.getInstance(RsaTransformation.RSA_ECB_OAEPWithSHA_256AndMGF1Padding.transformation)
+            val oaepSpec = OAEPParameterSpec(
+                "SHA-256",
+                "MGF1",
+                MGF1ParameterSpec.SHA1,
+                PSource.PSpecified.DEFAULT
+            )
+            cipher.init(
+                opmode,
+                if (opmode == Cipher.DECRYPT_MODE)
+                //decrypt with private key
+                    keyStore.getKey(MASTER_KEY_ALIAS, null)
+                else
+                //encrypt with public key
+                    keyStore.getCertificate(MASTER_KEY_ALIAS).publicKey,
+                oaepSpec
+            )
 
             return cipher
         } catch (ex: Exception) {
@@ -84,83 +130,108 @@ class CryptographyManager {
         }
     }
 
-    /**
-     * If SecretKey was previously created for that keyName, then grab and return it.
-     */
-    @Throws(
-        KeyStoreException::class,
-        NoSuchAlgorithmException::class,
-        UnrecoverableKeyException::class
-    )
-    fun getPrivateKey(keyName: String?): PrivateKey {
-        val key = keyStore.getKey(keyName, null)
-        return key as PrivateKey
-    }
-
-    @Throws(KeyStoreException::class)
-    fun getCertificate(keyName: String?): Certificate? {
-        return keyStore.getCertificate(keyName)
-    }
-
     @Throws(
         InvalidAlgorithmParameterException::class,
         NoSuchAlgorithmException::class,
         NoSuchProviderException::class
     )
-    fun generateKeyPair(spec: KeyGenParameterSpec?): KeyPair? {
-        val keyPairGenerator: KeyPairGenerator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_RSA,
-            ANDROID_KEYSTORE
+
+    fun importRsaKey(
+        preferences: SharedPreferences,
+        privateKeyMaterial: ByteArray,
+        publicKeyMaterial: ByteArray,
+        keyAlias: String
+    ) {
+        //generate RSA key instance from the provided key material
+        val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+        val publicKeySpec = X509EncodedKeySpec(publicKeyMaterial)
+        val publicKey = keyFactory.generatePublic(publicKeySpec) as RSAPublicKey
+
+        //prepare AES key to encrypt this RSA key
+        val aesRawBytes = ByteArray(32)
+        SecureRandom().nextBytes(aesRawBytes)
+
+        //encrypt raw bytes
+        val masterRsaCipher = getInitializedMasterRsaCipher(Cipher.ENCRYPT_MODE)
+        val aesRawBytesEncrypted = masterRsaCipher.doFinal(aesRawBytes)
+
+        //use AES key to encrypt private key
+        val ivRef = Util.Ref<ByteArray>()
+        val privateKeyEncrypted = AESUtil.process(
+            Cipher.ENCRYPT_MODE,
+            privateKeyMaterial,
+            aesRawBytes,
+            ivRef,
+            AesTransformation.AES_GCM_NO_PADDING
         )
 
-        keyPairGenerator.initialize(spec)
-        return keyPairGenerator.generateKeyPair()
+        //wipe AES key
+        aesRawBytes.fill(0)
+
+        //create KeyStoreEntry
+        val fingerprintBytes = getFingerprint(publicKey)
+        val entry = KeyStoreEntry(
+            keyAlias,
+            "RSA",
+            fingerprintBytes,
+            publicKeyMaterial,
+            aesRawBytesEncrypted,
+            ivRef.value!!,
+            privateKeyEncrypted
+        )
+
+        //add the new KeyStoreEntry to the keystore property
+        val keystoreSet: Set<String?> = preferences.getStringSet(PROP_KEYSTORE, setOf<String?>())!!
+        val mutableSet = keystoreSet.toMutableSet()
+        mutableSet.add(Util.JACKSON_MAPPER.writeValueAsString(entry))
+        preferences.edit { putStringSet(PROP_KEYSTORE, mutableSet) }
     }
 
     /**
-     * Import RSA key pair using encoded key data from [PrivateKey.getEncoded] and [java.security.PublicKey.getEncoded].
+     * This key is created with the biometric protection in the Strongbox (or TEE if not available).
+     * Its only function is to protect the AES keys of keystore entries
      */
-    @Throws(
-        CertificateException::class,
-        KeyStoreException::class,
-        IOException::class,
-        OperatorCreationException::class
-    )
-    fun importKey(keyName: String?, keyPair: KeyPair, ctx: Context) {
-        //create self-signed certificate with the specified end validity
-
-        val certificate = SelfSignedCertGenerator.generate(
-            keyPair,
-            "SHA256withRSA",
-            "OneMoreSecret",
-            DEFAULT_DAYS_VALID
+    fun createMasterRsaKey(ctx: Context) {
+        val keyPairGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_RSA,
+            "AndroidKeyStore"
         )
 
-        val privateKeyEntry =
-            KeyStore.PrivateKeyEntry(keyPair.private, arrayOf<Certificate?>(certificate))
-
-        val keyProtection =
-            KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setUserAuthenticationRequired(true)
-                .setEncryptionPaddings(*ENCRYPTION_PADDINGS)
-                .setIsStrongBoxBacked(
-                    ctx.packageManager
-                        .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
-                )
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .build()
-
-        keyStore.setEntry(keyName, privateKeyEntry, keyProtection)
-
-        Log.d(
-            TAG,
-            "Private key '" + keyName + "' successfully imported. Certificate: " + certificate?.serialNumber
+        val specBuilder = KeyGenParameterSpec.Builder(
+            MASTER_KEY_ALIAS,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
         )
+            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            .setUserAuthenticationRequired(true)
+            // Require authentication for every single use (0 seconds)
+            .setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+            .setInvalidatedByBiometricEnrollment(true)
+            .setIsStrongBoxBacked(
+                ctx.packageManager
+                    .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)
+            )
+
+        try {
+            keyPairGenerator.initialize(specBuilder.build())
+            keyPairGenerator.generateKeyPair()
+        } catch (e: StrongBoxUnavailableException) {
+            // Fallback to TEE if StrongBox fails despite the system feature check
+            specBuilder.setIsStrongBoxBacked(false)
+            keyPairGenerator.initialize(specBuilder.build())
+            keyPairGenerator.generateKeyPair()
+        }
     }
 
-    @Throws(KeyStoreException::class)
-    fun deleteKey(keyName: String?) {
-        keyStore.deleteEntry(keyName)
+    fun deleteKey(alias: String, preferences: SharedPreferences) {
+        val keystore: Set<String> =
+            preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
+        val result = keystore
+            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .filter { it.alias != alias }
+            .map { Util.JACKSON_MAPPER.writeValueAsString(it) }
+            .toSet()
+        preferences.edit { putStringSet(PROP_KEYSTORE, result) }
     }
 
     /**
@@ -169,46 +240,36 @@ class CryptographyManager {
      * @param fingerprint SHA-256 hash of modulus and public exponent, [RSAUtils.getFingerprint]
      * @return all key alias matching that SHA-256
      */
-    @Throws(KeyStoreException::class)
-    fun getByFingerprint(fingerprint: ByteArray?): MutableList<String?> {
-        val result: MutableList<String?> = ArrayList<String?>()
+    fun getByFingerprint(fingerprint: ByteArray, preferences: SharedPreferences): KeyStoreEntry? {
+        val keystore: Set<String> =
+            preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
+        return keystore
+            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .find { it.fingerprint contentEquals fingerprint }
+    }
 
-        val aliases = keyStore.aliases()
-        while (aliases.hasMoreElements()) {
-            val alias = aliases.nextElement()
-
-            try {
-                val cert = getCertificate(alias) as X509Certificate
-                val publicKey = cert.publicKey as RSAPublicKey
-                val fp = RSAUtils.getFingerprint(publicKey)
-
-                if (fingerprint.contentEquals(fp)) {
-                    result.add(alias)
-                }
-            } catch (e: Exception) {
-                throw RuntimeException(e)
-            }
-        }
-
+    fun getByAlias(alias: String, preferences: SharedPreferences): KeyStoreEntry? {
+        val keystore: Set<String> =
+            preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
+        val result = keystore
+            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .find { it.alias == alias }
         return result
     }
 
     companion object {
+        const val AES_GCM_NO_PADDING: String = "AES/GCM/NoPadding"
+        const val MASTER_KEY_ALIAS: String = "oms_master"
         const val ANDROID_KEYSTORE: String = "AndroidKeyStore"
         private val TAG: String = CryptographyManager::class.java.simpleName
-        val ENCRYPTION_PADDINGS: Array<String?> = arrayOf<String?>(
-            KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1,
-            KeyProperties.ENCRYPTION_PADDING_RSA_OAEP
-        )
-
-        const val DEFAULT_DAYS_VALID: Int = 9999
+        const val PROP_KEYSTORE: String = "keystore"
 
         /**
-         * Generate key pair by means of the BouncyCastle library to have access to the key material.
+         * Generate key pair using BouncyCastle library
          */
         @JvmStatic
         @Throws(IOException::class, NoSuchAlgorithmException::class, InvalidKeySpecException::class)
-        fun generateKeyPair(keyLength: Int): KeyPair {
+        fun generateKeyPair(keyLength: Int): Pair<ByteArray, ByteArray> {
             val rsaKeyPairGenerator = RSAKeyPairGenerator()
 
             rsaKeyPairGenerator.init(
@@ -221,30 +282,12 @@ class CryptographyManager {
             )
 
             val asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair()
-            val privateKeyInfo =
-                PrivateKeyInfoFactory.createPrivateKeyInfo(asymmetricCipherKeyPair.private)
-            val privateKeyMaterial = privateKeyInfo.getEncoded()
-            val publicKeyMaterial =
-                SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(asymmetricCipherKeyPair.public)
-                    .getEncoded()
-            return restoreKeyPair(privateKeyMaterial, publicKeyMaterial)
-        }
+            val privateKeyMaterial = PrivateKeyInfoFactory
+                .createPrivateKeyInfo(asymmetricCipherKeyPair.private).encoded
+            val publicKeyMaterial = SubjectPublicKeyInfoFactory
+                .createSubjectPublicKeyInfo(asymmetricCipherKeyPair.public).encoded
 
-        @Throws(CertificateException::class)
-        fun restoreCertificate(certificateData: ByteArray?): X509Certificate? {
-            val cf = CertificateFactory.getInstance("X509")
-            return cf.generateCertificate(ByteArrayInputStream(certificateData)) as X509Certificate?
-        }
-
-        @JvmStatic
-        @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
-        fun restoreKeyPair(privateKeyMaterial: ByteArray?, publicKeyMaterial: ByteArray?): KeyPair {
-            val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
-            val keySpec = PKCS8EncodedKeySpec(privateKeyMaterial)
-            val privateKey = keyFactory.generatePrivate(keySpec)
-            val publicKeySpec = X509EncodedKeySpec(publicKeyMaterial)
-            val publicKey = keyFactory.generatePublic(publicKeySpec)
-            return KeyPair(publicKey, privateKey)
+            return Pair(publicKeyMaterial, privateKeyMaterial)
         }
     }
 }
