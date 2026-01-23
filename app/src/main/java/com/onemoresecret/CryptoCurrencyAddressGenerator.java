@@ -137,7 +137,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                         (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
                         RSAUtils.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
-                        AESUtil.getAesTransformationIdx(preferences)).message;
+                        AESUtil.getAesTransformation(preferences)).message;
 
                 outputFragment.setMessage(MessageComposer.encodeAsOmsText(encrypted), getString(R.string.wif_encrypted));
                 backupSupplier = getBackupSupplier(btcKeyPair.btcAddressBase58(), encrypted);

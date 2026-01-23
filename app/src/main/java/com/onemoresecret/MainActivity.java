@@ -186,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                         wiFiComm.publicKey,
                         RSAUtils.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
-                        AESUtil.getAesTransformationIdx(preferences),
+                        AESUtil.getAesTransformation(preferences),
                         data);
 
                 var outputStream = socketWaitingForReply.getOutputStream();
@@ -329,7 +329,7 @@ public class MainActivity extends AppCompatActivity {
                         Cipher.DECRYPT_MODE,
                         encryptedMessage,
                         aesSecretKeyData,
-                        new Util.Ref<>(envelope.iv),
+                        envelope.iv,
                         envelope.aesTransformation);
 
                 //wipe AES key data

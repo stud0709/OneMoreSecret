@@ -35,7 +35,7 @@ object EncryptedFile {
         rsaPublicKey: RSAPublicKey,
         rsaTransformationIdx: Int,
         aesKeyLength: Int,
-        aesTransformationIdx: Int,
+        aesTransformation: AesTransformation,
         cancellationSupplier: Supplier<Boolean?>?,
         progressConsumer: Consumer<Int?>?
     ) {
@@ -48,15 +48,15 @@ object EncryptedFile {
                         rsaPublicKey,
                         rsaTransformationIdx,
                         aesKeyLength,
-                        aesTransformationIdx
+                        aesTransformation
                     )
                     process(
                         Cipher.ENCRYPT_MODE,
                         fis!!,
                         dataOutputStream,
                         aesEncryptionParameters.aesKeyMaterial,
-                        Util.Ref(aesEncryptionParameters.iv),
-                        AesTransformation.entries[aesTransformationIdx],
+                        aesEncryptionParameters.iv,
+                        aesTransformation,
                         cancellationSupplier,
                         progressConsumer
                     )

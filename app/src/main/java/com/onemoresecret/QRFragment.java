@@ -47,8 +47,6 @@ import com.onemoresecret.databinding.FragmentQrBinding;
 import com.onemoresecret.qr.MessageParser;
 import com.onemoresecret.qr.QRCodeAnalyzer;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.ByteArrayInputStream;
 import java.security.KeyStoreException;
 import java.util.ArrayList;
@@ -57,7 +55,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -65,8 +62,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
@@ -475,7 +470,7 @@ public class QRFragment extends Fragment {
                                             getAuthenticationCallback(
                                                     rsaAesEnvelope,
                                                     cipherText,
-                                                    callSetRecent ? Optional.of(message) : Optional.empty()));
+                                                    callSetRecent ? message : null));
                                 }, () -> {
                                     //close socket if WiFiPairing active
                                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
@@ -830,7 +825,7 @@ public class QRFragment extends Fragment {
     private BiometricPrompt.AuthenticationCallback getAuthenticationCallback
             (MessageComposer.RsaAesEnvelope rsaAesEnvelope,
              byte[] cipherText,
-             @NotNull Optional<String> optOriginalMessage) {
+             String optOriginalMessage) {
         return new BiometricPrompt.AuthenticationCallback() {
             @Override
             public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
@@ -867,7 +862,7 @@ public class QRFragment extends Fragment {
                             Cipher.DECRYPT_MODE,
                             cipherText,
                             aesSecretKeyData,
-                            new Util.Ref<>(rsaAesEnvelope.iv),
+                            rsaAesEnvelope.iv,
                             rsaAesEnvelope.aesTransformation);
 
                     Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
@@ -900,7 +895,7 @@ public class QRFragment extends Fragment {
 
     private void afterDecrypt(MessageComposer.RsaAesEnvelope rsaAesEnvelope,
                               byte[] payload,
-                              @NotNull Optional<String> optOriginalMessage) throws Exception {
+                              String optOriginalMessage) throws Exception {
 
         try (var bais = new ByteArrayInputStream(payload);
              var dataInputStream = new OmsDataInputStream(bais)) {
@@ -954,7 +949,7 @@ public class QRFragment extends Fragment {
                                 Integer.toHexString(rsaAesEnvelope.applicationId));
             }
 
-            if (optOriginalMessage.isEmpty())
+            if (optOriginalMessage == null)
                 return; //do not update history
 
             var optDrawableId = MessageComposer.getDrawableIdForApplicationId(bundle.getInt(ARG_APPLICATION_ID));
@@ -962,7 +957,7 @@ public class QRFragment extends Fragment {
             if (optDrawableId.isEmpty())
                 return;
 
-            setRecent(optOriginalMessage.get(), optDrawableId.get());
+            setRecent(optOriginalMessage, optDrawableId.get());
 
         }
     }

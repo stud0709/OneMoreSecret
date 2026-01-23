@@ -367,7 +367,7 @@ public class PasswordGeneratorFragment extends Fragment {
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).message);
+                                AESUtil.getAesTransformation(preferences)).message);
 
                 binding.editTextPassword.setEnabled(false);
                 outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));

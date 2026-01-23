@@ -11,7 +11,7 @@ class EncryptedCryptoCurrencyAddress(
     rsaPublicKey: RSAPublicKey,
     rsaTransformationIdx: Int,
     aesKeyLength: Int,
-    aesTransformationIdx: Int
+    aesTransformation: AesTransformation
 ) {
     @JvmField
     val message: ByteArray
@@ -21,7 +21,7 @@ class EncryptedCryptoCurrencyAddress(
             rsaPublicKey,
             rsaTransformationIdx,
             aesKeyLength,
-            aesTransformationIdx,
+            aesTransformation,
             createPayload(ai, privateKey)
         )
     }

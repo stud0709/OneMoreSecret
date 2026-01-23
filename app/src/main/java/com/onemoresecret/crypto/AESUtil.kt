@@ -1,7 +1,6 @@
 package com.onemoresecret.crypto
 
 import android.content.SharedPreferences
-import com.onemoresecret.Util
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -56,23 +55,15 @@ object AESUtil {
         cipherMode: Int,
         input: ByteArray,
         aesKeyMaterial: ByteArray,
-        iv: Util.Ref<ByteArray>,
+        iv: ByteArray,
         aesTransformation: AesTransformation
     ): ByteArray {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
-        if (iv.value == null) {
-            cipher.init(
-                cipherMode,
-                SecretKeySpec(aesKeyMaterial, "AES")
-            )
-            iv.value = cipher.iv
-        } else {
-            cipher.init(
-                cipherMode,
-                SecretKeySpec(aesKeyMaterial, "AES"),
-                IvParameterSpec(iv.value)
-            )
-        }
+        cipher.init(
+            cipherMode,
+            SecretKeySpec(aesKeyMaterial, "AES"),
+            IvParameterSpec(iv)
+        )
 
         return cipher.doFinal(input)
     }
@@ -92,28 +83,20 @@ object AESUtil {
         `is`: InputStream,
         os: OutputStream,
         aesKeyMaterial: ByteArray,
-        iv: Util.Ref<ByteArray>,
+        iv: ByteArray,
         aesTransformation: AesTransformation,
         cancellationSupplier: Supplier<Boolean?>?,
         progressConsumer: Consumer<Int?>?
     ) {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
-        if (iv.value == null) {
-            cipher.init(
-                cipherMode,
-                SecretKeySpec(aesKeyMaterial, "AES")
-            )
-            iv.value = cipher.iv
-        } else {
-            cipher.init(
-                cipherMode,
-                SecretKeySpec(
-                    aesKeyMaterial,
-                    "AES"
-                ),
-                IvParameterSpec(iv.value)
-            )
-        }
+        cipher.init(
+            cipherMode,
+            SecretKeySpec(
+                aesKeyMaterial,
+                "AES"
+            ),
+            IvParameterSpec(iv)
+        )
 
         val iArr = ByteArray(1024)
         var length: Int
@@ -137,15 +120,13 @@ object AESUtil {
     const val PROP_AES_KEY_ALGORITHM_IDX: String = "aes_key_algorithm_idx"
 
     @JvmStatic
-    fun getAesTransformationIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(
+    fun getAesTransformation(preferences: SharedPreferences): AesTransformation {
+        val idx = preferences.getInt(
             PROP_AES_TRANSFORMATION_IDX,
             AesTransformation.AES_CBC_PKCS5Padding.ordinal
         )
-    }
 
-    fun getAesTransformation(preferences: SharedPreferences): AesTransformation {
-        return AesTransformation.entries[getAesTransformationIdx(preferences)]
+        return AesTransformation.entries[idx]
     }
 
     @JvmStatic
@@ -162,12 +143,19 @@ object AESUtil {
     }
 
     @JvmStatic
+    fun generateIv(aesTransformation: AesTransformation): ByteArray {
+        val iv = ByteArray(aesTransformation.ivLength)
+        SecureRandom().nextBytes(iv)
+        return iv
+    }
+
+    @JvmStatic
     fun getSaltLength(preferences: SharedPreferences): Int {
         return preferences.getInt(PROP_AES_SALT_LENGTH, 16)
     }
 
     @JvmStatic
-    fun getKeyspecIterations(preferences: SharedPreferences): Int {
+    fun getKeySpecIterations(preferences: SharedPreferences): Int {
         return preferences.getInt(PROP_AES_KEY_ITERATIONS, 1024)
     }
 

@@ -144,7 +144,7 @@ public class KeyImportFragment extends Fragment {
                     Cipher.DECRYPT_MODE,
                     cipherText,
                     aesKeyMaterial,
-                    new Util.Ref<>(iv),
+                    iv,
                     aesTransformation);
 
             Arrays.fill(aesKeyMaterial, (byte)0);

@@ -201,7 +201,7 @@ public class TotpManualEntryFragment extends Fragment {
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(selectedAlias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).message);
+                                AESUtil.getAesTransformation(preferences)).message);
 
                 outputFragment.setMessage(result, "TOTP Configuration (encrypted)");
             } catch (Exception e) {

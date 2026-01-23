@@ -7,13 +7,13 @@ class TotpUriTransfer(
     rsaPublicKey: RSAPublicKey,
     rsaTransformationIdx: Int,
     aesKeyLength: Int,
-    aesTransformationIdx: Int
+    aesTransformation: AesTransformation
 ) : EncryptedMessage(
     message,
     rsaPublicKey,
     rsaTransformationIdx,
     aesKeyLength,
-    aesTransformationIdx
+    aesTransformation
 ) {
     override val applicationId: Int
         get() = MessageComposer.APPLICATION_TOTP_URI

@@ -82,7 +82,7 @@ class CryptographyManager {
                     Cipher.DECRYPT_MODE,
                     keyStoreEntry.private,
                     aesKeyMaterial,
-                    Util.Ref(keyStoreEntry.iv),
+                    keyStoreEntry.iv,
                     AesTransformation.AES_GCM_NO_PADDING
                 )
 
@@ -156,13 +156,14 @@ class CryptographyManager {
         val aesRawBytesEncrypted = masterRsaCipher.doFinal(aesRawBytes)
 
         //use AES key to encrypt private key
-        val ivRef = Util.Ref<ByteArray>()
+        val aesTransformation = AesTransformation.AES_GCM_NO_PADDING
+        val iv = AESUtil.generateIv(aesTransformation)
         val privateKeyEncrypted = AESUtil.process(
             Cipher.ENCRYPT_MODE,
             privateKeyMaterial,
             aesRawBytes,
-            ivRef,
-            AesTransformation.AES_GCM_NO_PADDING
+            iv,
+            aesTransformation
         )
 
         //wipe AES key
@@ -176,7 +177,7 @@ class CryptographyManager {
             fingerprintBytes,
             publicKeyMaterial,
             aesRawBytesEncrypted,
-            ivRef.value!!,
+            iv,
             privateKeyEncrypted
         )
 

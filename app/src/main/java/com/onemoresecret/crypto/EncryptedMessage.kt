@@ -10,7 +10,7 @@ open class EncryptedMessage(
     rsaPublicKey: RSAPublicKey,
     rsaTransformationIdx: Int,
     aesKeyLength: Int,
-    aesTransformationIdx: Int
+    aesTransformation: AesTransformation
 ) {
     @JvmField
     val message: ByteArray
@@ -20,7 +20,7 @@ open class EncryptedMessage(
             rsaPublicKey,
             rsaTransformationIdx,
             aesKeyLength,
-            aesTransformationIdx,
+            aesTransformation,
             createPayload(this.applicationId, message)
         )
     }

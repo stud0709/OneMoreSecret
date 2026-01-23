@@ -13,8 +13,8 @@ android {
         applicationId = "com.onemoresecret"
         minSdk = 31
         targetSdk = 36
-        versionCode = 38
-        versionName = "0.38-alpha"
+        versionCode = 39
+        versionName = "0.39-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -80,7 +80,8 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.2.0'
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
+    //Jackson Databind
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.0'
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     //Google ML Kit - flavor 'standard' only

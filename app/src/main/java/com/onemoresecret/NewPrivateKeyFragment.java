@@ -23,7 +23,6 @@ import androidx.fragment.app.Fragment;
 import com.google.zxing.WriterException;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer;
-import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.RSAUtils;
@@ -97,12 +96,12 @@ public class NewPrivateKeyFragment extends Fragment {
             var publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
             var publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
             var fingerprint = RSAUtils.getFingerprint(publicKey);
-            var ivSize = AesTransformation.values()[AESUtil.getAesTransformationIdx(preferences)].getIvSize();
+            var ivSize = AESUtil.getAesTransformation(preferences).getIvLength();
             var iv = new byte[ivSize];
             new SecureRandom().nextBytes(iv);
             var salt = AESUtil.generateSalt(AESUtil.getSaltLength(preferences));
             var aesKeyLength = AESUtil.getKeyLength(preferences);
-            var aesKeySpecIterations = AESUtil.getKeyspecIterations(preferences);
+            var aesKeySpecIterations = AESUtil.getKeySpecIterations(preferences);
             var aesKeyAlgorithm = AESUtil.getAesKeyAlgorithm(preferences).keyAlgorithm;
 
             var aesKeyMaterial = AESUtil.getAesKeyMaterialFromPassword(
@@ -118,7 +117,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     aesKeyMaterial,
                     iv,
                     salt,
-                    AESUtil.getAesTransformationIdx(preferences),
+                    AESUtil.getAesTransformation(preferences),
                     AESUtil.getAesKeyAlgorithmIdx(preferences),
                     aesKeyLength,
                     aesKeySpecIterations).message;

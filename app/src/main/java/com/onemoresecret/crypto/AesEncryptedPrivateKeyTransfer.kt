@@ -20,7 +20,7 @@ class AesEncryptedPrivateKeyTransfer(
     aesKeyMaterial: ByteArray,
     iv: ByteArray,
     salt: ByteArray,
-    aesTransformationIdx: Int,
+    aesTransformation: AesTransformation,
     aesKeyAlgorithmIdx: Int,
     aesKeyLength: Int,
     aesKeyspecIterations: Int
@@ -50,7 +50,7 @@ class AesEncryptedPrivateKeyTransfer(
                     dataOutputStream.writeByteArray(iv)
 
                     // (5) AES transformation index
-                    dataOutputStream.writeUnsignedShort(aesTransformationIdx)
+                    dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)
 
                     // (6) key algorithm index
                     dataOutputStream.writeUnsignedShort(aesKeyAlgorithmIdx)
@@ -70,7 +70,7 @@ class AesEncryptedPrivateKeyTransfer(
                             privateKeyMaterial,
                             aesKeyMaterial,
                             iv,
-                            aesTransformationIdx
+                            aesTransformation
                         )
                     )
                     this.message = baos.toByteArray()
@@ -94,8 +94,8 @@ class AesEncryptedPrivateKeyTransfer(
         privateKeyMaterial: ByteArray,
         aesKeyMaterial: ByteArray,
         iv: ByteArray,
-        aesTransformationIdx: Int
-    ): ByteArray? {
+        aesTransformation: AesTransformation
+    ): ByteArray {
         try {
             ByteArrayOutputStream().use { baos ->
                 OmsDataOutputStream(baos).use { dataOutputStreamCipher ->
@@ -108,8 +108,8 @@ class AesEncryptedPrivateKeyTransfer(
                         Cipher.ENCRYPT_MODE,
                         baos.toByteArray(),
                         aesKeyMaterial,
-                        Util.Ref(iv),
-                        AesTransformation.entries[aesTransformationIdx]
+                        iv,
+                        aesTransformation
                     )
                 }
             }

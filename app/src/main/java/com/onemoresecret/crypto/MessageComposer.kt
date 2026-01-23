@@ -197,7 +197,7 @@ abstract class MessageComposer {
             rsaPublicKey: RSAPublicKey,
             rsaTransformationIdx: Int,
             aesKeyLength: Int,
-            aesTransformationIdx: Int,
+            aesTransformationIdx: AesTransformation,
             payload: ByteArray
         ): ByteArray {
             return createRsaAesEnvelope(
@@ -223,7 +223,7 @@ abstract class MessageComposer {
             rsaPublicKey: RSAPublicKey,
             rsaTransformationIdx: Int,
             aesKeyLength: Int,
-            aesTransformationIdx: Int,
+            aesTransformation: AesTransformation,
             payload: ByteArray
         ): ByteArray {
             try {
@@ -236,7 +236,7 @@ abstract class MessageComposer {
                                 rsaPublicKey,
                                 rsaTransformationIdx,
                                 aesKeyLength,
-                                aesTransformationIdx
+                                aesTransformation
                             )
                         // (7) AES-encrypted message
                         dataOutputStream.writeByteArray(
@@ -244,8 +244,8 @@ abstract class MessageComposer {
                                 Cipher.ENCRYPT_MODE,
                                 payload,
                                 aesEncryptionParameters.aesKeyMaterial,
-                                Util.Ref(aesEncryptionParameters.iv),
-                                AesTransformation.entries[aesTransformationIdx]
+                                aesEncryptionParameters.iv,
+                                aesTransformation
                             )
                         )
                         //wipe
@@ -273,7 +273,7 @@ abstract class MessageComposer {
             rsaPublicKey: RSAPublicKey,
             rsaTransformationIdx: Int,
             aesKeyLength: Int,
-            aesTransformationIdx: Int
+            aesTransformation: AesTransformation
         ): AesEncryptionParameters {
             // init AES
 
@@ -284,7 +284,7 @@ abstract class MessageComposer {
             val rsaTransformation = RsaTransformation.entries[rsaTransformationIdx]
             val cipher = Cipher.getInstance(rsaTransformation.transformation)
             cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
-            val iv = cipher.iv
+            val iv = AESUtil.generateIv(aesTransformation)
 
             val encryptedSecretKey = cipher.doFinal(aesKeyMaterial)
 
@@ -298,7 +298,7 @@ abstract class MessageComposer {
             dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey))
 
             // (4) AES transformation index
-            dataOutputStream.writeUnsignedShort(aesTransformationIdx)
+            dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)
 
             // (5) IV
             dataOutputStream.writeByteArray(iv)

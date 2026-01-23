@@ -108,7 +108,7 @@ public class TotpImportFragment extends Fragment {
                             (RSAPublicKey) cryptographyManager.keyStore.getCertificate(alias).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
-                            AESUtil.getAesTransformationIdx(preferences)).message);
+                            AESUtil.getAesTransformation(preferences)).message);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -122,7 +122,7 @@ public class FileEncryptionFragment extends Fragment {
                             (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(selectedAlias)).getPublicKey(),
                             RSAUtils.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
-                            AESUtil.getAesTransformationIdx(preferences),
+                            AESUtil.getAesTransformation(preferences),
                             () -> binding == null || !encryptionRunning,
                             this::updateProgress
                     );

@@ -102,7 +102,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
                         AESUtil.process(Cipher.DECRYPT_MODE, dataInputStream,
                                 fos,
                                 aesSecretKeyData,
-                                new Util.Ref<>(rsaAesEnvelope.iv),
+                                rsaAesEnvelope.iv,
                                 rsaAesEnvelope.aesTransformation,
                                 () -> destroyed,
                                 this::updateProgress);

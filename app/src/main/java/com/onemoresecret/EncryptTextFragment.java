@@ -125,7 +125,7 @@ public class EncryptTextFragment extends Fragment {
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
                                 RSAUtils.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformationIdx(preferences)).message);
+                                AESUtil.getAesTransformation(preferences)).message);
 
                 textChangeListenerActive.set(false);
                 binding.editTextPhrase.setText(encrypted);
