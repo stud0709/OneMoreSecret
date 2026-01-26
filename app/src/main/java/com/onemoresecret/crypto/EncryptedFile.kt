@@ -30,14 +30,14 @@ object EncryptedFile {
     )
     @JvmStatic
     fun create(
-        fis: InputStream?,
-        oFile: File?,
+        fis: InputStream,
+        oFile: File,
         rsaPublicKey: RSAPublicKey,
         rsaTransformationIdx: Int,
         aesKeyLength: Int,
         aesTransformation: AesTransformation,
-        cancellationSupplier: Supplier<Boolean?>?,
-        progressConsumer: Consumer<Int?>?
+        cancellationSupplier: Supplier<Boolean>?,
+        progressConsumer: Consumer<Int>?
     ) {
         try {
             FileOutputStream(oFile).use { fos ->
@@ -52,7 +52,7 @@ object EncryptedFile {
                     )
                     process(
                         Cipher.ENCRYPT_MODE,
-                        fis!!,
+                        fis,
                         dataOutputStream,
                         aesEncryptionParameters.aesKeyMaterial,
                         aesEncryptionParameters.iv,

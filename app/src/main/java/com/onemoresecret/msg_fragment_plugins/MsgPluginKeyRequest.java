@@ -15,7 +15,7 @@ import com.onemoresecret.R;
 import com.onemoresecret.Util;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.crypto.RsaTransformation;
 
 import java.io.ByteArrayInputStream;
@@ -52,7 +52,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     reference = dataInputStream.readString();
 
                     //(3) RSA public key
-                    rsaPublicKey = RSAUtils.restorePublicKey(dataInputStream.readByteArray());
+                    rsaPublicKey = RSAUtil.restorePublicKey(dataInputStream.readByteArray());
 
                     //(4) fingerprint of the requested key
                     fingerprint = dataInputStream.readByteArray();
@@ -130,10 +130,10 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
-                    var rsaEncryptedAesKey = RSAUtils.process(
+                    var rsaEncryptedAesKey = RSAUtil.process(
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKey,
-                            RSAUtils.getRsaTransformation(preferences),
+                            RSAUtil.getRsaTransformation(preferences),
                             aesSecretKeyData);
 
                     Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
@@ -145,7 +145,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                         dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
 
                         // (2) RSA transformation
-                        dataOutputStream.writeUnsignedShort(RSAUtils.getRsaTransformationIdx(preferences));
+                        dataOutputStream.writeUnsignedShort(RSAUtil.getRsaTransformationIdx(preferences));
 
                         // (3) RSA encrypted AES key
                         dataOutputStream.writeByteArray(rsaEncryptedAesKey);

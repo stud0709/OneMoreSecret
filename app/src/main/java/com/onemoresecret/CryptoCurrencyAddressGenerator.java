@@ -25,7 +25,7 @@ import com.onemoresecret.crypto.BTCAddress;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.EncryptedCryptoCurrencyAddress;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentCryptoCurrencyAddressGeneratorBinding;
 import com.onemoresecret.qr.QRUtil;
 
@@ -135,7 +135,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                         MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                         btcKeyPair.wif,
                         (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
-                        RSAUtils.getRsaTransformationIdx(preferences),
+                        RSAUtil.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences)).message;
 

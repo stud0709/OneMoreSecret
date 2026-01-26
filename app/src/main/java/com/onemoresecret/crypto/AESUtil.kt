@@ -80,13 +80,13 @@ object AESUtil {
     @JvmStatic
     fun process(
         cipherMode: Int,
-        `is`: InputStream,
-        os: OutputStream,
+        inputStream: InputStream,
+        outputStream: OutputStream,
         aesKeyMaterial: ByteArray,
         iv: ByteArray,
         aesTransformation: AesTransformation,
-        cancellationSupplier: Supplier<Boolean?>?,
-        progressConsumer: Consumer<Int?>?
+        cancellationSupplier: Supplier<Boolean>? = null,
+        progressConsumer: Consumer<Int>? = null
     ) {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
         cipher.init(
@@ -102,15 +102,15 @@ object AESUtil {
         var length: Int
         var bytesProcessed = 0
 
-        while ((`is`.read(iArr).also { length = it }) > 0 &&
-            (cancellationSupplier == null || !cancellationSupplier.get()!!)
+        while ((inputStream.read(iArr).also { length = it }) > 0 &&
+            (cancellationSupplier == null || !cancellationSupplier.get())
         ) {
-            os.write(cipher.update(iArr, 0, length))
+            outputStream.write(cipher.update(iArr, 0, length))
             bytesProcessed += length
             progressConsumer?.accept(bytesProcessed)
         }
 
-        os.write(cipher.doFinal())
+        outputStream.write(cipher.doFinal())
     }
 
     const val PROP_AES_KEY_LENGTH: String = "aes_key_length"

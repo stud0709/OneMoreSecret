@@ -16,7 +16,7 @@ import javax.crypto.Cipher
 import javax.crypto.IllegalBlockSizeException
 import javax.crypto.NoSuchPaddingException
 
-object RSAUtils {
+object RSAUtil {
     const val PROP_RSA_TRANSFORMATION_IDX: String = "rsa_transformation_idx"
 
     @JvmStatic
@@ -42,10 +42,10 @@ object RSAUtils {
 
     @JvmStatic
     @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
-    fun restorePublicKey(encoded: ByteArray?): RSAPublicKey? {
+    fun restorePublicKey(encoded: ByteArray): RSAPublicKey {
         val publicKeySpec = X509EncodedKeySpec(encoded)
         val keyFactory = KeyFactory.getInstance("RSA")
-        return keyFactory.generatePublic(publicKeySpec) as RSAPublicKey?
+        return keyFactory.generatePublic(publicKeySpec) as RSAPublicKey
     }
 
     @JvmStatic
@@ -70,9 +70,9 @@ object RSAUtils {
 
     @JvmStatic
     @Throws(InvalidKeySpecException::class, NoSuchAlgorithmException::class)
-    fun restorePrivateKey(encoded: ByteArray?): RSAPrivateKey? {
+    fun restorePrivateKey(encoded: ByteArray): RSAPrivateKey {
         val privateKeySpec = PKCS8EncodedKeySpec(encoded)
         val keyFactory = KeyFactory.getInstance("RSA")
-        return keyFactory.generatePrivate(privateKeySpec) as RSAPrivateKey?
+        return keyFactory.generatePrivate(privateKeySpec) as RSAPrivateKey
     }
 }

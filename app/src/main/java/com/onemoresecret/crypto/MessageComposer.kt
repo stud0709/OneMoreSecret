@@ -295,7 +295,7 @@ abstract class MessageComposer {
             dataOutputStream.writeUnsignedShort(rsaTransformationIdx)
 
             // (3) fingerprint
-            dataOutputStream.writeByteArray(RSAUtils.getFingerprint(rsaPublicKey))
+            dataOutputStream.writeByteArray(RSAUtil.getFingerprint(rsaPublicKey))
 
             // (4) AES transformation index
             dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)

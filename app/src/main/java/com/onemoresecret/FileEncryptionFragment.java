@@ -25,7 +25,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.EncryptedFile;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentFileEncryptionBinding;
 
 import java.nio.file.Files;
@@ -120,7 +120,7 @@ public class FileEncryptionFragment extends Fragment {
                     EncryptedFile.create(requireContext().getContentResolver().openInputStream(uri),
                             fileRecord.path.toFile(),
                             (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(selectedAlias)).getPublicKey(),
-                            RSAUtils.getRsaTransformationIdx(preferences),
+                            RSAUtil.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformation(preferences),
                             () -> binding == null || !encryptionRunning,

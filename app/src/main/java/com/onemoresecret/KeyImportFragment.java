@@ -3,7 +3,6 @@ package com.onemoresecret;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.security.keystore.KeyProperties;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -25,20 +24,16 @@ import com.onemoresecret.crypto.AesKeyAlgorithm;
 import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentKeyImportBinding;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.KeyFactory;
-import java.security.KeyStoreException;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Objects;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Key import Fragment.
@@ -156,10 +151,8 @@ public class KeyImportFragment extends Fragment {
                 // (9.2) - public key material
                 var publicKeyMaterial = dataInputStream.readByteArray();
 
-                var publicKeySpec = new X509EncodedKeySpec(publicKeyMaterial);
-                var keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA);
-                var publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
-                var fingerprintBytes = RSAUtils.getFingerprint(publicKey);
+                var publicKey = RSAUtil.restorePublicKey(publicKeyMaterial);
+                var fingerprintBytes = RSAUtil.getFingerprint(publicKey);
                 var fingerprint = Util.byteArrayToHex(fingerprintBytes);
 
                 requireContext().getMainExecutor().execute(() -> {
@@ -249,7 +242,7 @@ public class KeyImportFragment extends Fragment {
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
                 var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey();
-                var fingerprint = RSAUtils.getFingerprint(publicKey);
+                var fingerprint = RSAUtil.getFingerprint(publicKey);
                 if (!Arrays.equals(fingerprint, fingerprintNew)) {
                     warning = String.format(getString(R.string.warning_alias_exists), Util.byteArrayToHex(fingerprint));
                 }

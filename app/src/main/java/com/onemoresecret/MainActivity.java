@@ -17,7 +17,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.ActivityMainBinding;
 
 import java.io.IOException;
@@ -34,8 +34,6 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class MainActivity extends AppCompatActivity {
     private static final String
@@ -96,8 +94,8 @@ public class MainActivity extends AppCompatActivity {
     private WiFiComm getWiFiComm() throws InvalidKeySpecException, NoSuchAlgorithmException {
         synchronized (MainActivity.class) {
             if (wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
-                var privateKey = RSAUtils.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
-                var publicKey = RSAUtils.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
+                var privateKey = RSAUtil.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
+                var publicKey = RSAUtil.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
                 var ipaddrByte = Base64.decode(preferences.getString(PROP_IPADDR, ""), Base64.DEFAULT);
                 var port = preferences.getInt(PROP_PORT, 0);
                 var ts_expiry = preferences.getLong(PROP_WIFI_COMM_EXP, 0);
@@ -184,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 var wiFiComm = getWiFiComm();
                 var reply = MessageComposer.createRsaAesEnvelope(
                         wiFiComm.publicKey,
-                        RSAUtils.getRsaTransformationIdx(preferences),
+                        RSAUtil.getRsaTransformationIdx(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences),
                         data);
@@ -318,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, String.format("onWiFiConnection: Message has been received, %s bytes", encryptedMessage.length));
 
                 // decrypt AES key
-                var aesSecretKeyData = RSAUtils.process(
+                var aesSecretKeyData = RSAUtil.process(
                         Cipher.DECRYPT_MODE,
                         getWiFiComm().privateKey,
                         envelope.rsaTransformation,

@@ -6,8 +6,9 @@ import android.content.pm.PackageManager
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
+import androidx.core.content.edit
 import com.onemoresecret.Util
-import com.onemoresecret.crypto.RSAUtils.getFingerprint
+import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import org.spongycastle.crypto.generators.RSAKeyPairGenerator
 import org.spongycastle.crypto.params.RSAKeyGenerationParameters
 import org.spongycastle.crypto.util.PrivateKeyInfoFactory
@@ -16,6 +17,7 @@ import org.spongycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator
 import java.io.IOException
 import java.math.BigInteger
 import java.security.InvalidAlgorithmParameterException
+import java.security.Key
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -24,12 +26,9 @@ import java.security.NoSuchProviderException
 import java.security.SecureRandom
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.InvalidKeySpecException
-import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.MGF1ParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
-import androidx.core.content.edit
-import java.security.Key
-import java.security.spec.MGF1ParameterSpec
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
 
@@ -67,14 +66,11 @@ class CryptographyManager {
     ): UserRsaCipherBox {
         try {
             val cipher = Cipher.getInstance(rsaTransformation.transformation)
-            val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
-
             var key: Key
             var wipeKey: () -> Unit = {}
 
             if (opmode == Cipher.ENCRYPT_MODE) {
-                val publicKeySpec = X509EncodedKeySpec(keyStoreEntry.public)
-                key = keyFactory.generatePublic(publicKeySpec) as RSAPublicKey
+                key = RSAUtil.restorePublicKey(keyStoreEntry.public)
             } else {
                 //decrypt AES key
                 val aesKeyMaterial = masterRsaCihper.doFinal(keyStoreEntry.aesRawBytesEncrypted)
@@ -87,9 +83,7 @@ class CryptographyManager {
                 )
 
                 aesKeyMaterial.fill(0) //wipe
-
-                val keySpec = PKCS8EncodedKeySpec(privateKeyMaterial)
-                key = keyFactory.generatePrivate(keySpec)
+                key = RSAUtil.restorePrivateKey(privateKeyMaterial)
                 wipeKey = { privateKeyMaterial.fill(0) }
             }
             cipher.init(Cipher.DECRYPT_MODE, key)
@@ -238,7 +232,7 @@ class CryptographyManager {
     /**
      * Resolve key by its modulus and public exponent
      *
-     * @param fingerprint SHA-256 hash of modulus and public exponent, [RSAUtils.getFingerprint]
+     * @param fingerprint SHA-256 hash of modulus and public exponent, [RSAUtil.getFingerprint]
      * @return all key alias matching that SHA-256
      */
     fun getByFingerprint(fingerprint: ByteArray, preferences: SharedPreferences): KeyStoreEntry? {
@@ -259,7 +253,6 @@ class CryptographyManager {
     }
 
     companion object {
-        const val AES_GCM_NO_PADDING: String = "AES/GCM/NoPadding"
         const val MASTER_KEY_ALIAS: String = "oms_master"
         const val ANDROID_KEYSTORE: String = "AndroidKeyStore"
         private val TAG: String = CryptographyManager::class.java.simpleName

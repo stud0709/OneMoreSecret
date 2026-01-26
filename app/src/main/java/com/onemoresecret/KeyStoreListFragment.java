@@ -20,17 +20,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.KeyStoreEntry;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
 import com.onemoresecret.databinding.PrivateKeyListItemBinding;
 
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * A fragment representing a list of Items.
@@ -39,13 +39,12 @@ public class KeyStoreListFragment extends Fragment {
     private FragmentKeyStoreListBinding binding;
     private SelectionTracker<String> selectionTracker;
 
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-
     private final List<String> aliasList = new ArrayList<>();
 
     private final ItemAdapter itemAdapter = new ItemAdapter();
 
     private Consumer<FragmentKeyStoreListBinding> runOnStart;
+    private Set<KeyStoreEntry> keyStoreEntries;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -82,14 +81,15 @@ public class KeyStoreListFragment extends Fragment {
         aliasList.clear();
 
         var preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
-        var keysEntries = preferences.getStringSet(CryptographyManager.PROP_KEYSTORE, new HashSet<>());
-        keysEntries.stream().map(s -> {
+        var keystoreStringSet = preferences.getStringSet(CryptographyManager.PROP_KEYSTORE, new HashSet<>());
+        keyStoreEntries = keystoreStringSet.stream().map(s -> {
             try {
                 return Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry.class);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-        }).forEach(e -> aliasList.add(e.getAlias()));
+        }).collect(Collectors.toSet());
+        keyStoreEntries.forEach(e -> aliasList.add(e.getAlias()));
         Collections.sort(aliasList);
 
         binding.list.setAdapter(itemAdapter);
@@ -149,10 +149,15 @@ public class KeyStoreListFragment extends Fragment {
             this.alias = aliasList.get(position);
             try {
                 binding.textItemKeyAlias.setText(alias);
-                var publicKey = (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey();
+                var keyStoreEntry = keyStoreEntries
+                        .stream()
+                        .filter(e -> e.getAlias().equals(alias))
+                        .findAny()
+                        .get();
+                var publicKey = RSAUtil.restorePublicKey(keyStoreEntry.getPublic());
                 binding.textItemFingerprint.setText(
                         Util.byteArrayToHex(
-                                RSAUtils.getFingerprint(publicKey)));
+                                RSAUtil.getFingerprint(publicKey)));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

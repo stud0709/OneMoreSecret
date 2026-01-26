@@ -22,7 +22,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
 import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.crypto.TotpUriTransfer;
 import com.onemoresecret.databinding.FragmentTotpImportBinding;
 
@@ -106,7 +106,7 @@ public class TotpImportFragment extends Fragment {
             return MessageComposer.encodeAsOmsText(
                     new TotpUriTransfer(message,
                             (RSAPublicKey) cryptographyManager.keyStore.getCertificate(alias).getPublicKey(),
-                            RSAUtils.getRsaTransformationIdx(preferences),
+                            RSAUtil.getRsaTransformationIdx(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformation(preferences)).message);
 

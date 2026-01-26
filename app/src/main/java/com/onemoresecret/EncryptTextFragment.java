@@ -22,7 +22,7 @@ import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.EncryptedMessage;
 import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentEncryptTextBinding;
 
 import java.nio.charset.StandardCharsets;
@@ -123,7 +123,7 @@ public class EncryptTextFragment extends Fragment {
                 var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessage(phrase.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
-                                RSAUtils.getRsaTransformationIdx(preferences),
+                                RSAUtil.getRsaTransformationIdx(preferences),
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformation(preferences)).message);
 

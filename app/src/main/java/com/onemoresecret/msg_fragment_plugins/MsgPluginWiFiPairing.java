@@ -14,7 +14,7 @@ import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.WiFiPairingFragment;
 import com.onemoresecret.crypto.Base58;
-import com.onemoresecret.crypto.RSAUtils;
+import com.onemoresecret.crypto.RSAUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.security.KeyStoreException;
 import java.util.Arrays;
 
 public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
@@ -43,10 +42,10 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
             var requestId = dataInputStream.readString();
 
             //(3) RSA public key - PC
-            var rsaPublicKeyComm = RSAUtils.restorePublicKey(dataInputStream.readByteArray());
+            var rsaPublicKeyComm = RSAUtil.restorePublicKey(dataInputStream.readByteArray());
 
             //(4) RSA privateKey to protect communication
-            var rsaPrivateKeyComm = RSAUtils.restorePrivateKey(dataInputStream.readByteArray());
+            var rsaPrivateKeyComm = RSAUtil.restorePrivateKey(dataInputStream.readByteArray());
 
             //get IP address
             var ipAndPort = getIpAndPort(context);
