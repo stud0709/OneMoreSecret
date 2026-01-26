@@ -20,16 +20,11 @@ object RSAUtil {
     const val PROP_RSA_TRANSFORMATION_IDX: String = "rsa_transformation_idx"
 
     @JvmStatic
-    fun getRsaTransformationIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(
-            PROP_RSA_TRANSFORMATION_IDX,
-            RsaTransformation.RSA_ECB_OAEPWithSHA_256AndMGF1Padding.ordinal
-        )
-    }
-
-    @JvmStatic
     fun getRsaTransformation(preferences: SharedPreferences): RsaTransformation {
-        return RsaTransformation.entries[getRsaTransformationIdx(preferences)]
+        val idx = preferences.getInt(
+            PROP_RSA_TRANSFORMATION_IDX,
+            RsaTransformation.RSA_ECB_PKCS1Padding.ordinal)
+        return RsaTransformation.entries[idx]
     }
 
     @JvmStatic

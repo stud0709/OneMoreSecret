@@ -9,7 +9,7 @@ class EncryptedCryptoCurrencyAddress(
     ai: Int,
     privateKey: ByteArray,
     rsaPublicKey: RSAPublicKey,
-    rsaTransformationIdx: Int,
+    rsaTransformation: RsaTransformation,
     aesKeyLength: Int,
     aesTransformation: AesTransformation
 ) {
@@ -19,7 +19,7 @@ class EncryptedCryptoCurrencyAddress(
     init {
         this.message = MessageComposer.createRsaAesEnvelope(
             rsaPublicKey,
-            rsaTransformationIdx,
+            rsaTransformation,
             aesKeyLength,
             aesTransformation,
             createPayload(ai, privateKey)

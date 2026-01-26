@@ -1,5 +1,6 @@
 package com.onemoresecret.msg_fragment_plugins;
 
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.biometric.BiometricPrompt;
@@ -32,7 +33,7 @@ import javax.crypto.Cipher;
 public class MsgPluginKeyRequest extends MessageFragmentPlugin {
     protected String reference;
     protected PublicKey rsaPublicKey;
-    protected byte[] cipherText;
+    protected byte[] encryptedAesKey;
     protected int applicationId;
 
     public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws Exception {
@@ -61,7 +62,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
 
                     //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
-                    cipherText = dataInputStream.readByteArray();
+                    encryptedAesKey = dataInputStream.readByteArray();
                 }
                 case MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
                     // (2) reference (file name)
@@ -74,7 +75,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
 
                     // (6) encrypted AES key from the file header
-                    cipherText = dataInputStream.readByteArray();
+                    encryptedAesKey = dataInputStream.readByteArray();
                 }
             }
 
@@ -117,7 +118,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
         var keyStoreEntry = new CryptographyManager().getByFingerprint(fingerprint, preferences);
         assert keyStoreEntry != null;
 
-        var userRsaCipherBox = new CryptographyManager().getInitializedUserRsaCipher(
+        var userRsaCipher = new CryptographyManager().getInitializedUserRsaCipher(
                 masterRsaCipher,
                 keyStoreEntry,
                 rsaTransformation,
@@ -125,30 +126,36 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
         try {
             //decrypt AES key
-            var aesSecretKeyData = userRsaCipherBox.getCipher().doFinal(cipherText);
-            userRsaCipherBox.getWipe().invoke(); //wipe User RSA key data
+            var aesKeyMaterial = userRsaCipher.getCipher().doFinal(encryptedAesKey);
+            userRsaCipher.getWipe().invoke(); //wipe User RSA key data
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
+                    var rsaTransformation = RSAUtil.getRsaTransformation(preferences);
+
                     var rsaEncryptedAesKey = RSAUtil.process(
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKey,
-                            RSAUtil.getRsaTransformation(preferences),
-                            aesSecretKeyData);
+                            rsaTransformation,
+                            aesKeyMaterial);
 
-                    Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
+                    Arrays.fill(aesKeyMaterial, (byte)0); //wipe AES key data
 
                     try (var baos = new ByteArrayOutputStream();
                          var dataOutputStream = new OmsDataOutputStream(baos)) {
 
+                        Log.d(TAG, "Creating key response");
                         // (1) Application identifier
                         dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
+                        Log.d(TAG, String.format("Application-ID: %s",MessageComposer.APPLICATION_KEY_RESPONSE));
 
                         // (2) RSA transformation
-                        dataOutputStream.writeUnsignedShort(RSAUtil.getRsaTransformationIdx(preferences));
+                        dataOutputStream.writeUnsignedShort(rsaTransformation.ordinal());
+                        Log.d(TAG, String.format("RSA transformation: %d = %s", rsaTransformation.ordinal(), rsaTransformation.transformation));
 
                         // (3) RSA encrypted AES key
                         dataOutputStream.writeByteArray(rsaEncryptedAesKey);
+                        Log.d(TAG, String.format("encrypted AES key: %s", Util.byteArrayToHex(rsaEncryptedAesKey)));
 
                         var base64Message = Base64.getEncoder().encodeToString(baos.toByteArray());
 
@@ -165,7 +172,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
                     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                          OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
-                        dataOutputStream.writeByteArray(aesSecretKeyData);
+                        dataOutputStream.writeByteArray(aesKeyMaterial);
                         ((KeyRequestPairingFragment) getOutputView()).setReply(baos.toByteArray());
                     }
                 }

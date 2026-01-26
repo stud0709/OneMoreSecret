@@ -5,13 +5,13 @@ import java.security.interfaces.RSAPublicKey
 class TotpUriTransfer(
     message: ByteArray,
     rsaPublicKey: RSAPublicKey,
-    rsaTransformationIdx: Int,
+    rsaTransformation: RsaTransformation,
     aesKeyLength: Int,
     aesTransformation: AesTransformation
 ) : EncryptedMessage(
     message,
     rsaPublicKey,
-    rsaTransformationIdx,
+    rsaTransformation,
     aesKeyLength,
     aesTransformation
 ) {

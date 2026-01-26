@@ -130,16 +130,12 @@ object AESUtil {
     }
 
     @JvmStatic
-    fun getAesKeyAlgorithmIdx(preferences: SharedPreferences): Int {
-        return preferences.getInt(
+    fun getAesKeyAlgorithm(preferences: SharedPreferences): AesKeyAlgorithm {
+        val idx = preferences.getInt(
             PROP_AES_KEY_ALGORITHM_IDX,
             AesKeyAlgorithm.PBKDF2WithHmacSHA256.ordinal
         )
-    }
-
-    @JvmStatic
-    fun getAesKeyAlgorithm(preferences: SharedPreferences): AesKeyAlgorithm {
-        return AesKeyAlgorithm.entries[getAesKeyAlgorithmIdx(preferences)]
+        return AesKeyAlgorithm.entries[idx]
     }
 
     @JvmStatic

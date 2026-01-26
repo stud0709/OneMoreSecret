@@ -199,7 +199,7 @@ public class TotpManualEntryFragment extends Fragment {
                 var result = MessageComposer.encodeAsOmsText(
                         new TotpUriTransfer(uri.getBytes(),
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(selectedAlias)).getPublicKey(),
-                                RSAUtil.getRsaTransformationIdx(preferences),
+                                RSAUtil.getRsaTransformation(preferences),
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformation(preferences)).message);
 

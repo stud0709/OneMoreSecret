@@ -3,6 +3,7 @@ package com.onemoresecret.crypto
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
@@ -26,11 +27,8 @@ import java.security.NoSuchProviderException
 import java.security.SecureRandom
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.InvalidKeySpecException
-import java.security.spec.MGF1ParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
-import javax.crypto.spec.OAEPParameterSpec
-import javax.crypto.spec.PSource
 
 class CryptographyManager {
     @JvmField
@@ -50,7 +48,7 @@ class CryptographyManager {
         }
     }
 
-    data class UserRsaCipherBox(val cipher: Cipher, val wipe: () -> Unit)
+    data class UserRsaCipher(val cipher: Cipher, val wipe: () -> Unit)
 
     /**
      * Initialize Cipher for user RSA key.
@@ -63,7 +61,7 @@ class CryptographyManager {
         keyStoreEntry: KeyStoreEntry,
         rsaTransformation: RsaTransformation,
         opmode: Int
-    ): UserRsaCipherBox {
+    ): UserRsaCipher {
         try {
             val cipher = Cipher.getInstance(rsaTransformation.transformation)
             var key: Key
@@ -86,9 +84,14 @@ class CryptographyManager {
                 key = RSAUtil.restorePrivateKey(privateKeyMaterial)
                 wipeKey = { privateKeyMaterial.fill(0) }
             }
-            cipher.init(Cipher.DECRYPT_MODE, key)
 
-            return UserRsaCipherBox(cipher, wipeKey)
+            if (rsaTransformation.spec == null) {
+                cipher.init(opmode, key)
+            } else {
+                cipher.init(opmode, key, rsaTransformation.spec)
+            }
+
+            return UserRsaCipher(cipher, wipeKey)
         } catch (ex: Exception) {
             throw RuntimeException(ex)
         }
@@ -97,25 +100,20 @@ class CryptographyManager {
     /**
      * Initialize Cipher for Master RSA key. Decryption requires biometric authentication.
      */
-    fun getInitializedMasterRsaCipher(opmode: Int): Cipher {
+    fun getInitializedMasterRsaCipher(opMode: Int): Cipher {
+        val rsaTransformation = RsaTransformation.RSA_ECB_PKCS1Padding
+
         try {
-            val cipher =
-                Cipher.getInstance(RsaTransformation.RSA_ECB_OAEPWithSHA_256AndMGF1Padding.transformation)
-            val oaepSpec = OAEPParameterSpec(
-                "SHA-256",
-                "MGF1",
-                MGF1ParameterSpec.SHA1,
-                PSource.PSpecified.DEFAULT
-            )
+            val cipher = Cipher.getInstance(rsaTransformation.transformation)
             cipher.init(
-                opmode,
-                if (opmode == Cipher.DECRYPT_MODE)
+                opMode,
+                if (opMode == Cipher.DECRYPT_MODE)
                 //decrypt with private key
                     keyStore.getKey(MASTER_KEY_ALIAS, null)
                 else
                 //encrypt with public key
                     keyStore.getCertificate(MASTER_KEY_ALIAS).publicKey,
-                oaepSpec
+                rsaTransformation.spec
             )
 
             return cipher
@@ -197,11 +195,16 @@ class CryptographyManager {
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
         )
             .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP, KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
             .setUserAuthenticationRequired(true)
             // Require authentication for every single use (0 seconds)
             .setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
             .setInvalidatedByBiometricEnrollment(true)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    setMgf1Digests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA1)
+                }
+            }
             .setIsStrongBoxBacked(
                 ctx.packageManager
                     .hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)

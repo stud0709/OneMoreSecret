@@ -21,7 +21,7 @@ class AesEncryptedPrivateKeyTransfer(
     iv: ByteArray,
     salt: ByteArray,
     aesTransformation: AesTransformation,
-    aesKeyAlgorithmIdx: Int,
+    aesKeyAlgorithm: AesKeyAlgorithm,
     aesKeyLength: Int,
     aesKeyspecIterations: Int
 ) : MessageComposer() {
@@ -53,7 +53,7 @@ class AesEncryptedPrivateKeyTransfer(
                     dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)
 
                     // (6) key algorithm index
-                    dataOutputStream.writeUnsignedShort(aesKeyAlgorithmIdx)
+                    dataOutputStream.writeUnsignedShort(aesKeyAlgorithm.ordinal)
 
                     // (7) keyspec length
                     dataOutputStream.writeUnsignedShort(aesKeyLength)

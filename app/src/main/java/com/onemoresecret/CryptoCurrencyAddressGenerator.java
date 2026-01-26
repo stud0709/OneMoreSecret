@@ -135,7 +135,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                         MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                         btcKeyPair.wif,
                         (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
-                        RSAUtil.getRsaTransformationIdx(preferences),
+                        RSAUtil.getRsaTransformation(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences)).message;
 

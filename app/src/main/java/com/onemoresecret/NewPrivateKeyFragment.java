@@ -112,7 +112,7 @@ public class NewPrivateKeyFragment extends Fragment {
                     iv,
                     salt,
                     AESUtil.getAesTransformation(preferences),
-                    AESUtil.getAesKeyAlgorithmIdx(preferences),
+                    AESUtil.getAesKeyAlgorithm(preferences),
                     aesKeyLength,
                     aesKeySpecIterations).message;
 

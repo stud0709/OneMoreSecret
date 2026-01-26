@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 var wiFiComm = getWiFiComm();
                 var reply = MessageComposer.createRsaAesEnvelope(
                         wiFiComm.publicKey,
-                        RSAUtil.getRsaTransformationIdx(preferences),
+                        RSAUtil.getRsaTransformation(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences),
                         data);

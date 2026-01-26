@@ -195,17 +195,17 @@ abstract class MessageComposer {
         )
         fun createRsaAesEnvelope(
             rsaPublicKey: RSAPublicKey,
-            rsaTransformationIdx: Int,
+            rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
-            aesTransformationIdx: AesTransformation,
+            aesTransformation: AesTransformation,
             payload: ByteArray
         ): ByteArray {
             return createRsaAesEnvelope(
                 APPLICATION_RSA_AES_GENERIC,
                 rsaPublicKey,
-                rsaTransformationIdx,
+                rsaTransformation,
                 aesKeyLength,
-                aesTransformationIdx,
+                aesTransformation,
                 payload
             )
         }
@@ -221,7 +221,7 @@ abstract class MessageComposer {
         fun createRsaAesEnvelope(
             applicationId: Int,
             rsaPublicKey: RSAPublicKey,
-            rsaTransformationIdx: Int,
+            rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
             aesTransformation: AesTransformation,
             payload: ByteArray
@@ -234,7 +234,7 @@ abstract class MessageComposer {
                                 dataOutputStream,
                                 applicationId,
                                 rsaPublicKey,
-                                rsaTransformationIdx,
+                                rsaTransformation,
                                 aesKeyLength,
                                 aesTransformation
                             )
@@ -271,7 +271,7 @@ abstract class MessageComposer {
             dataOutputStream: OmsDataOutputStream,
             applicationId: Int,
             rsaPublicKey: RSAPublicKey,
-            rsaTransformationIdx: Int,
+            rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
             aesTransformation: AesTransformation
         ): AesEncryptionParameters {
@@ -281,7 +281,6 @@ abstract class MessageComposer {
             SecureRandom().nextBytes(aesKeyMaterial)
 
             // encrypt AES secret key with RSA
-            val rsaTransformation = RsaTransformation.entries[rsaTransformationIdx]
             val cipher = Cipher.getInstance(rsaTransformation.transformation)
             cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
             val iv = AESUtil.generateIv(aesTransformation)
@@ -292,7 +291,7 @@ abstract class MessageComposer {
             dataOutputStream.writeUnsignedShort(applicationId)
 
             // (2) RSA transformation index
-            dataOutputStream.writeUnsignedShort(rsaTransformationIdx)
+            dataOutputStream.writeUnsignedShort(rsaTransformation.ordinal)
 
             // (3) fingerprint
             dataOutputStream.writeByteArray(RSAUtil.getFingerprint(rsaPublicKey))

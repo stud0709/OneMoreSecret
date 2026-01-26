@@ -123,7 +123,7 @@ public class EncryptTextFragment extends Fragment {
                 var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessage(phrase.getBytes(StandardCharsets.UTF_8),
                                 (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
-                                RSAUtil.getRsaTransformationIdx(preferences),
+                                RSAUtil.getRsaTransformation(preferences),
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformation(preferences)).message);
 

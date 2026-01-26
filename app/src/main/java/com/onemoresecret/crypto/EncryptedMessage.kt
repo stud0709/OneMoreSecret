@@ -8,7 +8,7 @@ import java.security.interfaces.RSAPublicKey
 open class EncryptedMessage(
     message: ByteArray,
     rsaPublicKey: RSAPublicKey,
-    rsaTransformationIdx: Int,
+    rsaTransformation: RsaTransformation,
     aesKeyLength: Int,
     aesTransformation: AesTransformation
 ) {
@@ -18,7 +18,7 @@ open class EncryptedMessage(
     init {
         this.message = MessageComposer.createRsaAesEnvelope(
             rsaPublicKey,
-            rsaTransformationIdx,
+            rsaTransformation,
             aesKeyLength,
             aesTransformation,
             createPayload(this.applicationId, message)

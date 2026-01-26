@@ -1,7 +1,6 @@
 package com.onemoresecret.crypto
 
 import com.onemoresecret.OmsDataOutputStream
-import com.onemoresecret.Util
 import com.onemoresecret.crypto.AESUtil.process
 import java.io.File
 import java.io.FileOutputStream
@@ -33,7 +32,7 @@ object EncryptedFile {
         fis: InputStream,
         oFile: File,
         rsaPublicKey: RSAPublicKey,
-        rsaTransformationIdx: Int,
+        rsaTransformation: RsaTransformation,
         aesKeyLength: Int,
         aesTransformation: AesTransformation,
         cancellationSupplier: Supplier<Boolean>?,
@@ -46,7 +45,7 @@ object EncryptedFile {
                         dataOutputStream,
                         MessageComposer.APPLICATION_ENCRYPTED_FILE,
                         rsaPublicKey,
-                        rsaTransformationIdx,
+                        rsaTransformation,
                         aesKeyLength,
                         aesTransformation
                     )
