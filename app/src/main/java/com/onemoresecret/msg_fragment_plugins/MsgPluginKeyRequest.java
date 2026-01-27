@@ -35,6 +35,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
     protected byte[] rsaPublicKeyMaterial;
     protected byte[] encryptedAesKey;
     protected int applicationId;
+    protected RsaTransformation rsaTransformationResponse;
 
     public MsgPluginKeyRequest(MessageFragment messageFragment, byte[] messageData) throws Exception {
         super(messageFragment);
@@ -58,10 +59,13 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     //(4) fingerprint of the requested key
                     fingerprint = dataInputStream.readByteArray();
 
-                    //(5) transformation index for decryption
+                    //(5) transformation index for decryption (as specified by the encrypted file)
                     rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
 
-                    //(6) AES key subject to decryption with RSA key specified by fingerprint at (4)
+                    //(6) transformation index for the key response - the requester specifies the transformation it supports
+                    rsaTransformationResponse = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
+
+                    //(7) AES key subject to decryption with RSA key specified by fingerprint at (4)
                     encryptedAesKey = dataInputStream.readByteArray();
                 }
                 case MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
@@ -127,12 +131,10 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
             switch (applicationId) {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
-                    var rsaTransformation = RSAUtil.getRsaTransformation(preferences);
-
                     var rsaEncryptedAesKey = RSAUtil.process(
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKeyMaterial,
-                            rsaTransformation,
+                            rsaTransformationResponse,
                             aesKeyMaterial);
 
                     Arrays.fill(aesKeyMaterial, (byte)0); //wipe AES key data
@@ -145,11 +147,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                         dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
                         Log.d(TAG, String.format("Application-ID: %s",MessageComposer.APPLICATION_KEY_RESPONSE));
 
-                        // (2) RSA transformation
-                        dataOutputStream.writeUnsignedShort(rsaTransformation.ordinal());
-                        Log.d(TAG, String.format("RSA transformation: %d = %s", rsaTransformation.ordinal(), rsaTransformation.transformation));
-
-                        // (3) RSA encrypted AES key
+                        // (2) RSA encrypted AES key
                         dataOutputStream.writeByteArray(rsaEncryptedAesKey);
                         Log.d(TAG, String.format("encrypted AES key: %s", Util.byteArrayToHex(rsaEncryptedAesKey)));
 
