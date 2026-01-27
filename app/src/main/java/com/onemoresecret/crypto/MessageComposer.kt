@@ -12,7 +12,6 @@ import java.security.InvalidAlgorithmParameterException
 import java.security.InvalidKeyException
 import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
-import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import java.util.Objects
 import java.util.Optional
@@ -194,7 +193,7 @@ abstract class MessageComposer {
             InvalidAlgorithmParameterException::class
         )
         fun createRsaAesEnvelope(
-            rsaPublicKey: RSAPublicKey,
+            rsaPublicKeyMaterial: ByteArray,
             rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
             aesTransformation: AesTransformation,
@@ -202,7 +201,7 @@ abstract class MessageComposer {
         ): ByteArray {
             return createRsaAesEnvelope(
                 APPLICATION_RSA_AES_GENERIC,
-                rsaPublicKey,
+                rsaPublicKeyMaterial,
                 rsaTransformation,
                 aesKeyLength,
                 aesTransformation,
@@ -220,7 +219,7 @@ abstract class MessageComposer {
         )
         fun createRsaAesEnvelope(
             applicationId: Int,
-            rsaPublicKey: RSAPublicKey,
+            rsaPublicKeyMaterial: ByteArray,
             rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
             aesTransformation: AesTransformation,
@@ -233,7 +232,7 @@ abstract class MessageComposer {
                             prepareRsaAesEnvelope(
                                 dataOutputStream,
                                 applicationId,
-                                rsaPublicKey,
+                                rsaPublicKeyMaterial,
                                 rsaTransformation,
                                 aesKeyLength,
                                 aesTransformation
@@ -270,7 +269,7 @@ abstract class MessageComposer {
         fun prepareRsaAesEnvelope(
             dataOutputStream: OmsDataOutputStream,
             applicationId: Int,
-            rsaPublicKey: RSAPublicKey,
+            rsaPublicKeyMaterial: ByteArray,
             rsaTransformation: RsaTransformation,
             aesKeyLength: Int,
             aesTransformation: AesTransformation
@@ -281,11 +280,11 @@ abstract class MessageComposer {
             SecureRandom().nextBytes(aesKeyMaterial)
 
             // encrypt AES secret key with RSA
-            val cipher = Cipher.getInstance(rsaTransformation.transformation)
-            cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
-            val iv = AESUtil.generateIv(aesTransformation)
+            val rsaCipher = Cipher.getInstance(rsaTransformation.transformation)
+            val rsaPublicKey = RSAUtil.restorePublicKey(rsaPublicKeyMaterial)
+            rsaCipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
 
-            val encryptedSecretKey = cipher.doFinal(aesKeyMaterial)
+            val encryptedSecretKey = rsaCipher.doFinal(aesKeyMaterial)
 
             // (1) application-ID
             dataOutputStream.writeUnsignedShort(applicationId)
@@ -300,6 +299,7 @@ abstract class MessageComposer {
             dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)
 
             // (5) IV
+            val iv = AESUtil.generateIv(aesTransformation)
             dataOutputStream.writeByteArray(iv)
 
             // (6) RSA-encrypted AES secret key

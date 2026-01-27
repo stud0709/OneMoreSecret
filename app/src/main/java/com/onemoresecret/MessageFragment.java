@@ -114,9 +114,9 @@ public class MessageFragment extends Fragment {
                     messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
 
             case MessageComposer.APPLICATION_KEY_REQUEST,
-                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
                 messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
-            }
+
             case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                     MessageComposer.APPLICATION_TOTP_URI ->
                     messageFragmentPlugin = new MsgPluginTotp(this, messageData);

@@ -1,16 +1,15 @@
 package com.onemoresecret.crypto
 
-import java.security.interfaces.RSAPublicKey
 
 class TotpUriTransfer(
     message: ByteArray,
-    rsaPublicKey: RSAPublicKey,
+    rsaPublicKeyMaterial: ByteArray,
     rsaTransformation: RsaTransformation,
     aesKeyLength: Int,
     aesTransformation: AesTransformation
 ) : EncryptedMessage(
     message,
-    rsaPublicKey,
+    rsaPublicKeyMaterial,
     rsaTransformation,
     aesKeyLength,
     aesTransformation

@@ -16,7 +16,7 @@ class KeyboardReportSerializer : JsonSerializer<KeyboardReport>() {
         gen.writeStringField("usage", keyboardReport.usage.toString())
         gen.writeArrayFieldStart("modifiers")
         keyboardReport.modifiers.stream()
-            .map<String?> { obj -> obj.toString() }
+            .map { obj -> obj.toString() }
             .forEach { s: String ->
                 try {
                     gen.writeString(s)

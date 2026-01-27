@@ -4,7 +4,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.onemoresecret.BuildConfig
 import com.onemoresecret.Util
-import java.util.function.Consumer
 
 abstract class QRCodeAnalyzer(private val zxingEnabled: Boolean) : ImageAnalysis.Analyzer {
     private var analyzer: Analyzer? = null

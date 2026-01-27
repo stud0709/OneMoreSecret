@@ -47,9 +47,7 @@ public class PresetFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         //apply preset
-        binding.button.setOnClickListener(v -> {
-            onClick.accept(presetEntry);
-        });
+        binding.button.setOnClickListener(v -> onClick.accept(presetEntry));
 
         //enter preset configuration
         binding.button.setOnLongClickListener(v -> {

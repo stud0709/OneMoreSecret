@@ -42,10 +42,10 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
             var requestId = dataInputStream.readString();
 
             //(3) RSA public key - PC
-            var rsaPublicKeyComm = RSAUtil.restorePublicKey(dataInputStream.readByteArray());
+            var rsaPublicKeyMaterial = dataInputStream.readByteArray();
 
             //(4) RSA privateKey to protect communication
-            var rsaPrivateKeyComm = RSAUtil.restorePrivateKey(dataInputStream.readByteArray());
+            var rsaPrivateKeyMaterial = dataInputStream.readByteArray();
 
             //get IP address
             var ipAndPort = getIpAndPort(context);
@@ -61,9 +61,9 @@ public class MsgPluginWiFiPairing extends MessageFragmentPlugin {
                                     new MainActivity.WiFiComm(
                                             ipAndPort.ipAddress,
                                             ipAndPort.port,
-                                            rsaPrivateKeyComm,
-                                            rsaPublicKeyComm,
-                                            System.currentTimeMillis() + ttl_default));
+                                            rsaPrivateKeyMaterial,
+                                            System.currentTimeMillis() + ttl_default),
+                                    rsaPrivateKeyMaterial);
                         });
             });
         }

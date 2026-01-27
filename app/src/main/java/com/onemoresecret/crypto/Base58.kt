@@ -25,7 +25,7 @@ object Base58 {
     @JvmStatic
     fun encode(input: ByteArray): String {
         var input = input
-        if (input.size == 0) {
+        if (input.isEmpty()) {
             return ""
         }
         // Count leading zeros.
@@ -64,7 +64,7 @@ object Base58 {
         // Convert the base58-encoded ASCII chars to a base58 byte sequence (base58 digits).
         val input58 = ByteArray(input.length)
         for (i in 0..<input.length) {
-            val c = input.get(i)
+            val c = input[i]
             val digit = if (c.code < 128) INDEXES[c.code] else -1
             require(digit >= 0) { "Invalid character" }
             input58[i] = digit.toByte()
@@ -89,7 +89,7 @@ object Base58 {
             ++outputStart
         }
         // Return decoded data (including original number of leading zeros).
-        return Arrays.copyOfRange(decoded, outputStart - zeros, decoded.size)
+        return decoded.copyOfRange(outputStart - zeros, decoded.size)
     }
 
     /**

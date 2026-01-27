@@ -3,11 +3,10 @@ package com.onemoresecret.crypto
 import com.onemoresecret.OmsDataOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.security.interfaces.RSAPublicKey
 
 open class EncryptedMessage(
     message: ByteArray,
-    rsaPublicKey: RSAPublicKey,
+    rsaPublicKeyMaterial: ByteArray,
     rsaTransformation: RsaTransformation,
     aesKeyLength: Int,
     aesTransformation: AesTransformation
@@ -17,7 +16,7 @@ open class EncryptedMessage(
 
     init {
         this.message = MessageComposer.createRsaAesEnvelope(
-            rsaPublicKey,
+            rsaPublicKeyMaterial,
             rsaTransformation,
             aesKeyLength,
             aesTransformation,

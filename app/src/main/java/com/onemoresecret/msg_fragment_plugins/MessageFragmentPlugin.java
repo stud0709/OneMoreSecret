@@ -16,7 +16,6 @@ import com.onemoresecret.OmsFileProvider;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 import com.onemoresecret.Util;
-import com.onemoresecret.crypto.AesTransformation;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.RsaTransformation;
 
@@ -73,11 +72,10 @@ public abstract class MessageFragmentPlugin extends BiometricPrompt.Authenticati
 
         var cipher = cryptographyManager.getInitializedMasterRsaCipher(Cipher.DECRYPT_MODE);
 
-        context.getMainExecutor().execute(() -> {
+        context.getMainExecutor().execute(() ->
             biometricPrompt.authenticate(
                     promptInfo,
-                    new BiometricPrompt.CryptoObject(cipher));
-        });
+                    new BiometricPrompt.CryptoObject(cipher)));
     }
 
 

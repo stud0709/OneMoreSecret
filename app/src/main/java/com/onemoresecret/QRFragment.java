@@ -138,7 +138,7 @@ public class QRFragment extends Fragment {
         }
 
         try {
-            if(!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
+            if (!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
                 cryptographyManager.createMasterRsaKey(requireContext());
                 Log.d(TAG, "RSA master key created");
             }
@@ -442,7 +442,7 @@ public class QRFragment extends Fragment {
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
                     case MessageComposer.APPLICATION_KEY_REQUEST,
-                            MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                         MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
                         closeSocketWaitingForReply = false;
 
                         runPinProtected(() -> {
@@ -457,21 +457,21 @@ public class QRFragment extends Fragment {
                                 true);
                     }
                     case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                            MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
-                            MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
+                         MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
+                         MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
                         dataInputStream.reset();
                         var rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream);
                         //(7) - cipher text
                         var cipherText = dataInputStream.readByteArray();
 
-                        runPinProtected(() -> {
-                                    showBiometricPromptForDecryption(
-                                            rsaAesEnvelope,
-                                            getAuthenticationCallback(
-                                                    rsaAesEnvelope,
-                                                    cipherText,
-                                                    callSetRecent ? message : null));
-                                }, () -> {
+                        runPinProtected(() ->
+                                        showBiometricPromptForDecryption(
+                                                rsaAesEnvelope,
+                                                getAuthenticationCallback(
+                                                        rsaAesEnvelope,
+                                                        cipherText,
+                                                        callSetRecent ? message : null)),
+                                () -> {
                                     //close socket if WiFiPairing active
                                     ((MainActivity) requireActivity()).sendReplyViaSocket(new byte[]{}, true);
                                     //enable message processing again
@@ -770,7 +770,7 @@ public class QRFragment extends Fragment {
                                 String.format("Screenshots %s", menuItem.isChecked() ? "enabled" : "disabled"),
                                 Toast.LENGTH_LONG).show());
             } else if (menuItem.getItemId() == R.id.menuItemClearWiFiComm) {
-                ((MainActivity) requireActivity()).setWiFiComm(null);
+                ((MainActivity) requireActivity()).setWiFiComm(null, null);
                 requireContext().getMainExecutor().execute(
                         () -> Toast.makeText(
                                 getContext(),
@@ -806,19 +806,17 @@ public class QRFragment extends Fragment {
 
             var cipher = cryptographyManager.getInitializedMasterRsaCipher(Cipher.DECRYPT_MODE);
 
-            requireContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() ->
                 biometricPrompt.authenticate(
                         promptInfo,
-                        new BiometricPrompt.CryptoObject(cipher));
-            });
+                        new BiometricPrompt.CryptoObject(cipher)));
         } catch (Exception ex) {
             messageReceived.set(false);
             Util.printStackTrace(ex);
-            requireContext().getMainExecutor().execute(() -> {
+            requireContext().getMainExecutor().execute(() ->
                 Toast.makeText(getContext(),
                         Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()),
-                        Toast.LENGTH_LONG).show();
-            });
+                        Toast.LENGTH_LONG).show());
         }
     }
 
@@ -835,9 +833,8 @@ public class QRFragment extends Fragment {
                 nextPinRequestTimestamp = 0;
                 new Thread(() -> OmsFileProvider.purgeTmp(requireContext())).start();
                 Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode));
-                requireContext().getMainExecutor().execute(() -> {
-                    Toast.makeText(requireContext(), errString + " (" + errorCode + ")", Toast.LENGTH_SHORT).show();
-                });
+                requireContext().getMainExecutor().execute(() ->
+                    Toast.makeText(requireContext(), errString + " (" + errorCode + ")", Toast.LENGTH_SHORT).show());
             }
 
             @Override
@@ -865,7 +862,7 @@ public class QRFragment extends Fragment {
                             rsaAesEnvelope.iv,
                             rsaAesEnvelope.aesTransformation);
 
-                    Arrays.fill(aesSecretKeyData, (byte)0); //wipe AES key data
+                    Arrays.fill(aesSecretKeyData, (byte) 0); //wipe AES key data
 
                     //payload starts with its own application identifier.
                     afterDecrypt(rsaAesEnvelope, payload, optOriginalMessage);
@@ -886,9 +883,8 @@ public class QRFragment extends Fragment {
                 nextPinRequestTimestamp = 0;
                 Log.d(TAG,
                         "User biometrics rejected");
-                requireContext().getMainExecutor().execute(() -> {
-                    Toast.makeText(requireContext(), requireContext().getString(R.string.auth_failed), Toast.LENGTH_SHORT).show();
-                });
+                requireContext().getMainExecutor().execute(() ->
+                    Toast.makeText(requireContext(), requireContext().getString(R.string.auth_failed), Toast.LENGTH_SHORT).show());
             }
         };
     }
@@ -915,8 +911,8 @@ public class QRFragment extends Fragment {
 
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS,
-                                MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
-                                MessageComposer.APPLICATION_TOTP_URI -> {
+                             MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
+                             MessageComposer.APPLICATION_TOTP_URI -> {
                             //(2) message
                             bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());
                             Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());
@@ -938,7 +934,7 @@ public class QRFragment extends Fragment {
                     }
                 }
                 case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                        MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
+                     MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
                     //support for legacy formats
                     bundle.putInt(ARG_APPLICATION_ID, rsaAesEnvelope.applicationId);
                     Log.d(TAG, "calling " + MessageFragment.class.getSimpleName());

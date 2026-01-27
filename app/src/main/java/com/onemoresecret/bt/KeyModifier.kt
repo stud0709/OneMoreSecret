@@ -12,9 +12,5 @@ enum class KeyModifier(value: Int) {
     RIGHT_GUI(1 shl 7);
 
     @JvmField
-    val value: Byte
-
-    init {
-        this.value = value.toByte()
-    }
+    val value: Byte = value.toByte()
 }

@@ -58,7 +58,7 @@ class Stroke {
     /**
      * This is a workaround for some cases like Hyper-V, that sometimes "overlooks" modifiers.
      */
-    protected fun sendModifiers() {
+    private fun sendModifiers() {
         val mArr: Array<KeyModifier> =            this.modifiers.toTypedArray()
         reports.add(KeyboardReport(KeyboardUsage.KBD_NONE, *mArr))
     }
@@ -88,7 +88,7 @@ class Stroke {
 
         var shift = KeyModifier.NONE
         for (i in reports.indices) {
-            val kr = reports.get(i)
+            val kr = reports[i]
             upperCaseStroke.modifiers.addAll(kr.modifiers)
             upperCaseStroke.modifiers.add(shift)
 

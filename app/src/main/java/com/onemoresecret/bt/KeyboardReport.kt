@@ -15,7 +15,7 @@ class KeyboardReport {
      * @param usage       Physical key according to USB HID Usage Tables.
      */
     constructor(usage: KeyboardUsage, vararg modifiers: KeyModifier) {
-        this.modifiers.addAll(Arrays.asList(*modifiers))
+        this.modifiers.addAll(listOf(*modifiers))
         this.usage = usage
     }
 
@@ -38,9 +38,9 @@ class KeyboardReport {
 
     companion object {
         const val NUM_LOCK: Int = 1
-        val CAPS_LOCK: Int = 1 shl 1
-        val SCROLL_LOCK: Int = 1 shl 2
-        val COMPOSE: Int = 1 shl 3
-        val KANA: Int = 1 shl 4
+        const val CAPS_LOCK: Int = 1 shl 1
+        const val SCROLL_LOCK: Int = 1 shl 2
+        const val COMPOSE: Int = 1 shl 3
+        const val KANA: Int = 1 shl 4
     }
 }

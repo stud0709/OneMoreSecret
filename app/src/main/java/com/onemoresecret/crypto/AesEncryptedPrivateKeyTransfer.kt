@@ -1,7 +1,6 @@
 package com.onemoresecret.crypto
 
 import com.onemoresecret.OmsDataOutputStream
-import com.onemoresecret.Util
 import com.onemoresecret.crypto.AESUtil.process
 import java.io.ByteArrayOutputStream
 import java.io.IOException

@@ -809,9 +809,5 @@ enum class KeyboardUsage(value: Int) {
     // 0xdc  Keypad Decimal
     // 0xdd  Keypad Hexadecimal
     @JvmField
-    val value: Byte
-
-    init {
-        this.value = value.toByte()
-    }
+    val value: Byte = value.toByte()
 }

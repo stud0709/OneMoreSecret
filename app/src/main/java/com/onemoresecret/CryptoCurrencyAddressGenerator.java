@@ -32,7 +32,6 @@ import com.onemoresecret.qr.QRUtil;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -134,7 +133,7 @@ public class CryptoCurrencyAddressGenerator extends Fragment {
                 var encrypted = new EncryptedCryptoCurrencyAddress(
                         MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                         btcKeyPair.wif,
-                        (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
+                        Objects.requireNonNull(cryptographyManager.getByAlias(alias, preferences)).getPublic(),
                         RSAUtil.getRsaTransformation(preferences),
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences)).message;

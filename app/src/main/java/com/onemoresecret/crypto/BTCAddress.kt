@@ -83,14 +83,14 @@ object BTCAddress {
         val privateKeySpec = ECPrivateKeySpec(
             s,
             ECParameterSpec(
-                ecParameterSpec.getCurve(),
-                ecParameterSpec.getG(),
-                ecParameterSpec.getN(),
-                ecParameterSpec.getH()
+                ecParameterSpec.curve,
+                ecParameterSpec.g,
+                ecParameterSpec.n,
+                ecParameterSpec.h
             )
         )
 
-        val publicKeySpec = ECPublicKeySpec(ecParameterSpec.getG().multiply(s), ecParameterSpec)
+        val publicKeySpec = ECPublicKeySpec(ecParameterSpec.g.multiply(s), ecParameterSpec)
         val keyFactory = KeyFactory.getInstance("EC")
         return ECKeyPair(
             keyFactory.generatePrivate(privateKeySpec) as ECPrivateKey?,
@@ -104,15 +104,15 @@ object BTCAddress {
         //generate key pair
         val keyPair = keyPairGenerator!!.generateKeyPair()
 
-        return ECKeyPair(keyPair.getPrivate() as ECPrivateKey?, keyPair.getPublic() as ECPublicKey?)
+        return ECKeyPair(keyPair.private as ECPrivateKey?, keyPair.public as ECPublicKey?)
     }
 
     fun toBTCAddress(publicKey: ECPublicKey): ByteArray {
         // https://gobittest.appspot.com/Address
 
-        val ecPoint = publicKey.getW()
-        val x = toByte32.apply(ecPoint.getAffineX())
-        val y = toByte32.apply(ecPoint.getAffineY())
+        val ecPoint = publicKey.w
+        val x = toByte32.apply(ecPoint.affineX)
+        val y = toByte32.apply(ecPoint.affineY)
         val btcPublicKey = ByteArray(65)
         btcPublicKey[0] = 0x04
         System.arraycopy(x, 0, btcPublicKey, 1, x.size)
@@ -141,7 +141,7 @@ object BTCAddress {
 
     fun toBTCKeyPair(keyPair: ECKeyPair): BTCKeyPair {
         //private key
-        val s = keyPair.privateKey!!.getS()
+        val s = keyPair.privateKey!!.s
         val privateKey = toByte32.apply(s)
 
         return BTCKeyPair(toWIF(privateKey), toBTCAddress(keyPair.publicKey!!))

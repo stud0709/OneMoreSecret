@@ -157,7 +157,7 @@ class OneTimePassword(s: String) {
     private fun padOutput(value: Int): String {
         var result = value.toString()
         while (result.length < this.digits) {
-            result = "0" + result
+            result = "0$result"
         }
         return result
     }

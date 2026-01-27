@@ -67,7 +67,7 @@ object Base32 {
                 index = (index + 5) % 8
                 if (index == 0) i++
             }
-            base32.append(base32Chars.get(digit))
+            base32.append(base32Chars[digit])
         }
 
         return base32.toString()
@@ -89,7 +89,7 @@ object Base32 {
         index = 0
         var offset = 0
         while (i < base32.length) {
-            lookup = base32.get(i).code - '0'.code
+            lookup = base32[i].code - '0'.code
 
             /* Skip chars outside the lookup table */
             if (lookup < 0 || lookup >= base32Lookup.size) {

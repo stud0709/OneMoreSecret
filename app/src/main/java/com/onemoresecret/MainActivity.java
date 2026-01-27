@@ -45,10 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private AppBarConfiguration appBarConfiguration;
 
-    public record WiFiComm(byte[] ipAdr, int port, RSAPrivateKey privateKey,
-                           RSAPublicKey publicKey, long ts_expiry) {
+    public record WiFiComm(byte[] ipAdr, int port,
+                           byte[] publicKey, long ts_expiry) {
         public boolean isValid() {
             return System.currentTimeMillis() < ts_expiry;
+        }
+        public byte[] getRsaPrivateKeyMaterial(SharedPreferences preferences) {
+            return Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT);
         }
     }
 
@@ -57,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private Socket socketWaitingForReply = null;
     private SharedPreferences preferences;
 
-    public void setWiFiComm(WiFiComm wiFiComm) {
+    public void setWiFiComm(WiFiComm wiFiComm, byte[] rsaPrivateKeyMaterial) {
         synchronized (MainActivity.class) {
             destroyWiFiListener();
 
@@ -75,8 +78,8 @@ public class MainActivity extends AppCompatActivity {
                         .remove(PROP_PORT).commit();
             } else {
                 preferences.edit()
-                        .putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(wiFiComm.privateKey.getEncoded(), Base64.DEFAULT))
-                        .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey.getEncoded(), Base64.DEFAULT))
+                        .putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(rsaPrivateKeyMaterial, Base64.DEFAULT))
+                        .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey, Base64.DEFAULT))
                         .putLong(PROP_WIFI_COMM_EXP, wiFiComm.ts_expiry)
                         .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
                         .putInt(PROP_PORT, wiFiComm.port).commit();
@@ -91,21 +94,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private WiFiComm getWiFiComm() throws InvalidKeySpecException, NoSuchAlgorithmException {
+    private WiFiComm getWiFiComm() {
         synchronized (MainActivity.class) {
             if (wiFiComm == null && preferences.contains(PROP_WIFI_COMM_EXP)) {
-                var privateKey = RSAUtil.restorePrivateKey(Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT));
-                var publicKey = RSAUtil.restorePublicKey(Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT));
+                var publicKeyMaterial = Base64.decode(preferences.getString(PROP_PUBLIC_KEY_COMM, ""), Base64.DEFAULT);
                 var ipaddrByte = Base64.decode(preferences.getString(PROP_IPADDR, ""), Base64.DEFAULT);
                 var port = preferences.getInt(PROP_PORT, 0);
                 var ts_expiry = preferences.getLong(PROP_WIFI_COMM_EXP, 0);
 
-                wiFiComm = new WiFiComm(ipaddrByte, port, privateKey, publicKey, ts_expiry);
+                wiFiComm = new WiFiComm(ipaddrByte, port, publicKeyMaterial, ts_expiry);
             }
 
             //it is possible that we have read outdated settings
             if (wiFiComm != null && !wiFiComm.isValid()) {
-                setWiFiComm(null);
+                setWiFiComm(null, null);
             }
 
             return wiFiComm;
@@ -281,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
                 //server socket is broken
                 Util.printStackTrace(ex);
 
-                setWiFiComm(null);
+                setWiFiComm(null, null);
 
                 this.getMainExecutor().execute(() -> {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -316,11 +318,14 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, String.format("onWiFiConnection: Message has been received, %s bytes", encryptedMessage.length));
 
                 // decrypt AES key
+                var rsaPrivateKeyMaterial =getWiFiComm().getRsaPrivateKeyMaterial(preferences);
                 var aesSecretKeyData = RSAUtil.process(
                         Cipher.DECRYPT_MODE,
-                        getWiFiComm().privateKey,
+                        rsaPrivateKeyMaterial,
                         envelope.rsaTransformation,
                         envelope.encryptedAesSecretKey);
+
+                Arrays.fill(rsaPrivateKeyMaterial, (byte)0);
 
                 // (7) AES-encrypted message
                 var decryptedMessage = AESUtil.process(
@@ -341,13 +346,12 @@ public class MainActivity extends AppCompatActivity {
                 messageConsumer.accept(MessageComposer.encodeAsOmsText(decryptedMessage));
             } catch (Exception ex) {
                 Util.printStackTrace(ex);
-                this.getMainExecutor().execute(() -> {
+                this.getMainExecutor().execute(() ->
                     Toast.makeText(this,
                             Objects.requireNonNullElse(
                                     ex.getMessage(),
                                     ex.getClass().getName()),
-                            Toast.LENGTH_LONG).show();
-                });
+                            Toast.LENGTH_LONG).show());
                 Log.d(TAG, "onWiFiConnection: Closing socket");
                 try {
                     socket.close();

@@ -32,7 +32,6 @@ import com.onemoresecret.databinding.FragmentPasswordGeneratorBinding;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -364,7 +363,7 @@ public class PasswordGeneratorFragment extends Fragment {
             try {
                 var encrypted = MessageComposer.encodeAsOmsText(
                         new EncryptedMessage(pwd.getBytes(StandardCharsets.UTF_8),
-                                (RSAPublicKey) Objects.requireNonNull(cryptographyManager.keyStore.getCertificate(alias)).getPublicKey(),
+                                Objects.requireNonNull(cryptographyManager.getByAlias(alias, preferences)).getPublic(),
                                 RSAUtil.getRsaTransformation(preferences),
                                 AESUtil.getKeyLength(preferences),
                                 AESUtil.getAesTransformation(preferences)).message);

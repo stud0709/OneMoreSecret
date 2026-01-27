@@ -189,7 +189,7 @@ open class USLayout : KeyboardLayout() {
         if (s == null) {
             //lookup lower case character and set it uppercase
             val cLower = c.lowercaseChar()
-            s = layout.get(cLower)
+            s = layout[cLower]
 
             if (s != null) {
                 s = s.toUpper()

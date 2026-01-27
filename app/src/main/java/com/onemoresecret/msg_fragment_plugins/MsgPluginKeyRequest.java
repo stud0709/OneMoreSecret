@@ -32,7 +32,7 @@ import javax.crypto.Cipher;
 
 public class MsgPluginKeyRequest extends MessageFragmentPlugin {
     protected String reference;
-    protected PublicKey rsaPublicKey;
+    protected byte[] rsaPublicKeyMaterial;
     protected byte[] encryptedAesKey;
     protected int applicationId;
 
@@ -53,7 +53,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     reference = dataInputStream.readString();
 
                     //(3) RSA public key
-                    rsaPublicKey = RSAUtil.restorePublicKey(dataInputStream.readByteArray());
+                    rsaPublicKeyMaterial = dataInputStream.readByteArray();
 
                     //(4) fingerprint of the requested key
                     fingerprint = dataInputStream.readByteArray();
@@ -78,10 +78,6 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     encryptedAesKey = dataInputStream.readByteArray();
                 }
             }
-
-
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -135,7 +131,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
                     var rsaEncryptedAesKey = RSAUtil.process(
                             Cipher.ENCRYPT_MODE,
-                            rsaPublicKey,
+                            rsaPublicKeyMaterial,
                             rsaTransformation,
                             aesKeyMaterial);
 

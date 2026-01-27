@@ -9,7 +9,6 @@ import java.io.InputStream
 import java.security.InvalidAlgorithmParameterException
 import java.security.InvalidKeyException
 import java.security.NoSuchAlgorithmException
-import java.security.interfaces.RSAPublicKey
 import java.util.function.Consumer
 import java.util.function.Supplier
 import javax.crypto.BadPaddingException
@@ -31,7 +30,7 @@ object EncryptedFile {
     fun create(
         fis: InputStream,
         oFile: File,
-        rsaPublicKey: RSAPublicKey,
+        rsaPublicKeyMaterial: ByteArray,
         rsaTransformation: RsaTransformation,
         aesKeyLength: Int,
         aesTransformation: AesTransformation,
@@ -44,7 +43,7 @@ object EncryptedFile {
                     val aesEncryptionParameters = MessageComposer.prepareRsaAesEnvelope(
                         dataOutputStream,
                         MessageComposer.APPLICATION_ENCRYPTED_FILE,
-                        rsaPublicKey,
+                        rsaPublicKeyMaterial,
                         rsaTransformation,
                         aesKeyLength,
                         aesTransformation

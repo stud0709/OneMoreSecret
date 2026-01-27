@@ -53,12 +53,12 @@ object RSAUtil {
     )
     fun process(
         cipherMode: Int,
-        key: Key,
+        keyMaterial: ByteArray,
         rsaTransformation: RsaTransformation,
         data: ByteArray
     ): ByteArray {
         val cipher = Cipher.getInstance(rsaTransformation.transformation)
-        cipher.init(cipherMode, key)
+        cipher.init(cipherMode, if (cipherMode == Cipher.DECRYPT_MODE) restorePrivateKey(keyMaterial) else restorePublicKey(keyMaterial))
 
         return cipher.doFinal(data)
     }

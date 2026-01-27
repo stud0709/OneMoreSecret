@@ -9,8 +9,6 @@ import com.onemoresecret.MessageFragment;
 import com.onemoresecret.OutputFragment;
 import com.onemoresecret.R;
 
-import java.security.KeyStoreException;
-
 
 public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
     private final byte[] messageData;

@@ -26,7 +26,6 @@ import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.crypto.TotpUriTransfer;
 import com.onemoresecret.databinding.FragmentTotpImportBinding;
 
-import java.security.interfaces.RSAPublicKey;
 import java.util.Objects;
 
 public class TotpImportFragment extends Fragment {
@@ -105,7 +104,7 @@ public class TotpImportFragment extends Fragment {
         try {
             return MessageComposer.encodeAsOmsText(
                     new TotpUriTransfer(message,
-                            (RSAPublicKey) cryptographyManager.keyStore.getCertificate(alias).getPublicKey(),
+                            Objects.requireNonNull(cryptographyManager.getByAlias(alias, preferences)).getPublic(),
                             RSAUtil.getRsaTransformation(preferences),
                             AESUtil.getKeyLength(preferences),
                             AESUtil.getAesTransformation(preferences)).message);
