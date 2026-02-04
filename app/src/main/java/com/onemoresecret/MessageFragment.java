@@ -110,15 +110,16 @@ public class MessageFragment extends Fragment {
 
         switch (applicationId) {
             case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                    MessageComposer.APPLICATION_ENCRYPTED_MESSAGE ->
+                 MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
+                 MessageComposer.APPLICATION_ENCRYPTED_OTP ->
                     messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
 
             case MessageComposer.APPLICATION_KEY_REQUEST,
-                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
-                messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
+                 MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
+                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
 
             case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
-                    MessageComposer.APPLICATION_TOTP_URI ->
+                 MessageComposer.APPLICATION_TOTP_URI ->
                     messageFragmentPlugin = new MsgPluginTotp(this, messageData);
 
             case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->

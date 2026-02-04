@@ -912,6 +912,7 @@ public class QRFragment extends Fragment {
                     switch (applicationId) {
                         case MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                              MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
+                             MessageComposer.APPLICATION_ENCRYPTED_OTP,
                              MessageComposer.APPLICATION_TOTP_URI -> {
                             //(2) message
                             bundle.putByteArray(ARG_MESSAGE, dataInputStream.readByteArray());

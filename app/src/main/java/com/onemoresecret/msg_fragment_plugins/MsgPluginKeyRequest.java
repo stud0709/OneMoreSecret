@@ -21,9 +21,6 @@ import com.onemoresecret.crypto.RsaTransformation;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
@@ -45,6 +42,8 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
             //(1) Application ID
             applicationId = dataInputStream.readUnsignedShort();
 
+            Log.d(TAG, String.format("Application ID: %d", applicationId));
+
             assert Arrays.asList(MessageComposer.APPLICATION_KEY_REQUEST,
                     MessageComposer.APPLICATION_KEY_REQUEST_PAIRING).contains(applicationId);
 
@@ -52,34 +51,50 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                 case MessageComposer.APPLICATION_KEY_REQUEST -> {
                     //(2) reference (e.g. file name)
                     reference = dataInputStream.readString();
+                    Log.d(TAG, String.format("Reference: %s", reference));
 
                     //(3) RSA public key
                     rsaPublicKeyMaterial = dataInputStream.readByteArray();
+                    Log.d(TAG, String.format("RSA public key: %s", Util.byteArrayToHex(rsaPublicKeyMaterial)));
 
                     //(4) fingerprint of the requested key
                     fingerprint = dataInputStream.readByteArray();
+                    Log.d(TAG, String.format("Fingerprint: %s", Util.byteArrayToHex(fingerprint)));
 
-                    //(5) transformation index for decryption (as specified by the encrypted file)
+                    //(5) transformation for decryption (as specified by the encrypted file)
                     rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
+                    Log.d(TAG, String.format("Transformation (file): %d = %s",
+                            rsaTransformation.ordinal(),
+                            rsaTransformation.transformation));
 
                     //(6) transformation index for the key response - the requester specifies the transformation it supports
                     rsaTransformationResponse = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
+                    Log.d(TAG, String.format("Transformation response: %d = %s",
+                            rsaTransformationResponse.ordinal(),
+                            rsaTransformationResponse.transformation));
 
                     //(7) AES key subject to decryption with RSA key specified by fingerprint at (4)
                     encryptedAesKey = dataInputStream.readByteArray();
+                    Log.d(TAG, String.format("encrypted AES key: %s", Util.byteArrayToHex(encryptedAesKey)));
                 }
                 case MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
                     // (2) reference (file name)
                     reference = dataInputStream.readString();
+                    Log.d(TAG, String.format("Reference: %s", reference));
 
                     // (3) fingerprint of the requested RSA key (from the file header)
                     fingerprint = dataInputStream.readByteArray();
+                    Log.d(TAG, String.format("Fingerprint: %s", Util.byteArrayToHex(fingerprint)));
 
                     // (5) RSA transformation index for decryption
                     rsaTransformation = RsaTransformation.getEntries().get(dataInputStream.readUnsignedShort());
+                    Log.d(TAG, String.format("Transformation (file): %d = %s",
+                            rsaTransformation.ordinal(),
+                            rsaTransformation.transformation));
 
                     // (6) encrypted AES key from the file header
                     encryptedAesKey = dataInputStream.readByteArray();
+                    Log.d(TAG, String.format("encrypted AES key: %s", Util.byteArrayToHex(encryptedAesKey)));
                 }
             }
         }

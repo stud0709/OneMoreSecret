@@ -85,7 +85,7 @@ abstract class MessageComposer {
         const val APPLICATION_KEY_REQUEST: Int = 4
         const val APPLICATION_KEY_RESPONSE: Int = 5
 
-        /**
+        /*
          * Until now, it was possible to understand what kind of information is contained in the message.
          * The generic message will only allow to decrypt it, all other information will be found inside.
          */
@@ -95,6 +95,7 @@ abstract class MessageComposer {
         const val APPLICATION_TOTP_URI: Int = 9
         const val APPLICATION_WIFI_PAIRING: Int = 10
         const val APPLICATION_KEY_REQUEST_PAIRING: Int = 11
+        const val APPLICATION_ENCRYPTED_OTP = 12
 
         /**
          * Assigns a drawable to an applicationId. This is used to display recent entries.
