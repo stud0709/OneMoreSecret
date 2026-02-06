@@ -63,6 +63,8 @@ import java.util.stream.IntStream;
 
 import javax.crypto.Cipher;
 
+import kotlin.internal.InlineOnly;
+
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
     private FragmentQrBinding binding;
@@ -251,15 +253,28 @@ public class QRFragment extends Fragment {
         loadPresets();
     }
 
-    private boolean processIntent(Intent intent) {
+    private void processClipboard() {
+        var clipData = clipboardManager.getPrimaryClip();
+        if (clipData != null) {
+            var item = clipboardManager.getPrimaryClip().getItemAt(0);
+            var text = item.getText().toString();
+            onMessage(text, true);
+        }
+    }
+
+    private boolean processIntent(@NonNull Intent intent) {
         try {
-            if (intent != null) {
                 var action = intent.getAction();
                 var type = intent.getType();
                 Log.d(TAG, "Intent action: " + action + ", type: " + type);
 
                 switch (Objects.requireNonNull(intent.getAction())) {
                     case Intent.ACTION_VIEW -> {
+                        var m = intent.getStringExtra("m");
+                        if(m != null) {
+                            onMessage(m, true);
+                            return true;
+                        }
                         Uri uri = intent.getData();
                         if (uri == null) {
                             Toast.makeText(requireContext(), R.string.malformed_intent, Toast.LENGTH_LONG).show();
@@ -294,7 +309,6 @@ public class QRFragment extends Fragment {
                         }
                     }
                 }
-            }
         } catch (Exception ex) {
             Util.printStackTrace(ex);
             Toast.makeText(getContext(),
@@ -675,12 +689,7 @@ public class QRFragment extends Fragment {
                 //based on pre-launch test
                 //Exception java.lang.NullPointerException: Attempt to invoke virtual method 'android.content.ClipData$Item android.content.ClipData.getItemAt(int)'
                 // on a null object reference
-                var clipData = clipboardManager.getPrimaryClip();
-                if (clipData != null) {
-                    var item = clipboardManager.getPrimaryClip().getItemAt(0);
-                    var text = item.getText().toString();
-                    onMessage(text, true);
-                }
+                processClipboard();
             } else if (menuItem.getItemId() == R.id.menuItemFeedbackEmail) {
                 var crashReportData = new CrashReportData(null);
 

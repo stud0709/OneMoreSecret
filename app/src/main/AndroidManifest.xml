@@ -40,11 +40,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Accepts URIs that begin with "https://oms-app-intent/...” -->
-                <!-- see https://developer.android.com/training/app-links/verify-android-applinks if you want a real URL here -->
-                <data
-                    android:host="oms-app-intent"
-                    android:scheme="https" />
+                <data android:scheme="https"
+                    android:host="stud0709.github.io"
+                    android:pathPrefix="/oms_intent" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
