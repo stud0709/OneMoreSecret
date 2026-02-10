@@ -96,6 +96,7 @@ abstract class MessageComposer {
         const val APPLICATION_WIFI_PAIRING: Int = 10
         const val APPLICATION_KEY_REQUEST_PAIRING: Int = 11
         const val APPLICATION_ENCRYPTED_OTP = 12
+        const val APPLICATION_OMS4WEB_CALLBACK_REQUEST = 13
 
         /**
          * Assigns a drawable to an applicationId. This is used to display recent entries.

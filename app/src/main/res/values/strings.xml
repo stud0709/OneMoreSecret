@@ -197,4 +197,7 @@
     <string name="recent">Recent:</string>
     <string name="presets">Presets:</string>
     <string name="keyboard_layout_tool">Keyboard Layout Tool</string>
+    <string name="oms4web_callback_url">https://stud0709.github.io/oms4web/#/?data=%s</string>
+    <string name="unlock">unlock</string>
+    <string name="ready_to_unlock_oms4web">Ready to unlock oms4web</string>
 </resources>

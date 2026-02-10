@@ -1,0 +1,12 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.onemoresecret.MainActivity">
+    <group android:id="@+id/menuGroupOms4webAll">
+        <item
+            android:id="@+id/menuItemOms4webCopy"
+            android:icon="@drawable/ic_baseline_content_copy_24"
+            android:title="@android:string/copy"
+            app:showAsAction="ifRoom" />
+    </group>
+</menu>

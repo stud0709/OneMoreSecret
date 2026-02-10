@@ -1,5 +1,7 @@
 package com.onemoresecret.msg_fragment_plugins;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -9,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import com.onemoresecret.HiddenTextFragment;
 import com.onemoresecret.KeyRequestPairingFragment;
 import com.onemoresecret.MessageFragment;
+import com.onemoresecret.Oms4webUnlock;
 import com.onemoresecret.OmsDataInputStream;
 import com.onemoresecret.OmsDataOutputStream;
 import com.onemoresecret.OutputFragment;
@@ -45,10 +48,12 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
             Log.d(TAG, String.format("Application ID: %d", applicationId));
 
             assert Arrays.asList(MessageComposer.APPLICATION_KEY_REQUEST,
-                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING).contains(applicationId);
+                    MessageComposer.APPLICATION_KEY_REQUEST_PAIRING,
+                    MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST).contains(applicationId);
 
             switch (applicationId) {
-                case MessageComposer.APPLICATION_KEY_REQUEST -> {
+                case MessageComposer.APPLICATION_KEY_REQUEST,
+                     MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST -> {
                     //(2) reference (e.g. file name)
                     reference = dataInputStream.readString();
                     Log.d(TAG, String.format("Reference: %s", reference));
@@ -111,8 +116,12 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
 
     @Override
     public FragmentWithNotificationBeforePause getOutputView() {
-        if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST)
+        if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST)               
             return super.getOutputView();
+        
+        if(applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
+            outputView = new Oms4webUnlock();
+        }
 
         if (outputView == null) {
             outputView = new KeyRequestPairingFragment();
@@ -145,14 +154,15 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
             userRsaCipher.getWipe().invoke(); //wipe User RSA key data
 
             switch (applicationId) {
-                case MessageComposer.APPLICATION_KEY_REQUEST -> {//encrypt AES key with the provided public key
+                case MessageComposer.APPLICATION_KEY_REQUEST,
+                     MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST -> {//encrypt AES key with the provided public key
                     var rsaEncryptedAesKey = RSAUtil.process(
                             Cipher.ENCRYPT_MODE,
                             rsaPublicKeyMaterial,
                             rsaTransformationResponse,
                             aesKeyMaterial);
 
-                    Arrays.fill(aesKeyMaterial, (byte)0); //wipe AES key data
+                    Arrays.fill(aesKeyMaterial, (byte) 0); //wipe AES key data
 
                     try (var baos = new ByteArrayOutputStream();
                          var dataOutputStream = new OmsDataOutputStream(baos)) {
@@ -160,7 +170,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                         Log.d(TAG, "Creating key response");
                         // (1) Application identifier
                         dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE);
-                        Log.d(TAG, String.format("Application-ID: %s",MessageComposer.APPLICATION_KEY_RESPONSE));
+                        Log.d(TAG, String.format("Application-ID: %s", MessageComposer.APPLICATION_KEY_RESPONSE));
 
                         // (2) RSA encrypted AES key
                         dataOutputStream.writeByteArray(rsaEncryptedAesKey);
@@ -169,10 +179,17 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                         var base64Message = Base64.getEncoder().encodeToString(baos.toByteArray());
 
                         var hiddenTextFragment = (HiddenTextFragment) messageView;
-                        hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
-
-                        ((OutputFragment) outputView).setMessage(base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */, context.getString(R.string.key_response));
-
+                        
+                        if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
+                            hiddenTextFragment.setText(context.getString(R.string.ready_to_unlock_oms4web));
+                            ((Oms4webUnlock)outputView).setMessage(base64Message);                            
+                        } else {
+                            hiddenTextFragment.setText(String.format(context.getString(R.string.key_response_is_ready), reference));
+                            
+                            ((OutputFragment) outputView).setMessage(
+                                    base64Message + "\n" /* hit ENTER at the end signalling omsCompanion to resume */,
+                                    context.getString(R.string.key_response));
+                        }
                         activity.invalidateOptionsMenu();
                     }
                 }

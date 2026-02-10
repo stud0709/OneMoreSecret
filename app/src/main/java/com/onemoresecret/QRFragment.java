@@ -63,8 +63,6 @@ import java.util.stream.IntStream;
 
 import javax.crypto.Cipher;
 
-import kotlin.internal.InlineOnly;
-
 public class QRFragment extends Fragment {
     private static final String TAG = QRFragment.class.getSimpleName();
     private FragmentQrBinding binding;
@@ -445,7 +443,7 @@ public class QRFragment extends Fragment {
                 Log.d(TAG, "calling " + TotpImportFragment.class.getSimpleName());
                 navController.navigate(R.id.action_QRFragment_to_TotpImportFragment, bundle);
             } else {
-                Log.d(TAG, "Application-ID: " + Integer.toHexString(applicationId));
+                Log.d(TAG, String.format("Application-ID: %d", applicationId));
 
                 boolean closeSocketWaitingForReply = true; //socket not used for reply, close immediately
 
@@ -456,7 +454,8 @@ public class QRFragment extends Fragment {
                         navController.navigate(R.id.action_QRFragment_to_keyImportFragment, bundle);
                     }
                     case MessageComposer.APPLICATION_KEY_REQUEST,
-                         MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
+                         MessageComposer.APPLICATION_KEY_REQUEST_PAIRING,
+                         MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST -> {
                         closeSocketWaitingForReply = false;
 
                         runPinProtected(() -> {

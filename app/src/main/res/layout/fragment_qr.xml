@@ -8,7 +8,7 @@
     tools:context=".QRFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/constraintLayout"
+        android:id="@+id/constraintLayoutOms4ebUnlock"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">

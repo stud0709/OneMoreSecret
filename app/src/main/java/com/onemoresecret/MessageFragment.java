@@ -115,6 +115,7 @@ public class MessageFragment extends Fragment {
                     messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
 
             case MessageComposer.APPLICATION_KEY_REQUEST,
+                 MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST,
                  MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
                     messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
 
