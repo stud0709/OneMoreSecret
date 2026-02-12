@@ -88,29 +88,18 @@
         </HorizontalScrollView>
 
         <TextView
-            android:id="@+id/txt_presets"
+            android:id="@+id/qrBanner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/presets"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/cameraPreview" />
+            android:text="@string/qr_banner" />
 
-        <ScrollView
+        <TextView
+            android:id="@+id/qrBanner2"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-
-            <com.google.android.flexbox.FlexboxLayout
-                android:id="@+id/flexLOutPresets"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:flexWrap="wrap"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-        </ScrollView>
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/qr_banner1" />
 
     </LinearLayout>
 

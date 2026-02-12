@@ -12,6 +12,7 @@ import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -181,44 +182,13 @@ public class QRFragment extends Fragment {
             }
         };
 
-        //feature under construction
-        binding.txtPresets.setVisibility(View.INVISIBLE);
-        binding.flexLOutPresets.setVisibility(View.INVISIBLE);
+        binding.qrBanner.setMovementMethod(new LinkMovementMethod());
+        binding.qrBanner2.setMovementMethod(new LinkMovementMethod());
     }
 
     private boolean isZxingEnabled() {
         return BuildConfig.FLAVOR.equals(Util.FLAVOR_FOSS) /*in the FOSS version, ZXing is the only QR engine */
                 || preferences.getBoolean(PROP_USE_ZXING, false);
-    }
-
-    private void loadPresets() {
-        //dummy presets
-        var fragmentManager = getChildFragmentManager();
-        var containerId = binding.flexLOutPresets.getId();
-        var trx = fragmentManager.beginTransaction();
-
-        loadedPresets.forEach(trx::remove); //clear presets from the last call
-
-        try {
-            var presetJson = preferences.getString(PROP_PRESETS, "[]");
-            var presetEntries = Util.JACKSON_MAPPER.readValue(presetJson, new TypeReference<List<PresetEntry>>() {
-            });
-
-            for (int i = 0; i < presetEntries.size(); i++) {
-                var presetEntry = presetEntries.get(i);
-                var presetFragment = new PresetFragment(
-                        presetEntry,
-                        e -> onMessage(e.message, true),
-                        e -> Log.d(TAG, "long click!")); //TODO
-                loadedPresets.add(presetFragment);
-                trx.add(containerId, presetFragment);
-            }
-        } catch (Exception ex) {
-            Util.printStackTrace(ex);
-        }
-
-        //finalize UI change
-        trx.commit();
     }
 
     @Override
@@ -247,8 +217,6 @@ public class QRFragment extends Fragment {
                 updateWiFiPairingIndicator);
 
         loadRecentButtons();
-
-        loadPresets();
     }
 
     private void processClipboard() {
@@ -615,11 +583,11 @@ public class QRFragment extends Fragment {
                         onSuccess.run();
                     },
                     onCancel,
-                    () -> requireActivity().getMainExecutor().execute(() -> {
-                        //both presets and recent data have been deleted
-                        loadRecentButtons();
-                        loadPresets();
-                    })).show(requireActivity().getSupportFragmentManager(), null);
+                    () -> //both presets and recent data have been deleted
+                            requireActivity()
+                                    .getMainExecutor()
+                                    .execute(this::loadRecentButtons))
+                    .show(requireActivity().getSupportFragmentManager(), null);
         } else {
             requireContext().getMainExecutor().execute(onSuccess);
         }
