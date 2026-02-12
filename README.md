@@ -48,7 +48,9 @@ The encryption used in OneMoreSecret is based on keys, not a password phrase. Ye
 Every password is stored separately in its own encryption envelope. And every password is sent to the phone for decryption separately and without context. So even if someone steals a password from your phone, he will still have to figure out, what it is good for. 
 
 ### Store It Your Way
-It's your ~~problem~~ choice how to store your credentials. You could use a text file, Excel, [Google Sheets](https://docs.google.com/spreadsheets), [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using [KeePass](https://keepass.info) (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
+It's your ~~problem~~ choice how to store your credentials. The recent addition to *OneMoreSecret* ecosystem is [oms4web](https://github.com/stud0709/oms4web), a password manager tightly integrated with *OneMoreSecret* and following the idea of context separation. Being a convenient way to organize passwords, it delegates decryption to the Android app. Give it a try!
+
+You could use a text file, Excel, [Google Sheets](https://docs.google.com/spreadsheets), [Simplenote](https://simplenote.com/) or any other software. You could also conitnue using [KeePass](https://keepass.info) (it has a very comfortable user interface after all ❤️) or a password manager of your choice and put your encrypted password into the password field: 
 
 ![oms ontop KeePass](readme_images/oms_ontop_keepass.png)
 
