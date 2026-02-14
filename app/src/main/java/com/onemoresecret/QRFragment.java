@@ -98,16 +98,10 @@ public class QRFragment extends Fragment {
 
     private final List<ImageButton> recentButtons = new ArrayList<>();
 
-    private final List<PresetFragment> loadedPresets = new ArrayList<>();
 
     public record RecentEntry(@JsonProperty("message") String message,
                               @JsonProperty("drawableId") int drawableId,
                               @JsonProperty("ttl") long ttl) {
-    }
-
-    public record PresetEntry(@JsonProperty("symbol") String symbol,
-                              @JsonProperty("name") String name,
-                              @JsonProperty("message") String message) {
     }
 
     @Override

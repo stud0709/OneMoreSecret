@@ -74,9 +74,7 @@ public class FileEncryptionFragment extends Fragment {
         fileInfo = Util.getFileInfo(requireContext(), uri);
 
         requireContext().getMainExecutor().execute(() ->
-                ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setValues(
-                        fileInfo.filename,
-                        fileInfo.fileSize));
+                ((FileInfoFragment) binding.fragmentContainerView6.getFragment()).setFileinfo(fileInfo));
 
 
         keyStoreListFragment.setRunOnStart(

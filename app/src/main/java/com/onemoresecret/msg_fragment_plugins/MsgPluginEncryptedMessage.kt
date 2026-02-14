@@ -1,47 +1,46 @@
-package com.onemoresecret.msg_fragment_plugins;
+package com.onemoresecret.msg_fragment_plugins
 
-import androidx.annotation.NonNull;
-import androidx.biometric.BiometricPrompt;
-import androidx.fragment.app.Fragment;
+import androidx.biometric.BiometricPrompt
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import com.onemoresecret.HiddenTextFragment
+import com.onemoresecret.MessageFragment
+import com.onemoresecret.OutputFragment
+import com.onemoresecret.R
 
-import com.onemoresecret.HiddenTextFragment;
-import com.onemoresecret.MessageFragment;
-import com.onemoresecret.OutputFragment;
-import com.onemoresecret.R;
-
-
-public class MsgPluginEncryptedMessage extends MessageFragmentPlugin {
-    private final byte[] messageData;
-
-    public MsgPluginEncryptedMessage(MessageFragment messageFragment,
-                                     byte[] messageData) {
-
-        super(messageFragment);
-        this.messageData = messageData;
-    }
-
-    @Override
-    public void showBiometricPromptForDecryption() {
+open class MsgPluginEncryptedMessage(
+    messageFragment: MessageFragment,
+    private val messageData: ByteArray?
+) : MessageFragmentPlugin(messageFragment) {
+    override fun showBiometricPromptForDecryption() {
         //nothing to decrypt
     }
 
-    @Override
-    public Fragment getMessageView() {
+    override fun getMessageView(): Fragment? {
         if (messageView == null) {
-            messageView = new HiddenTextFragment();
-            context.getMainExecutor().execute(() -> {
-                var message = new String(messageData);
-                var hiddenTextFragment = (HiddenTextFragment) messageView;
-                messageFragment.getHiddenState().observe(messageView,
-                        hidden -> hiddenTextFragment.setText(hidden ? context.getString(R.string.hidden_text) : message));
-                ((OutputFragment) outputView).setMessage(message, context.getString(R.string.decrypted_message));
-            });
+            messageView = HiddenTextFragment()
+            context.mainExecutor.execute(Runnable {
+                val message = kotlin.text.String(messageData!!)
+                val hiddenTextFragment = messageView as HiddenTextFragment?
+                messageFragment.hiddenState.observe(
+                    messageView,
+                    Observer { hidden: Boolean ->
+                        hiddenTextFragment!!.setText(
+                            if (hidden) context.getString(
+                                R.string.hidden_text
+                            ) else message
+                        )
+                    })
+                (outputView as OutputFragment).setMessage(
+                    message,
+                    context.getString(R.string.decrypted_message)
+                )
+            })
         }
-        return messageView;
+        return messageView
     }
 
-    @Override
-    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
         //no authentication
     }
 }

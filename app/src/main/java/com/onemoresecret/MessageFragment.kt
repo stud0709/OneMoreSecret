@@ -1,180 +1,188 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.net.Uri;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
+import android.net.Uri
+import android.os.Bundle
+import android.os.Parcelable
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.MutableLiveData
+import androidx.navigation.fragment.NavHostFragment
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.Util.openUrl
+import com.onemoresecret.Util.printStackTrace
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.databinding.FragmentMessageBinding
+import com.onemoresecret.msg_fragment_plugins.MessageFragmentPlugin
+import com.onemoresecret.msg_fragment_plugins.MsgPluginCryptoCurrencyAddress
+import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile
+import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage
+import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest
+import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp
+import com.onemoresecret.msg_fragment_plugins.MsgPluginWiFiPairing
+import java.util.Objects
+import kotlin.Exception
+import kotlin.IllegalArgumentException
+import kotlin.String
+import kotlin.Throws
+import kotlin.byteArrayOf
+import kotlin.concurrent.Volatile
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.MutableLiveData;
-import androidx.navigation.fragment.NavHostFragment;
+class MessageFragment : Fragment() {
+    private var binding: FragmentMessageBinding? = null
+    @JvmField
+    val hiddenState = MutableLiveData(true)
+    private val menuProvider = MessageMenuProvider()
 
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.msg_fragment_plugins.MessageFragmentPlugin;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginCryptoCurrencyAddress;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp;
+    @Volatile
+    private var navBackIfPaused = true
+    private var messageFragmentPlugin: MessageFragmentPlugin? = null
 
-import java.util.Objects;
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentMessageBinding.inflate(inflater, container, false)
 
-import com.onemoresecret.databinding.FragmentMessageBinding;
-import com.onemoresecret.msg_fragment_plugins.MsgPluginWiFiPairing;
-
-public class MessageFragment extends Fragment {
-    private static final String TAG = MessageFragment.class.getSimpleName();
-    private com.onemoresecret.databinding.FragmentMessageBinding binding;
-    private final MutableLiveData<Boolean> hiddenState = new MutableLiveData<>(true);
-    private final MessageMenuProvider menuProvider = new MessageMenuProvider();
-    private volatile boolean navBackIfPaused = true;
-    private MessageFragmentPlugin messageFragmentPlugin;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        binding = FragmentMessageBinding.inflate(inflater, container, false);
-
-        return binding.getRoot();
+        return binding!!.getRoot()
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (!navBackIfPaused) return;
-        var navController = NavHostFragment.findNavController(this);
-        if (navController.getCurrentDestination() != null
-                && navController.getCurrentDestination().getId() != R.id.MessageFragment) {
-            Log.d(TAG, String.format("Already navigating to %s", navController.getCurrentDestination()));
-            return;
+    override fun onPause() {
+        super.onPause()
+        if (!navBackIfPaused) return
+        val navController = NavHostFragment.findNavController(this)
+        if (navController.currentDestination != null
+            && navController.currentDestination!!.id != R.id.MessageFragment
+        ) {
+            Log.d(TAG, String.format("Already navigating to %s", navController.currentDestination))
+            return
         }
-        Log.d(TAG, "onPause: going backward");
-        Util.discardBackStack(this);
+        Log.d(TAG, "onPause: going backward")
+        discardBackStack(this)
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    override fun onResume() {
+        super.onResume()
 
         //rearm
-        navBackIfPaused = true;
+        navBackIfPaused = true
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider)
         try {
             if (requireArguments().containsKey(QRFragment.ARG_MESSAGE)) {
-                onMessage();
+                onMessage()
             } else if (requireArguments().containsKey(QRFragment.ARG_URI)) {
-                onUri();
+                onUri()
             }
 
-            messageFragmentPlugin.getOutputView().setBeforePause(() -> navBackIfPaused = false /* disarm backward navigation */);
+            messageFragmentPlugin!!.getOutputView().setBeforePause {
+                navBackIfPaused = false
+            } /* disarm backward navigation */
 
             //insert message and output view into fragment
             this.getChildFragmentManager()
-                    .beginTransaction()
-                    .add(R.id.fragmentMessageView, messageFragmentPlugin.getMessageView())
-                    .add(R.id.fragmentOutputView, messageFragmentPlugin.getOutputView())
-                    .commit();
+                .beginTransaction()
+                .add(R.id.fragmentMessageView, messageFragmentPlugin!!.getMessageView())
+                .add(R.id.fragmentOutputView, messageFragmentPlugin!!.getOutputView())
+                .commit()
 
             //request authentication
-
-            messageFragmentPlugin.showBiometricPromptForDecryption();
-        } catch (Exception ex) {
-            Util.printStackTrace(ex);
-            Toast.makeText(getContext(), Objects.requireNonNullElse(ex.getMessage(), ex.getClass().getName()), Toast.LENGTH_LONG).show();
-            Util.discardBackStack(this);
+            messageFragmentPlugin!!.showBiometricPromptForDecryption()
+        } catch (ex: Exception) {
+            printStackTrace(ex)
+            Toast.makeText(
+                context,
+                Objects.requireNonNullElse<String?>(ex.message, ex.javaClass.getName()),
+                Toast.LENGTH_LONG
+            ).show()
+            discardBackStack(this)
         }
     }
 
-    private void onUri() throws Exception {
-        var uri = (Uri) getArguments().getParcelable("URI");
+    @Throws(Exception::class)
+    private fun onUri() {
+        val uri = requireArguments().getParcelable<Parcelable?>("URI") as Uri?
 
-        messageFragmentPlugin = new MsgPluginEncryptedFile(this, uri);
+        messageFragmentPlugin = MsgPluginEncryptedFile(this, uri)
     }
 
-    private void onMessage() throws Exception {
-        byte[] messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE);
-        int applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID);
+    @Throws(Exception::class)
+    private fun onMessage() {
+        val messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE)
+        val applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID)
 
-        switch (applicationId) {
-            case MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
-                 MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
-                 MessageComposer.APPLICATION_ENCRYPTED_OTP ->
-                    messageFragmentPlugin = new MsgPluginEncryptedMessage(this, messageData);
+        when (applicationId) {
+            MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED, MessageComposer.APPLICATION_ENCRYPTED_MESSAGE, MessageComposer.APPLICATION_ENCRYPTED_OTP -> messageFragmentPlugin =
+                MsgPluginEncryptedMessage(this, messageData)
 
-            case MessageComposer.APPLICATION_KEY_REQUEST,
-                 MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST,
-                 MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
-                    messageFragmentPlugin = new MsgPluginKeyRequest(this, messageData);
+            MessageComposer.APPLICATION_KEY_REQUEST, MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST, MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> messageFragmentPlugin =
+                MsgPluginKeyRequest(this, messageData)
 
-            case MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
-                 MessageComposer.APPLICATION_TOTP_URI ->
-                    messageFragmentPlugin = new MsgPluginTotp(this, messageData);
+            MessageComposer.APPLICATION_TOTP_URI_DEPRECATED, MessageComposer.APPLICATION_TOTP_URI -> messageFragmentPlugin =
+                MsgPluginTotp(this, messageData)
 
-            case MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
-                    messageFragmentPlugin = new MsgPluginCryptoCurrencyAddress(this, messageData);
+            MessageComposer.APPLICATION_BITCOIN_ADDRESS -> messageFragmentPlugin =
+                MsgPluginCryptoCurrencyAddress(this, messageData)
 
-            case MessageComposer.APPLICATION_WIFI_PAIRING ->
-                    messageFragmentPlugin = new MsgPluginWiFiPairing(this, messageData);
+            MessageComposer.APPLICATION_WIFI_PAIRING -> messageFragmentPlugin =
+                MsgPluginWiFiPairing(this, messageData)
 
-            default ->
-                    throw new IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId);
+            else -> throw IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId)
         }
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        var activity = (MainActivity) requireActivity();
-        activity.removeMenuProvider(menuProvider);
-        new Thread(() -> activity.sendReplyViaSocket(new byte[]{}, true)).start();
-        messageFragmentPlugin.onDestroyView();
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val activity = requireActivity() as MainActivity
+        activity.removeMenuProvider(menuProvider)
+        Thread { activity.sendReplyViaSocket(byteArrayOf(), true) }.start()
+        messageFragmentPlugin!!.onDestroyView()
+        binding = null
     }
 
-    private class MessageMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_message, menu);
+    private inner class MessageMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_message, menu)
         }
 
-        @Override
-        public void onPrepareMenu(@NonNull Menu menu) {
-            MenuProvider.super.onPrepareMenu(menu);
+        override fun onPrepareMenu(menu: Menu) {
+            super.onPrepareMenu(menu)
             //visibility switch will only be shown if there are active observers
-            menu.findItem(R.id.menuItemMsgVisibility).setVisible(hiddenState.hasActiveObservers());
-            menu.findItem(R.id.menuItemMsgVisibility).setIcon(Boolean.TRUE.equals(hiddenState.getValue()) ? R.drawable.baseline_visibility_24 : R.drawable.baseline_visibility_off_24);
+            menu.findItem(R.id.menuItemMsgVisibility).isVisible = hiddenState.hasActiveObservers()
+            menu.findItem(R.id.menuItemMsgVisibility)
+                .setIcon(if (hiddenState.getValue() == true) R.drawable.baseline_visibility_24 else R.drawable.baseline_visibility_off_24)
         }
 
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemMsgVisibility) {
-                hiddenState.setValue(Boolean.FALSE.equals(hiddenState.getValue()));
-                requireActivity().invalidateOptionsMenu();
-            } else if (menuItem.getItemId() == R.id.menuItemMsgHelp) {
-                Util.openUrl(R.string.decrypted_message_md_url, requireContext());
-            } else {
-                return false;
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            when (menuItem.itemId) {
+                R.id.menuItemMsgVisibility -> {
+                    hiddenState.value = false == hiddenState.getValue()
+                    requireActivity().invalidateOptionsMenu()
+                }
+                R.id.menuItemMsgHelp -> {
+                    openUrl(R.string.decrypted_message_md_url, requireContext())
+                }
+                else -> {
+                    return false
+                }
             }
 
-            return true;
+            return true
         }
     }
 
-    public MutableLiveData<Boolean> getHiddenState() {
-        return hiddenState;
+    companion object {
+        private val TAG: String = MessageFragment::class.java.getSimpleName()
     }
 }

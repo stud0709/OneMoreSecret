@@ -1,59 +1,61 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.lifecycleScope
+import com.onemoresecret.composable.KeyRequestPairingContent
+import com.onemoresecret.composable.OneMoreSecretTheme
+import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+class KeyRequestPairingFragment : FragmentWithNotificationBeforePause() {
+    var replyState by mutableStateOf<ByteArray?>(null)
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
-import com.onemoresecret.databinding.FragmentKeyRequestPairingBinding;
-import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause;
-
-
-public class KeyRequestPairingFragment extends FragmentWithNotificationBeforePause {
-    private static final String TAG = KeyRequestPairingFragment.class.getSimpleName();
-
-    private FragmentKeyRequestPairingBinding binding;
-    private byte[] reply;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentKeyRequestPairingBinding.inflate(
-                inflater,
-                container,
-                false);
-
-        return binding.getRoot();
+            setContent {
+                OneMoreSecretTheme {
+                    KeyRequestPairingContent(
+                        reply = replyState,
+                        onSendKeyClicked = ::sendKey
+                    )
+                }
+            }
+        }
     }
 
-    private final View.OnClickListener btnListener = btn -> {
-        if (beforePause != null) beforePause.run();
+    private fun sendKey() {
+        beforePause?.run()
 
-        var activity = (MainActivity) requireActivity();
-        new Thread(() -> activity.sendReplyViaSocket(reply, true)).start();
+        val activity = requireActivity() as MainActivity
 
-        Util.discardBackStack(this);
-    };
+        replyState?.let { replyData ->
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                activity.sendReplyViaSocket(replyData, true)
+            }
+        }
 
-    @Override
-    public void setBeforePause(Runnable r) {
+        Util.discardBackStack(this)
+    }
+
+    override fun setBeforePause(r: Runnable?) {
         //not necessary
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        binding.btnSendKey.setOnClickListener(btnListener);
-        binding.btnSendKey.setEnabled(false);
-    }
-
-    public void setReply(byte[] reply) {
-        this.reply = reply;
-        requireActivity().getMainExecutor().execute(() -> binding.btnSendKey.setEnabled(true));
+    companion object {
+        private val TAG = KeyRequestPairingFragment::class.simpleName
     }
 }

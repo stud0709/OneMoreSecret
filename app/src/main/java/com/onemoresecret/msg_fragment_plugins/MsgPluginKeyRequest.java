@@ -7,7 +7,9 @@ import android.widget.Toast;
 
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.onemoresecret.FileInfoFragment;
 import com.onemoresecret.HiddenTextFragment;
 import com.onemoresecret.KeyRequestPairingFragment;
 import com.onemoresecret.MessageFragment;
@@ -199,7 +201,7 @@ public class MsgPluginKeyRequest extends MessageFragmentPlugin {
                     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                          OmsDataOutputStream dataOutputStream = new OmsDataOutputStream(baos)) {
                         dataOutputStream.writeByteArray(aesKeyMaterial);
-                        ((KeyRequestPairingFragment) getOutputView()).setReply(baos.toByteArray());
+                        ((KeyRequestPairingFragment) getOutputView()).setReplyState(baos.toByteArray());
                     }
                 }
             }

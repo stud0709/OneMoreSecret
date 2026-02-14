@@ -54,7 +54,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
         if (messageView == null) {
             var fileInfoFragment = new FileInfoFragment();
             messageView = fileInfoFragment;
-            context.getMainExecutor().execute(() -> fileInfoFragment.setValues(fileInfo.filename, fileInfo.fileSize));
+            fileInfoFragment.setFileinfo(fileInfo);
         }
         return messageView;
     }

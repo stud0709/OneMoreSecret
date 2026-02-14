@@ -33,7 +33,7 @@ public class MsgPluginCryptoCurrencyAddress extends MessageFragmentPlugin {
                 var cryptoCurrencyAddressFragmentFragment = (CryptoCurrencyAddressFragment) messageView;
                 cryptoCurrencyAddressFragmentFragment.setValue(keyPair.btcAddressBase58());
 
-                messageFragment.getHiddenState().observe(messageView, hidden -> {
+                messageFragment.hiddenState.observe(messageView, hidden -> {
                     if (hidden) {
                         ((OutputFragment) outputView)
                                 .setMessage(

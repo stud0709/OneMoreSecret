@@ -17,11 +17,11 @@ public class MsgPluginTotp extends MsgPluginEncryptedMessage {
             var totpFragment = ((TotpFragment) messageView);
             totpFragment.init(new OneTimePassword(message), messageView, code -> {
                 ((OutputFragment) outputView).setMessage(code, context.getString(R.string.one_time_password));
-                totpFragment.setTotpText(Boolean.TRUE.equals(messageFragment.getHiddenState().getValue()) ? "●".repeat(code.length()) : code);
+                totpFragment.setTotpText(Boolean.TRUE.equals(messageFragment.hiddenState.getValue()) ? "●".repeat(code.length()) : code);
             });
 
             //observe hidden state
-            messageFragment.getHiddenState().observe(messageView, hidden -> totpFragment.refresh());
+            messageFragment.hiddenState.observe(messageView, hidden -> totpFragment.refresh());
         });
     }
 
