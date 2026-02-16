@@ -8,22 +8,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.ParagraphStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextIndent
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.onemoresecret.R
 
 @Composable
 fun PermissionsScreen(
-    onPermissionsResult: (Map<String, Boolean>) -> Unit
+    onProceed: (Map<String, Boolean>) -> Unit
 ) {
     val requiredPermissions = arrayOf(
         Manifest.permission.BLUETOOTH_CONNECT,
@@ -34,67 +31,73 @@ fun PermissionsScreen(
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        onPermissionsResult(result)
-    }
+    ) { result -> onProceed(result) }
+    Surface(color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                // Introductory text
+                Text(
+                    text = stringResource(id = R.string.permissions1),
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            // Introductory text
-            Text(
-                text = stringResource(id = R.string.permissions1),
-                style = MaterialTheme.typography.bodyLarge
-            )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Multiline bulleted text instead of checkboxes
-            val bulletPointText = buildAnnotatedString {
+                // Bulleted list section
                 val permissions = listOf(
                     stringResource(id = R.string.permission_text_camera_access),
                     stringResource(id = R.string.permission_text_discoverable_BT),
                     stringResource(id = R.string.permission_text_communicate_BT)
                 )
 
-                val paragraphStyle = ParagraphStyle(textIndent = TextIndent(restLine = 12.sp))
+                permissions.forEach { permissionText ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.Top // Bullet stays at the top of multi-line text
+                    ) {
+                        // Column 1: The Bullet Icon
+                        Text(
+                            text = "👉",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.width(32.dp) // Fixed width for the bullet column
+                        )
 
-                permissions.forEach { text ->
-                    withStyle(style = paragraphStyle) {
-                        append("• ")
-                        append(text)
+                        // Column 2: The Permission Description
+                        Text(
+                            text = permissionText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            lineHeight = 22.sp,
+                            modifier = Modifier.weight(1f) // Takes remaining horizontal space
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Footer text
+                Text(
+                    text = stringResource(id = R.string.permissions2),
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
 
-            Text(
-                text = bulletPointText,
-                style = MaterialTheme.typography.bodyMedium,
-                lineHeight = 24.sp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Footer text
-            Text(
-                text = stringResource(id = R.string.permissions2),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        // Action Button
-        Button(
-            onClick = { launcher.launch(requiredPermissions) },
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 24.dp)
-        ) {
-            Text(text = stringResource(id = R.string.proceed))
+            // Action Button
+            Button(
+                onClick = { launcher.launch(requiredPermissions) },
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 24.dp)
+            ) {
+                Text(text = stringResource(id = R.string.proceed))
+            }
         }
     }
 }
