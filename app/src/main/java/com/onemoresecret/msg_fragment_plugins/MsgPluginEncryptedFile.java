@@ -148,7 +148,7 @@ public class MsgPluginEncryptedFile extends MessageFragmentPlugin {
                     String.format(Locale.getDefault(), context.getString(R.string.working_prc), lastProgressPrc);
         }
 
-        ((FileOutputFragment) outputView).setProgress(s);
+        ((FileOutputFragment) outputView).setProgressText(s);
     }
 
     @Override

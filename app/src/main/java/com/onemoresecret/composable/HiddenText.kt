@@ -9,12 +9,12 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun HiddenTextScreen(
-    message: String,
+    text: String,
     modifier: Modifier = Modifier
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
         Text(
-            text = message,
+            text = text,
             modifier = modifier.fillMaxSize()
         )
     }

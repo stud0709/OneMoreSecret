@@ -25,11 +25,9 @@ open class MsgPluginEncryptedMessage(
                 messageFragment.hiddenState.observe(
                     messageView,
                     Observer { hidden: Boolean ->
-                        hiddenTextFragment!!.setText(
-                            if (hidden) context.getString(
+                        hiddenTextFragment?.text = if (hidden) context.getString(
                                 R.string.hidden_text
                             ) else message
-                        )
                     })
                 (outputView as OutputFragment).setMessage(
                     message,
