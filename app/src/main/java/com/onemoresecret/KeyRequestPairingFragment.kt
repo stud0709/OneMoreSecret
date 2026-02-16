@@ -10,7 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.lifecycleScope
-import com.onemoresecret.composable.KeyRequestPairingContent
+import com.onemoresecret.composable.KeyRequestPairing
 import com.onemoresecret.composable.OneMoreSecretTheme
 import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +28,7 @@ class KeyRequestPairingFragment : FragmentWithNotificationBeforePause() {
 
             setContent {
                 OneMoreSecretTheme {
-                    KeyRequestPairingContent(
+                    KeyRequestPairing(
                         reply = replyState,
                         onSendKeyClicked = ::sendKey
                     )

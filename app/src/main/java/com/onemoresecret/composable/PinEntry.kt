@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.onemoresecret.R
 
 @Composable
-fun PinEntryDialog(
+fun PinEntry(
     onDismissRequest: () -> Unit,
     onUnlock: (String) -> Boolean,
     onDelete: (String) -> String = { it.dropLast(1) }

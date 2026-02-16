@@ -40,6 +40,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.onemoresecret.composable.PinSetupViewModel;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.MessageComposer;
@@ -563,14 +564,14 @@ public class QRFragment extends Fragment {
                                  @Nullable Runnable onCancel,
                                  boolean evaluateNextPinRequestTimestamp) {
 
-        if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false) &&
+        if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false) &&
                 (System.currentTimeMillis() > nextPinRequestTimestamp || !evaluateNextPinRequestTimestamp)) {
 
             new PinEntryFragment(
                     () -> {
                         if (evaluateNextPinRequestTimestamp) {
                             //calculate next pin request time
-                            var interval_ms = TimeUnit.MINUTES.toMillis(preferences.getLong(PinSetupFragment.PROP_REQUEST_INTERVAL_MINUTES, 0));
+                            var interval_ms = TimeUnit.MINUTES.toMillis(preferences.getLong(PinSetupViewModel.PIN_REQUEST_INTERVAL_MINUTES, 0));
                             nextPinRequestTimestamp = interval_ms == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + interval_ms;
                         }
 
@@ -701,7 +702,7 @@ public class QRFragment extends Fragment {
                 var shareIntent = Intent.createChooser(sendIntent, null);
                 startActivity(shareIntent);
             } else if (menuItem.getItemId() == R.id.menuItemPanic) {
-                if (preferences.getBoolean(PinSetupFragment.PROP_PIN_ENABLED, false)) {
+                if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
                     nextPinRequestTimestamp = 0;
                     new Thread(() -> {
                         OmsFileProvider.purgeTmp(requireContext());

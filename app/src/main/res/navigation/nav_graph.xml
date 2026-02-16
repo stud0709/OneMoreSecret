@@ -98,8 +98,7 @@
     <fragment
         android:id="@+id/pinSetupFragment"
         android:name="com.onemoresecret.PinSetupFragment"
-        android:label="@string/pin_setup"
-        tools:layout="@layout/fragment_pin_setup" />
+        android:label="@string/pin_setup" />
     <fragment
         android:id="@+id/fileEncryptionFragment"
         android:name="com.onemoresecret.FileEncryptionFragment"

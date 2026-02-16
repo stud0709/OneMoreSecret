@@ -13,7 +13,7 @@ import com.onemoresecret.R
 import java.util.Locale
 
 @Composable
-fun FileInfoContent(fileInfo: com.onemoresecret.Util.UriFileInfo?) {
+fun FileInfo(fileInfo: com.onemoresecret.Util.UriFileInfo?) {
     Surface(
         color = MaterialTheme.colorScheme.background
     ) {

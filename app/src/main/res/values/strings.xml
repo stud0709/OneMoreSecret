@@ -138,7 +138,7 @@
     <string name="delete_all_keys">DELETE ALL KEYS after</string>
     <string name="panic_pin_descr">Panic PIN - this will IMMEDIATELY DELETE ALL KEYS and then unlock the application:</string>
     <string name="panic_pin">Panic PIN</string>
-    <string name="failed_attempts">failed attempts</string>
+    <string name="max_attempts">failed attempts</string>
     <string name="request_pin_entry_every">Request PIN entry every</string>
     <string name="advanced_optional_settings">Advanced (Optional) Settings:</string>
     <string name="minutes">minutes</string>

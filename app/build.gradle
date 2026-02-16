@@ -92,6 +92,12 @@ dependencies {
     implementation 'androidx.compose.material3:material3'
     implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
     implementation("androidx.compose.material:material-icons-extended")
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0"
+    implementation 'androidx.compose.runtime:runtime:1.10.3'
+    implementation 'androidx.compose.foundation:foundation:1.10.3'
+    implementation 'com.google.firebase:protolite-well-known-types:18.0.1'
+    debugImplementation "androidx.compose.ui:ui-tooling"
+    implementation "androidx.compose.ui:ui-tooling-preview"
 
     //Google ML Kit - flavor 'standard' only
     standardImplementation 'com.google.mlkit:barcode-scanning:17.3.0'

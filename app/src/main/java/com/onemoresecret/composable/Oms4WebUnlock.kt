@@ -10,27 +10,24 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.onemoresecret.R
 
 @Composable
-fun Oms4webUnlockContent(
+fun Oms4webUnlock(
     message: String?,
     onUnlock: () -> Unit
 ) {
     ConstraintLayout(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Correctly initialize the reference within the ConstraintLayout scope
         val btnUnlock = createRef()
 
         Button(
             onClick = onUnlock,
-            enabled = message != null, // Replaces binding.btnUnlock.isEnabled
+            enabled = message != null,
             modifier = Modifier.constrainAs(btnUnlock) {
-                // Constraints mimicking fragment_oms4web_unlock.xml
                 bottom.linkTo(parent.bottom, margin = 32.dp)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
             }
         ) {
-            // RowScope starts here
             Icon(
                 painter = painterResource(id = R.drawable.baseline_key_24),
                 contentDescription = null

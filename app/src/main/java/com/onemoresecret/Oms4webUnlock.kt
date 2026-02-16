@@ -21,7 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import com.onemoresecret.composable.Oms4webUnlockContent
+import com.onemoresecret.composable.Oms4webUnlock
 import com.onemoresecret.composable.OneMoreSecretTheme
 
 class Oms4webUnlock : FragmentWithNotificationBeforePause() {
@@ -41,7 +41,7 @@ class Oms4webUnlock : FragmentWithNotificationBeforePause() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 OneMoreSecretTheme {
-                    Oms4webUnlockContent(
+                    Oms4webUnlock(
                         message = messageState,
                         onUnlock = { handleUnlock() }
                     )

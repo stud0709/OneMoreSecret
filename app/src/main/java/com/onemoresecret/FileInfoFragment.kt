@@ -10,7 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
-import com.onemoresecret.composable.FileInfoContent
+import com.onemoresecret.composable.FileInfo
 import com.onemoresecret.composable.OneMoreSecretTheme
 
 class FileInfoFragment : Fragment() {
@@ -26,7 +26,7 @@ class FileInfoFragment : Fragment() {
 
             setContent {
                 OneMoreSecretTheme {
-                    FileInfoContent(
+                    FileInfo(
                         fileinfo
                     )
                 }

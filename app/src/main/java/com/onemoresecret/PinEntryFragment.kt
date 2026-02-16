@@ -17,15 +17,16 @@ import kotlinx.coroutines.launch
 import java.security.KeyStoreException
 import androidx.core.content.edit
 import com.onemoresecret.composable.OneMoreSecretTheme
-import com.onemoresecret.composable.PinEntryDialog
+import com.onemoresecret.composable.PinEntry
+import com.onemoresecret.composable.PinSetupViewModel
 
 class PinEntryFragment(
     private val runOnSuccess: Runnable?,
     private var runOnCancel: Runnable?,
     private val runOnPanic: Runnable?
 ) : DialogFragment() {
-    private var preferences: SharedPreferences? = null
-    private var context: Context? = null
+    private lateinit var preferences: SharedPreferences
+    private lateinit var context: Context
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -35,7 +36,7 @@ class PinEntryFragment(
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 OneMoreSecretTheme {
-                    PinEntryDialog(
+                    PinEntry(
                         onDismissRequest = { dismiss() },
                         onUnlock = { enteredPin -> tryUnlock(enteredPin) }
                     )
@@ -56,9 +57,8 @@ class PinEntryFragment(
     }
 
     private fun tryUnlock(enteredPin: String): Boolean {
-        preferences?.let { preferences ->
-            val panicPin = preferences.getString(PinSetupFragment.PROP_PANIC_PIN, null)
-            val correctPin = preferences.getString(PinSetupFragment.PROP_PIN_VALUE, null)
+            val panicPin = preferences.getString(PinSetupViewModel.PIN_PANIC, null)
+            val correctPin = preferences.getString(PinSetupViewModel.PIN_VALUE, null)
 
             val panicPinEntered = (enteredPin == panicPin)
 
@@ -82,13 +82,13 @@ class PinEntryFragment(
             } else {
                 //wrong pin
                 var remainingAttempts = preferences.getInt(
-                    PinSetupFragment.PROP_REMAINING_ATTEMPTS,
+                    PinSetupViewModel.PIN_REMAINING_ATTEMPTS,
                     Int.Companion.MAX_VALUE
                 )
                 remainingAttempts--
 
                 preferences.edit {
-                    putInt(PinSetupFragment.PROP_REMAINING_ATTEMPTS, remainingAttempts)
+                    putInt(PinSetupViewModel.PIN_REMAINING_ATTEMPTS, remainingAttempts)
                 }
 
                 if (remainingAttempts <= 0) panic()
@@ -100,7 +100,7 @@ class PinEntryFragment(
                 ).show()
 
             }
-        }
+
         return false
     }
 
@@ -122,7 +122,7 @@ class PinEntryFragment(
         }
 
         //delete all sensitive information from SharedPreferences
-        preferences!!.edit {
+        preferences.edit {
             remove(QRFragment.PROP_RECENT_ENTRIES)
             remove(QRFragment.PROP_PRESETS)
             remove(CryptographyManager.PROP_KEYSTORE)
