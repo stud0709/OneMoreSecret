@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 import com.onemoresecret.Util.discardBackStack
 import androidx.core.content.edit
 import com.onemoresecret.composable.OneMoreSecretTheme
-import com.onemoresecret.composable.PermissionsScreen
+import com.onemoresecret.composable.Permissions
 
 class PermissionsFragment : Fragment() {
     override fun onCreateView(
@@ -24,7 +24,7 @@ class PermissionsFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 OneMoreSecretTheme {
-                    PermissionsScreen(onProceed = { result ->
+                    Permissions(onProceed = { result ->
                         val preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
                         preferences.edit { putBoolean(PROP_PERMISSIONS_REQUESTED, true) }
                         Log.d(TAG, "Granted permissions: $result")

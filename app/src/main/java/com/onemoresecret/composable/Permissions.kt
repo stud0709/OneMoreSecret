@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.onemoresecret.R
 
 @Composable
-fun PermissionsScreen(
+fun Permissions(
     onProceed: (Map<String, Boolean>) -> Unit
 ) {
     val requiredPermissions = arrayOf(
