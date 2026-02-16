@@ -1,81 +1,86 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.Manifest;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import com.onemoresecret.Util.discardBackStack
+import com.onemoresecret.databinding.FragmentPermissionsBinding
+import java.util.Arrays
+import androidx.core.content.edit
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
+class PermissionsFragment : Fragment() {
+    lateinit var binding: FragmentPermissionsBinding
+    lateinit var activityResultLauncher: ActivityResultLauncher<Array<String>>
 
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-
-import com.onemoresecret.databinding.FragmentPermissionsBinding;
-
-import java.util.Arrays;
-
-public class PermissionsFragment extends Fragment {
-    public static final String PROP_PERMISSIONS_REQUESTED = "permissions_requested";
-    private static final String TAG = PermissionsFragment.class.getSimpleName();
-
-    public static final String[] REQUIRED_PERMISSIONS = {
-            android.Manifest.permission.BLUETOOTH_CONNECT,
-            android.Manifest.permission.BLUETOOTH_SCAN,
-            android.Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.CAMERA
-    };
-
-    FragmentPermissionsBinding binding;
-
-    ActivityResultLauncher<String[]> activityResultLauncher;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentPermissionsBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentPermissionsBinding.inflate(inflater, container, false)
+        return binding.getRoot()
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        SharedPreferences preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
-        preferences.edit().putBoolean(PROP_PERMISSIONS_REQUESTED, true).apply();
-        activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
-                result -> {
-                    Log.d(TAG, String.format("Granted permissions: %s", result));
-                    Util.discardBackStack(PermissionsFragment.this);
-                });
+        val preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        preferences.edit { putBoolean(PROP_PERMISSIONS_REQUESTED, true) }
+        activityResultLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions(),
+            { result ->
+                Log.d(TAG, String.format("Granted permissions: %s", result))
+                discardBackStack(this@PermissionsFragment)
+            })
 
         //request all app permissions
-        binding.btnProceed.setOnClickListener(v -> activityResultLauncher.launch(REQUIRED_PERMISSIONS));
+        binding.btnProceed.setOnClickListener { _: View? ->
+            activityResultLauncher.launch(
+                REQUIRED_PERMISSIONS
+            )
+        }
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
+    companion object {
+        const val PROP_PERMISSIONS_REQUESTED: String = "permissions_requested"
+        private val TAG: String = PermissionsFragment::class.java.getSimpleName()
 
-    public static boolean isAllPermissionsGranted(String tag, @NonNull Context ctx, String... permissions) {
-        if (Arrays.stream(permissions).allMatch(p -> ctx.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED))
-            return true;
+        val REQUIRED_PERMISSIONS: Array<String> = arrayOf(
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_ADVERTISE,
+            Manifest.permission.CAMERA
+        )
 
-        Log.d(tag, "Granted permissions:");
+        @JvmStatic
+        fun isAllPermissionsGranted(
+            tag: String?,
+            ctx: Context,
+            vararg permissions: String?
+        ): Boolean {
+            if (Arrays.stream<String?>(permissions)
+                    .allMatch { p: String? -> ctx.checkSelfPermission(p!!) == PackageManager.PERMISSION_GRANTED }
+            ) return true
 
-        Arrays.stream(permissions).forEach(p -> {
-            var check = ContextCompat.checkSelfPermission(ctx, p);
-            Log.d(tag, p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")");
-        });
+            Log.d(tag, "Granted permissions:")
 
-        return false;
+            Arrays.stream<String?>(permissions).forEach { p: String? ->
+                val check = ContextCompat.checkSelfPermission(ctx, p!!)
+                Log.d(
+                    tag,
+                    p + ": " + (check == PackageManager.PERMISSION_GRANTED) + " (" + check + ")"
+                )
+            }
+
+            return false
+        }
     }
 }

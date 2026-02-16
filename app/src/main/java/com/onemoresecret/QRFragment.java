@@ -133,15 +133,6 @@ public class QRFragment extends Fragment {
             return;
         }
 
-        try {
-            if (!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
-                cryptographyManager.createMasterRsaKey(requireContext());
-                Log.d(TAG, "RSA master key created");
-            }
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
-        }
-
         clipboardManager = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         requireActivity().addMenuProvider(menuProvider);
@@ -195,7 +186,15 @@ public class QRFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        checkBiometrics();
+        if(!checkBiometrics())return;
+        try {
+            if (!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
+                cryptographyManager.createMasterRsaKey(requireContext());
+                Log.d(TAG, "RSA master key created");
+            }
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -297,7 +296,7 @@ public class QRFragment extends Fragment {
         }
     }
 
-    private void checkBiometrics() {
+    private boolean checkBiometrics() {
         BiometricManager biometricManager = (BiometricManager) requireContext().getSystemService(Context.BIOMETRIC_SERVICE);
 
         switch (biometricManager.
@@ -310,7 +309,7 @@ public class QRFragment extends Fragment {
                         .setIcon(R.drawable.baseline_fingerprint_24)
                         .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
-                break;
+                return false;
             case BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE:
                 new AlertDialog.Builder(getContext())
                         .setTitle(R.string.biometrics_not_detected)
@@ -318,7 +317,7 @@ public class QRFragment extends Fragment {
                         .setIcon(android.R.drawable.ic_dialog_alert)
                         .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
-                break;
+                return false;
             case BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED:
                 new AlertDialog.Builder(getContext())
                         .setTitle(R.string.biometrics_not_enabled)
@@ -327,11 +326,13 @@ public class QRFragment extends Fragment {
                         .setPositiveButton(R.string.open_settings, (dialog, which) -> startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS)))
                         .setNegativeButton(R.string.exit, (dialog, which) -> requireActivity().finish())
                         .show();
-                break;
+                return false;
             case BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED:
-            case BiometricManager.BIOMETRIC_SUCCESS:
+            case BiometricManager.BIOMETRIC_SUCCESS,
+                 BiometricManager.BIOMETRIC_ERROR_IDENTITY_CHECK_NOT_ACTIVE:
                 break;
         }
+        return true;
     }
 
     private void startCamera() {
