@@ -3,6 +3,7 @@ package com.onemoresecret.composable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -14,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.onemoresecret.R
@@ -77,10 +80,18 @@ private fun PinSetupContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Enable PIN Protection
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = state.pinEnabled,
+                    onValueChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) },
+                    role = Role.Switch
+                ),
+                verticalAlignment = Alignment.CenterVertically) {
+                Switch(
                     checked = state.pinEnabled,
-                    onCheckedChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) }
+                    onCheckedChange = null,
+                    modifier = Modifier.padding(end = 12.dp)
                 )
                 Text(stringResource(R.string.enable_pin_protection))
             }
@@ -164,8 +175,7 @@ private fun PinSetupContent(
 
                     // Panic PIN Section
                     Text(
-                        stringResource(R.string.panic_pin_descr),
-                        style = MaterialTheme.typography.bodySmall
+                        stringResource(R.string.panic_pin_descr)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PinField(
@@ -216,7 +226,11 @@ fun PinField(
         singleLine = true,
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { Text(
+            text = label,
+        maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        ) },
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.NumberPassword,

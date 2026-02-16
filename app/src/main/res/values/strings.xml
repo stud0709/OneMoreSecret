@@ -143,7 +143,7 @@
     <string name="advanced_optional_settings">Advanced (Optional) Settings:</string>
     <string name="minutes">minutes</string>
     <string name="pin">PIN</string>
-    <string name="enable_pin_protection">Enable PIN protection:</string>
+    <string name="enable_pin_protection">Enable PIN protection</string>
     <string name="repeat_panic_pin">repeat Panic PIN</string>
     <string name="repeat_pin">repeat PIN</string>
     <string name="totp_manual_entry">TOTP Manual Entry</string>
