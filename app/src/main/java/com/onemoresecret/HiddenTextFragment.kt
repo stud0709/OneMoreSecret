@@ -1,34 +1,35 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.fragment.app.Fragment
+import com.onemoresecret.composable.HiddenTextScreen
+import com.onemoresecret.composable.OneMoreSecretTheme
 
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
+class HiddenTextFragment : Fragment() {
+    private var message by mutableStateOf("")
 
-import com.onemoresecret.databinding.FragmentHiddenTextBinding;
-
-public class HiddenTextFragment extends Fragment {
-    private FragmentHiddenTextBinding binding;
-
-    @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
-        binding = FragmentHiddenTextBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        message = getString(R.string.hidden_text)
+        return ComposeView(requireContext()).apply {
+            setContent {
+                OneMoreSecretTheme {
+                HiddenTextScreen(message = message)
+                }
+            }
+        }
     }
 
-    public void setText(String text) {
-        binding.textViewMessage.setText(text);
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding.textViewMessage.setText(getString(R.string.hidden_text));
-        binding = null;
+    fun setText(text: String) {
+        message = text
     }
 }
