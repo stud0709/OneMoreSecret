@@ -78,8 +78,7 @@
     <fragment
         android:id="@+id/permissionsFragment"
         android:name="com.onemoresecret.PermissionsFragment"
-        android:label="@string/app_permissions"
-        tools:layout="@layout/fragment_permissions" />
+        android:label="@string/app_permissions" />
     <fragment
         android:id="@+id/encryptTextFragment"
         android:name="com.onemoresecret.EncryptTextFragment"

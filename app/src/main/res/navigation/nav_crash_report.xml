@@ -8,6 +8,5 @@
     <fragment
         android:id="@+id/CrashReportFragment"
         android:name="com.onemoresecret.CrashReportFragment"
-        android:label="@string/oms_crash_report"
-        tools:layout="@layout/fragment_crash_report" />
+        android:label="@string/oms_crash_report" />
 </navigation>
