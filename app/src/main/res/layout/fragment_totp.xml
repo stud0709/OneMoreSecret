@@ -8,15 +8,6 @@
     tools:context=".TotpFragment">
 
     <TextView
-        android:id="@+id/textViewNameIssuer"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="(Sample Configuration) by (Issuer)"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
         android:id="@+id/textViewTotpValue"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -25,7 +16,7 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Display3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewNameIssuer" />
+        tools:layout_editor_absoluteY="19dp" />
 
     <TextView
         android:id="@+id/textViewRemaining"
