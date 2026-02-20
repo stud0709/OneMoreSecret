@@ -26,9 +26,7 @@ class FileInfoFragment : Fragment() {
 
             setContent {
                 OneMoreSecretTheme {
-                    FileInfo(
-                        fileinfo
-                    )
+                    FileInfo(fileinfo)
                 }
             }
         })

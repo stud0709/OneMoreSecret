@@ -46,7 +46,11 @@ class PinSetupFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        requireActivity().addMenuProvider(menuProvider);
+        requireActivity().addMenuProvider(
+            menuProvider,
+            viewLifecycleOwner,
+            androidx.lifecycle.Lifecycle.State.RESUMED
+        )
     }
 
     private inner class PinMenuProvider : MenuProvider {
@@ -63,10 +67,5 @@ class PinSetupFragment : Fragment() {
 
             return true
         }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        requireActivity().removeMenuProvider(menuProvider)
     }
 }

@@ -9,14 +9,6 @@
     tools:context=".TotpManualEntryFragment">
 
     <EditText
-        android:id="@+id/edit_text_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:hint="@string/totp_label"
-        android:inputType="text" />
-
-    <EditText
         android:id="@+id/edit_text_secret"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

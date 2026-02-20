@@ -56,7 +56,7 @@
     <string name="biometrics_not_detected_long_text">Sorry, we cannot continue without biometric hardware.</string>
     <string name="biometrics_not_enabled_long_text">Please set up biometric authentication on your device.</string>
     <string name="readme_url">https://github.com/stud0709/OneMoreSecret/blob/master/README.md</string>
-    <string name="key_successfully_activated">Key %s successfully activated</string>
+    <string name="key_successfully_activated">Key successfully activated</string>
     <string name="new_private_key">New Private Key</string>
     <string name="private_key_import">Private Key Import</string>
     <string name="backup_file">%s: Backup File</string>
@@ -168,7 +168,6 @@
     <string name="encrypt_file">Encrypt File</string>
     <string name="share_encrypted_file_using">Share encrypted file using…</string>
     <string name="reference">Reference: %s</string>
-    <string name="totp_name_issuer">%s by %s</string>
     <string name="key_response">Key Response</string>
     <string name="key_response_is_ready">Key response for file %s is ready.</string>
     <string name="support_amp_feedback"><![CDATA[Support & Feedback]]></string>
@@ -205,4 +204,5 @@
     <string name="could_not_send_email">Could not send email</string>
     <string name="crash_email_body">The report file has been attached. Please share the steps to reproduce the issue.</string>
     <string name="crash_email_subject">OneMoreSecret crash report</string>
+    <string name="rsa_key_length_4096_bit">4096 bit RSA</string>
 </resources>

@@ -20,7 +20,7 @@ class TotpFragment : Fragment() {
     private val timer = Timer()
     private var lastState = -1L
     private var otp: OneTimePassword? = null
-    private val code = MutableLiveData<String?>()
+    private val code = MutableLiveData<String>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,9 +37,9 @@ class TotpFragment : Fragment() {
     }
 
     fun init(
-        otp: OneTimePassword?,
+        otp: OneTimePassword,
         owner: LifecycleOwner,
-        observer: Observer<String?>
+        observer: Observer<String>
     ) {
         this.otp = otp
         code.observe(owner, observer)
@@ -54,7 +54,7 @@ class TotpFragment : Fragment() {
             }
         }
 
-    fun setTotpText(s: String?) {
+    fun setTotpText(s: String) {
         requireActivity().mainExecutor.execute(Runnable {
             binding.textViewTotpValue.text = s
         })
@@ -66,7 +66,6 @@ class TotpFragment : Fragment() {
 
     private fun generateResponseCode(force: Boolean): Boolean {
         if (otp == null) return true //otp not set (yet)
-
 
         try {
             val state = otp!!.state

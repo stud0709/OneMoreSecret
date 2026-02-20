@@ -31,13 +31,13 @@ fun PreviewPinSetup() {
     var state by remember {
         mutableStateOf(
             PinSetupViewModel.State(
-                 false,
-                 "1234",
-                 "1234",
-                 "9999",
-                 "8888",
-                 "10",
-                 "3",
+                false,
+                "1234",
+                "1234",
+                "9999",
+                "8888",
+                "10",
+                "3",
                 isPinValid = true,
                 isPanicPinValid = false,
                 canSave = false
@@ -80,14 +80,16 @@ private fun PinSetupContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Enable PIN Protection
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = state.pinEnabled,
-                    onValueChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) },
-                    role = Role.Switch
-                ),
-                verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = state.pinEnabled,
+                        onValueChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) },
+                        role = Role.Switch
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Switch(
                     checked = state.pinEnabled,
                     onCheckedChange = null,
@@ -226,11 +228,13 @@ fun PinField(
         singleLine = true,
         value = value,
         onValueChange = onValueChange,
-        label = { Text(
-            text = label,
-        maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        ) },
+        label = {
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.NumberPassword,

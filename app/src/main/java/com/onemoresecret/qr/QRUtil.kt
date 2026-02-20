@@ -42,7 +42,8 @@ object QRUtil {
 
         for (chunkNo in 0..<chunks) {
             // copy with padding to keep all barcodes equal in size
-            cArr = data.copyOfRange(chunkSize * chunkNo, chunkSize * (chunkNo + 1))
+            cArr = data.copyOfRange(chunkSize * chunkNo, min(data.size, chunkSize * (chunkNo + 1)))
+            cArr = cArr.copyOf(chunkSize)
 
             val bc: MutableList<String> = ArrayList()
             bc.add(transactionId)

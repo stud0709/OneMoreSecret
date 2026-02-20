@@ -20,7 +20,7 @@ open class MsgPluginEncryptedMessage(
         if (messageView == null) {
             messageView = HiddenTextFragment()
             context.mainExecutor.execute(Runnable {
-                val message = kotlin.text.String(messageData!!)
+                val message = String(messageData!!)
                 val hiddenTextFragment = messageView as HiddenTextFragment?
                 messageFragment.hiddenState.observe(
                     messageView,

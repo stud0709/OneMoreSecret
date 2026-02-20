@@ -1,269 +1,289 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import static com.onemoresecret.crypto.OneTimePassword.ALGORITHM;
-import static com.onemoresecret.crypto.OneTimePassword.ALGORITHM_PARAM;
-import static com.onemoresecret.crypto.OneTimePassword.DEFAULT_PERIOD;
-import static com.onemoresecret.crypto.OneTimePassword.DIGITS;
-import static com.onemoresecret.crypto.OneTimePassword.DIGITS_PARAM;
-import static com.onemoresecret.crypto.OneTimePassword.OTP_SCHEME;
-import static com.onemoresecret.crypto.OneTimePassword.PERIOD_PARAM;
-import static com.onemoresecret.crypto.OneTimePassword.SECRET_PARAM;
-import static com.onemoresecret.crypto.OneTimePassword.TOTP;
+import android.app.AlertDialog
+import android.content.Context
+import android.content.DialogInterface
+import android.content.SharedPreferences
+import android.net.Uri
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.NumberPicker
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.selection.SelectionTracker
+import com.onemoresecret.crypto.AESUtil
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.KeyStoreEntry
+import com.onemoresecret.crypto.MessageComposer.Companion.encodeAsOmsText
+import com.onemoresecret.crypto.OneTimePassword
+import com.onemoresecret.crypto.RSAUtil
+import com.onemoresecret.crypto.TotpUriTransfer
+import com.onemoresecret.databinding.FragmentKeyStoreListBinding
+import com.onemoresecret.databinding.FragmentTotpManualEntryBinding
+import java.util.Objects
+import java.util.Timer
+import java.util.TimerTask
+import java.util.regex.Pattern
 
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.NumberPicker;
+class TotpManualEntryFragment : Fragment() {
+    private lateinit var binding: FragmentTotpManualEntryBinding
+    private lateinit var keyStoreListFragment: KeyStoreListFragment
+    private lateinit var outputFragment: OutputFragment
+    private lateinit var preferences: SharedPreferences
+    private val timer = Timer()
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.SelectionTracker;
+    private val cryptographyManager = CryptographyManager()
 
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.OneTimePassword;
-import com.onemoresecret.crypto.RSAUtil;
-import com.onemoresecret.crypto.TotpUriTransfer;
-import com.onemoresecret.databinding.FragmentTotpManualEntryBinding;
+    private var selectedAlias: String? = null
+    private var otp: OneTimePassword? = null
+    private var lastState = -1L
 
-import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-public class TotpManualEntryFragment extends Fragment {
-    private static final String TAG = TotpManualEntryFragment.class.getSimpleName();
-    private FragmentTotpManualEntryBinding binding;
-    private KeyStoreListFragment keyStoreListFragment;
-    private OutputFragment outputFragment;
-    private static final int PERIOD_MIN = 1, PERIOD_MAX = 120;
-    private SharedPreferences preferences;
-    private final Timer timer = new Timer();
-
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-
-    private String selectedAlias = null;
-    private OneTimePassword otp = null;
-    private long lastState = -1L;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentTotpManualEntryBinding.inflate(inflater, container, false);
-        binding.chipPeriod.setText(String.format(getString(R.string.format_seconds), DEFAULT_PERIOD));
-        binding.chipDigits.setText(DIGITS[0]);
-        binding.chipAlgorithm.setText(ALGORITHM[0]);
-        binding.textViewTotp.setText("");
-        binding.textViewTimer.setText("");
-        return binding.getRoot();
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentTotpManualEntryBinding.inflate(inflater, container, false)
+        binding.chipPeriod.text = String.format(
+            getString(R.string.format_seconds),
+            OneTimePassword.DEFAULT_PERIOD
+        )
+        binding.chipDigits.text = OneTimePassword.DIGITS[0]
+        binding.chipAlgorithm.text = OneTimePassword.ALGORITHM[0]
+        binding.textViewTotp.text = ""
+        binding.textViewTimer.text = ""
+        return binding.getRoot()
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
 
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
-        outputFragment = binding.fragmentContainerView2.getFragment();
+        keyStoreListFragment = binding.fragmentContainerView.getFragment()
+        outputFragment = binding.fragmentContainerView2.getFragment<OutputFragment>()
 
-        keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment
-                        .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<>() {
-                            @Override
-                            public void onSelectionChanged() {
-                                super.onSelectionChanged();
-                                if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    selectedAlias = keyStoreListFragment.getSelectionTracker().getSelection().iterator().next();
-                                } else {
-                                    selectedAlias = null;
-                                }
-                                generateResult();
-                            }
-                        }));
-
-        var textWatcher = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                generateResult();
-            }
-        };
-
-        binding.editTextLabel.addTextChangedListener(textWatcher);
-        binding.editTextSecret.addTextChangedListener(textWatcher);
-        binding.chipAlgorithm.setOnClickListener(e -> selectAlgorithm());
-        binding.chipDigits.setOnClickListener(e -> selectDigits());
-        binding.chipPeriod.setOnClickListener(e -> setPeriod());
-
-        requireActivity().getMainExecutor().execute(() -> {
-            generateResult();
-            getTimerTask().run();
-        });
-    }
-
-    private void setPeriod() {
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Period, s");
-        var numberPicker = new NumberPicker(requireContext());
-        numberPicker.setMinValue(PERIOD_MIN);
-        numberPicker.setMaxValue(PERIOD_MAX);
-        numberPicker.setValue(DEFAULT_PERIOD);
-        builder.setView(numberPicker);
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            binding.chipPeriod.setText(String.format(getString(R.string.format_seconds), numberPicker.getValue()));
-            generateResult();
-        });
-        builder.setNegativeButton(android.R.string.cancel, ((dialog, which) -> dialog.cancel()));
-        builder.show();
-    }
-
-    private void selectDigits() {
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Digits");
-        builder.setItems(OneTimePassword.DIGITS, (dialog, which) -> requireContext().getMainExecutor().execute(() -> {
-            binding.chipDigits.setText(OneTimePassword.DIGITS[which]);
-            generateResult();
-        }));
-
-        builder.show();
-    }
-
-    private void selectAlgorithm() {
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Algorithm");
-        builder.setItems(OneTimePassword.ALGORITHM, (dialog, which) -> requireContext().getMainExecutor().execute(() -> {
-            binding.chipAlgorithm.setText(OneTimePassword.ALGORITHM[which]);
-            generateResult();
-        }));
-
-        builder.show();
-    }
-
-    private void generateResult() {
-        var builder = new Uri.Builder();
-        builder.scheme(OTP_SCHEME)
-                .authority(TOTP)
-                .appendPath(binding.editTextLabel.getText().toString());
-
-        var param = binding.editTextSecret.getText().toString();
-        builder.appendQueryParameter(SECRET_PARAM, param);
-
-        param = binding.chipPeriod.getText().toString();
-        if (!param.equals(String.format(getString(R.string.format_seconds), DEFAULT_PERIOD))) {
-            Pattern pat = Pattern.compile("\\d+");
-            Matcher m = pat.matcher(param);
-            m.find();
-            builder.appendQueryParameter(PERIOD_PARAM, m.group());
+        keyStoreListFragment.setRunOnStart { _: FragmentKeyStoreListBinding? ->
+            keyStoreListFragment
+                .selectionTracker
+                .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
+                    override fun onSelectionChanged() {
+                        super.onSelectionChanged()
+                        if (keyStoreListFragment.selectionTracker.hasSelection()) {
+                            selectedAlias =
+                                keyStoreListFragment.selectionTracker.getSelection()
+                                    .iterator().next()
+                        } else {
+                            selectedAlias = null
+                        }
+                        generateResult()
+                    }
+                })
         }
 
-        param = binding.chipDigits.getText().toString();
-        if (!param.equals(DIGITS[0])) {
-            builder.appendQueryParameter(DIGITS_PARAM, param);
+        val textWatcher: TextWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                generateResult()
+            }
         }
 
-        param = binding.chipAlgorithm.getText().toString();
-        if (!param.equals(ALGORITHM[0])) {
-            builder.appendQueryParameter(ALGORITHM_PARAM, param);
+        binding.editTextSecret.addTextChangedListener(textWatcher)
+        binding.chipAlgorithm.setOnClickListener { _: View? -> selectAlgorithm() }
+        binding.chipDigits.setOnClickListener { _: View? -> selectDigits() }
+        binding.chipPeriod.setOnClickListener { _: View? -> setPeriod() }
+
+        requireActivity().mainExecutor.execute({
+            generateResult()
+            this.timerTask.run()
+        })
+    }
+
+    private fun setPeriod() {
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setTitle("Period, s")
+        val numberPicker = NumberPicker(requireContext())
+        numberPicker.setMinValue(PERIOD_MIN)
+        numberPicker.setMaxValue(PERIOD_MAX)
+        numberPicker.value = OneTimePassword.Companion.DEFAULT_PERIOD
+        builder.setView(numberPicker)
+        builder.setPositiveButton(
+            android.R.string.ok
+        ) { _: DialogInterface?, _: Int ->
+            binding.chipPeriod.text = String.format(
+                getString(R.string.format_seconds),
+                numberPicker.value
+            )
+            generateResult()
+        }
+        builder.setNegativeButton(
+            android.R.string.cancel,
+            (DialogInterface.OnClickListener { dialog: DialogInterface?, _: Int -> dialog?.cancel() })
+        )
+        builder.show()
+    }
+
+    private fun selectDigits() {
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setTitle("Digits")
+        builder.setItems(
+            OneTimePassword.DIGITS
+        ) { _: DialogInterface?, which: Int ->
+            requireContext().mainExecutor.execute(
+                {
+                    binding.chipDigits.text = OneTimePassword.DIGITS[which]
+                    generateResult()
+                })
         }
 
-        var uri = builder.build().toString();
+        builder.show()
+    }
 
-        otp = new OneTimePassword(uri);
+    private fun selectAlgorithm() {
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setTitle("Algorithm")
+        builder.setItems(
+            OneTimePassword.ALGORITHM
+        ) { _: DialogInterface?, which: Int ->
+            requireContext().mainExecutor.execute(
+                 {
+                    binding.chipAlgorithm.text = OneTimePassword.ALGORITHM[which]
+                    generateResult()
+                })
+        }
+
+        builder.show()
+    }
+
+    private fun generateResult() {
+        val builder = Uri.Builder()
+        builder.scheme(OneTimePassword.OTP_SCHEME)
+            .authority(OneTimePassword.TOTP)
+            .appendPath(getString(R.string.app_name))
+
+        var param = binding.editTextSecret.getText().toString()
+        builder.appendQueryParameter(OneTimePassword.SECRET_PARAM, param)
+
+        param = binding.chipPeriod.getText().toString()
+        if (param != String.format(
+                getString(R.string.format_seconds),
+                OneTimePassword.DEFAULT_PERIOD
+            )
+        ) {
+            val pat = Pattern.compile("\\d+")
+            val m = pat.matcher(param)
+            m.find()
+            builder.appendQueryParameter(OneTimePassword.PERIOD_PARAM, m.group())
+        }
+
+        param = binding.chipDigits.getText().toString()
+        if (param != OneTimePassword.DIGITS[0]) {
+            builder.appendQueryParameter(OneTimePassword.DIGITS_PARAM, param)
+        }
+
+        param = binding.chipAlgorithm.getText().toString()
+        if (param != OneTimePassword.ALGORITHM[0]) {
+            builder.appendQueryParameter(OneTimePassword.ALGORITHM_PARAM, param)
+        }
+
+        val uri = builder.build().toString()
+
+        otp = OneTimePassword(uri)
 
         if (selectedAlias == null) {
-            generateResponseCode(true);
+            generateResponseCode(true)
         } else {
             try {
-                var result = MessageComposer.encodeAsOmsText(
-                        new TotpUriTransfer(uri.getBytes(),
-                                Objects.requireNonNull(cryptographyManager.getByAlias(selectedAlias, preferences)).getPublic(),
-                                RSAUtil.getRsaTransformation(preferences),
-                                AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformation(preferences)).message);
+                val result = encodeAsOmsText(
+                    TotpUriTransfer(
+                        uri.toByteArray(),
+                        Objects.requireNonNull<KeyStoreEntry>(
+                            cryptographyManager.getByAlias(
+                                selectedAlias!!,
+                                preferences
+                            )
+                        ).public,
+                        RSAUtil.getRsaTransformation(preferences),
+                        AESUtil.getKeyLength(preferences),
+                        AESUtil.getAesTransformation(preferences)
+                    ).message
+                )
 
-                outputFragment.setMessage(result, "TOTP Configuration (encrypted)");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+                outputFragment.setMessage(result, "TOTP Configuration (encrypted)")
+            } catch (e: Exception) {
+                throw RuntimeException(e)
             }
         }
 
-        binding.editTextSecret.setEnabled(selectedAlias == null);
-        binding.editTextLabel.setEnabled(selectedAlias == null);
-        binding.chipAlgorithm.setEnabled(selectedAlias == null);
-        binding.chipDigits.setEnabled(selectedAlias == null);
-        binding.chipPeriod.setEnabled(selectedAlias == null);
+        binding.editTextSecret.setEnabled(selectedAlias == null)
+        binding.chipAlgorithm.setEnabled(selectedAlias == null)
+        binding.chipDigits.setEnabled(selectedAlias == null)
+        binding.chipPeriod.setEnabled(selectedAlias == null)
 
-        generateResponseCode(true);
+        generateResponseCode(true)
     }
 
-    private TimerTask getTimerTask() {
-        return new TimerTask() {
-            @Override
-            public void run() {
-                generateResponseCode(false);
-                timer.schedule(getTimerTask(), 1000);
+    private val timerTask: TimerTask
+        get() = object : TimerTask() {
+            override fun run() {
+                generateResponseCode(false)
+                timer.schedule(timerTask, 1000)
             }
-        };
-    }
+        }
 
-    private void generateResponseCode(boolean force) {
-        if (otp == null) return; //otp not set yet
+    private fun generateResponseCode(force: Boolean) {
+        if (otp == null) return  //otp not set yet
+
 
         try {
-            var otpState = otp.getState();
-            var code = otp.generateResponseCode(otpState.current);
+            val otpState = otp!!.state
+            val code = otp!!.generateResponseCode(otpState.current)
 
-            requireActivity().getMainExecutor().execute(() -> {
-                if (binding == null) return; //fragment has been destroyed
-                binding.textViewTimer.setText(String.format("...%ss", otp.getPeriod() - otpState.secondsUntilNext));
-                binding.textViewTotp.setText(code);
+            requireActivity().mainExecutor.execute( {
 
+                binding.textViewTimer.text = String.format(
+                    "...%ss",
+                    otp!!.period - otpState.secondsUntilNext
+                )
+                binding.textViewTotp.text = code
                 if (lastState != otpState.current || force) {
                     //new State = new code; update output fragment
                     if (selectedAlias == null) {
-                        outputFragment.setMessage(code, "One-Time-Password");
+                        outputFragment.setMessage(code, "One-Time-Password")
                     }
-                    lastState = otpState.current;
+                    lastState = otpState.current
                 }
-            });
-        } catch (Exception e) {
+            })
+        } catch (e: Exception) {
             //invalid secret
-            Log.e(TAG, e.getMessage());
-            outputFragment.setMessage(null, null);
-            requireActivity().getMainExecutor().execute(() -> {
-                if (binding == null) return; //fragment has been destroyed
-                binding.textViewTotp.setText("-".repeat(Integer.parseInt(binding.chipDigits.getText().toString())));
-                binding.textViewTimer.setText("");
-            });
+            Log.e(TAG, e.message!!)
+            outputFragment.setMessage(null, null)
+            requireActivity().mainExecutor.execute({
+
+                binding.textViewTotp.text = "-".repeat(
+                    binding.chipDigits.getText().toString().toInt()
+                )
+                binding.textViewTimer.text = ""
+            })
         }
     }
 
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        timer.cancel();
-        binding = null;
+    override fun onDestroyView() {
+        super.onDestroyView()
+        timer.cancel()
+    }
+
+    companion object {
+        private val TAG: String = TotpManualEntryFragment::class.java.getSimpleName()
+        private const val PERIOD_MIN = 1
+        private const val PERIOD_MAX = 120
     }
 }

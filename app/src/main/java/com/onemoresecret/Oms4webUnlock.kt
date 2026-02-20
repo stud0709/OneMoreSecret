@@ -52,7 +52,11 @@ class Oms4webUnlock : FragmentWithNotificationBeforePause() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        requireActivity().addMenuProvider(menuProvider, viewLifecycleOwner)
+        requireActivity().addMenuProvider(
+            menuProvider,
+            viewLifecycleOwner,
+            androidx.lifecycle.Lifecycle.State.RESUMED
+        )
     }
 
     private fun handleUnlock() {
@@ -69,7 +73,8 @@ class Oms4webUnlock : FragmentWithNotificationBeforePause() {
 
     private fun copyValue() {
         val msg = messageState ?: return
-        val clipboardManager = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboardManager =
+            requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("oneMoreSecret", msg)
         val persistableBundle = PersistableBundle().apply {
             putBoolean("android.content.extra.IS_SENSITIVE", true)
@@ -100,6 +105,7 @@ class Oms4webUnlock : FragmentWithNotificationBeforePause() {
                     copyValue()
                     true
                 }
+
                 else -> false
             }
         }
