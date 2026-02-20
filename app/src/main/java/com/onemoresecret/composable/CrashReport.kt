@@ -32,7 +32,6 @@ fun CrashReport(
     val reportText = remember(includeLogcat) {
         crashReportData.toString(includeLogcat) ?: ""
     }
-    Surface(color = MaterialTheme.colorScheme.background) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -79,7 +78,7 @@ fun CrashReport(
                 Text("Send")
             }
         }
-    }}
+    }
 }
 
 // Extracted logic for sending the email

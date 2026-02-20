@@ -14,8 +14,8 @@ android {
         applicationId = "com.onemoresecret"
         minSdk = 31
         targetSdk = 36
-        versionCode = 39
-        versionName = "0.39-beta"
+        versionCode = 41
+        versionName = "0.41-beta"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

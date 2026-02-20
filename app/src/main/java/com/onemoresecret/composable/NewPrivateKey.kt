@@ -43,116 +43,112 @@ fun NewPrivateKeyScreen(
     onCreate: () -> Unit,
     onActivate: () -> Unit
 ) {
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Alias Input
-            OutlinedTextField(
-                value = state.alias,
-                readOnly = state.isKeyCreated,
-                onValueChange = { onAction(NewPrivateKeyViewModel.Action.OnAliasChanged(it)) },
-                label = { Text(stringResource(R.string.new_key_alias)) },
-                modifier = Modifier.fillMaxWidth()
-            )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Alias Input
+        OutlinedTextField(
+            value = state.alias,
+            readOnly = state.isKeyCreated,
+            onValueChange = { onAction(NewPrivateKeyViewModel.Action.OnAliasChanged(it)) },
+            label = { Text(stringResource(R.string.new_key_alias)) },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-            androidx.compose.animation.AnimatedContent(
-                targetState = state.isKeyCreated,
-                label = "KeyCreationTransition"
-            ) { isCreated ->
-                if (isCreated) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Consent Checkbox (Enabled only after key creation)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Checkbox(
-                                checked = state.isConsentChecked,
-                                onCheckedChange = {
-                                    onAction(
-                                        NewPrivateKeyViewModel.Action.OnBackupConsentChanged(
-                                            it
-                                        )
+        androidx.compose.animation.AnimatedContent(
+            targetState = state.isKeyCreated,
+            label = "KeyCreationTransition"
+        ) { isCreated ->
+            if (isCreated) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Consent Checkbox (Enabled only after key creation)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Checkbox(
+                            checked = state.isConsentChecked,
+                            onCheckedChange = {
+                                onAction(
+                                    NewPrivateKeyViewModel.Action.OnBackupConsentChanged(
+                                        it
                                     )
-                                }
-                            )
-                            Text(stringResource(R.string.private_key_consent))
-                        }
-
-                        // Activate Button
-                        Button(
-                            onClick = onActivate,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            Text(stringResource(R.string.activate_private_key))
-                        }
+                                )
+                            }
+                        )
+                        Text(stringResource(R.string.private_key_consent))
                     }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Password Input
-                        OutlinedTextField(
-                            value = state.password,
-                            onValueChange = {
-                                onAction(
-                                    NewPrivateKeyViewModel.Action.OnPasswordChanged(
-                                        it
-                                    )
-                                )
-                            },
-                            label = { Text(stringResource(R.string.new_transport_password)) },
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth()
-                        )
 
-                        // Repeat Password Input
-                        OutlinedTextField(
-                            value = state.repeatPassword,
-                            onValueChange = {
-                                onAction(
-                                    NewPrivateKeyViewModel.Action.OnRepeatPasswordChanged(
-                                        it
-                                    )
+                    // Activate Button
+                    Button(
+                        onClick = onActivate,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(stringResource(R.string.activate_private_key))
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Password Input
+                    PasswordField(
+                        value = state.password,
+                        onValueChange = {
+                            onAction(
+                                NewPrivateKeyViewModel.Action.OnPasswordChanged(
+                                    it
                                 )
-                            },
-                            label = { Text(stringResource(R.string.repeat_transport_password)) },
-                            visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        // 4096-bit Switch
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.rsa_key_length_4096_bit),
-                                modifier = Modifier.weight(1f)
                             )
-                            Switch(
-                                checked = state.is4096Bit,
-                                onCheckedChange = {
-                                    onAction(
-                                        NewPrivateKeyViewModel.Action.On4096BitChanged(
-                                            it
-                                        )
-                                    )
-                                })
-                        }
+                        },
+                        label = stringResource(R.string.new_transport_password),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                        // Create Button
-                        Button(
-                            onClick = onCreate,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        ) {
-                            Text(stringResource(R.string.create))
-                        }
+                    // Repeat Password Input
+                    PasswordField(
+                        value = state.repeatPassword,
+                        onValueChange = {
+                            onAction(
+                                NewPrivateKeyViewModel.Action.OnRepeatPasswordChanged(
+                                    it
+                                )
+                            )
+                        },
+                        label = stringResource(R.string.repeat_transport_password),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // 4096-bit Switch
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.rsa_key_length_4096_bit),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(
+                            checked = state.is4096Bit,
+                            onCheckedChange = {
+                                onAction(
+                                    NewPrivateKeyViewModel.Action.On4096BitChanged(
+                                        it
+                                    )
+                                )
+                            })
+                    }
+
+                    // Create Button
+                    Button(
+                        onClick = onCreate,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(stringResource(R.string.create))
                     }
                 }
             }

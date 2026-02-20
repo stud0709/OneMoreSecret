@@ -15,36 +15,36 @@ import java.util.Locale
 
 @Composable
 fun FileInfo(fileInfo: com.onemoresecret.Util.UriFileInfo?) {
-    Surface(
-        color = MaterialTheme.colorScheme.background
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Top
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Filename Label
+        // Filename Label
+        Text(
+            text = stringResource(id = R.string.filename),
+            style = MaterialTheme.typography.labelMedium
+        )
+        // Filename Value
+        Text(
+            text = fileInfo?.filename ?: "(filename)",
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        // Size Row
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(id = R.string.filename),
+                text = stringResource(id = R.string.size),
                 style = MaterialTheme.typography.labelMedium
             )
-            // Filename Value
             Text(
-                text = fileInfo?.filename ?: "(filename)",
-                modifier = Modifier.padding(bottom = 8.dp)
+                text = String.format(
+                    Locale.getDefault(),
+                    " %.3f KB",
+                    (fileInfo?.fileSize ?: 0) / 1024.0
+                ),
+                modifier = Modifier.padding(start = 8.dp)
             )
-            // Size Row
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(id = R.string.size),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Text(
-                    text = String.format(Locale.getDefault(), " %.3f KB", (fileInfo?.fileSize ?: 0) / 1024.0),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
         }
     }
 }

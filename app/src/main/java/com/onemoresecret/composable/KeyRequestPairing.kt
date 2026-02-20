@@ -17,22 +17,18 @@ fun KeyRequestPairing(
     reply: ByteArray?,
     onSendKeyClicked: () -> Unit
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 8.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 8.dp),
-            contentAlignment = Alignment.BottomCenter
+        Button(
+            onClick = onSendKeyClicked,
+            // The button is enabled only if the reply data is present
+            enabled = reply != null
         ) {
-            Button(
-                onClick = onSendKeyClicked,
-                // The button is enabled only if the reply data is present
-                enabled = reply != null
-            ) {
-                Text(text = "Send Key")
-            }
+            Text(text = "Send Key")
         }
     }
 }

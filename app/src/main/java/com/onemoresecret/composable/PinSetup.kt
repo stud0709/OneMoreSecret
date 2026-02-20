@@ -71,147 +71,145 @@ private fun PinSetupContent(
     onAction: (PinSetupViewModel.Action) -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Column(
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(scrollState)
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Enable PIN Protection
+        Row(
             modifier = Modifier
-                .padding(16.dp)
-                .verticalScroll(scrollState)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .toggleable(
+                    value = state.pinEnabled,
+                    onValueChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) },
+                    role = Role.Switch
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Enable PIN Protection
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(
-                        value = state.pinEnabled,
-                        onValueChange = { onAction(PinSetupViewModel.Action.OnEnabledChanged(it)) },
-                        role = Role.Switch
-                    ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Switch(
-                    checked = state.pinEnabled,
-                    onCheckedChange = null,
-                    modifier = Modifier.padding(end = 12.dp)
+            Switch(
+                checked = state.pinEnabled,
+                onCheckedChange = null,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+            Text(stringResource(R.string.enable_pin_protection))
+        }
+
+        AnimatedVisibility(visible = state.pinEnabled) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // PIN Fields
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PinField(
+                        value = state.pinValue,
+                        onValueChange = { onAction(PinSetupViewModel.Action.OnPinChanged(it)) },
+                        label = stringResource(R.string.pin),
+                        modifier = Modifier.weight(1f)
+                    )
+                    PinField(
+                        value = state.repeatPin,
+                        onValueChange = {
+                            onAction(
+                                PinSetupViewModel.Action.OnRepeatPinChanged(
+                                    it
+                                )
+                            )
+                        },
+                        label = stringResource(R.string.repeat_pin),
+                        modifier = Modifier.weight(1f),
+                        isValid = state.isPinValid
+                    )
+                }
+
+                // Advanced Settings
+                Text(
+                    stringResource(R.string.advanced_optional_settings),
+                    style = MaterialTheme.typography.labelLarge
                 )
-                Text(stringResource(R.string.enable_pin_protection))
-            }
 
-            AnimatedVisibility(visible = state.pinEnabled) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // PIN Fields
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PinField(
-                            value = state.pinValue,
-                            onValueChange = { onAction(PinSetupViewModel.Action.OnPinChanged(it)) },
-                            label = stringResource(R.string.pin),
-                            modifier = Modifier.weight(1f)
-                        )
-                        PinField(
-                            value = state.repeatPin,
-                            onValueChange = {
-                                onAction(
-                                    PinSetupViewModel.Action.OnRepeatPinChanged(
-                                        it
-                                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.request_pin_entry_every))
+                    OutlinedTextField(
+                        singleLine = true,
+                        value = state.requestInterval,
+                        onValueChange = {
+                            onAction(
+                                PinSetupViewModel.Action.OnRequestIntervalChanged(
+                                    it
                                 )
-                            },
-                            label = stringResource(R.string.repeat_pin),
-                            modifier = Modifier.weight(1f),
-                            isValid = state.isPinValid
-                        )
-                    }
-
-                    // Advanced Settings
-                    Text(
-                        stringResource(R.string.advanced_optional_settings),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.request_pin_entry_every))
-                        OutlinedTextField(
-                            singleLine = true,
-                            value = state.requestInterval,
-                            onValueChange = {
-                                onAction(
-                                    PinSetupViewModel.Action.OnRequestIntervalChanged(
-                                        it
-                                    )
-                                )
-                            },
-                            modifier = Modifier
-                                .width(80.dp)
-                                .padding(horizontal = 8.dp),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.NumberPassword,
-                                imeAction = ImeAction.Next
                             )
+                        },
+                        modifier = Modifier
+                            .width(80.dp)
+                            .padding(horizontal = 8.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Next
                         )
-                        Text(stringResource(R.string.minutes))
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.delete_all_keys))
-                        OutlinedTextField(
-                            singleLine = true,
-                            value = state.maxAttempts,
-                            onValueChange = {
-                                onAction(
-                                    PinSetupViewModel.Action.OnMaxAttemptsChanged(
-                                        it
-                                    )
-                                )
-                            },
-                            modifier = Modifier
-                                .width(80.dp)
-                                .padding(horizontal = 8.dp),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.NumberPassword,
-                                imeAction = ImeAction.Next
-                            )
-                        )
-                        Text(stringResource(R.string.max_attempts))
-                    }
-
-                    // Panic PIN Section
-                    Text(
-                        stringResource(R.string.panic_pin_descr)
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PinField(
-                            value = state.panicPin,
-                            onValueChange = { onAction(PinSetupViewModel.Action.OnPanicPinChanged(it)) },
-                            label = stringResource(R.string.panic_pin),
-                            modifier = Modifier.weight(1f)
-                        )
-                        PinField(
-                            value = state.repeatPanicPin,
-                            onValueChange = {
-                                onAction(
-                                    PinSetupViewModel.Action.OnRepeatPanicPinChanged(
-                                        it
-                                    )
+                    Text(stringResource(R.string.minutes))
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.delete_all_keys))
+                    OutlinedTextField(
+                        singleLine = true,
+                        value = state.maxAttempts,
+                        onValueChange = {
+                            onAction(
+                                PinSetupViewModel.Action.OnMaxAttemptsChanged(
+                                    it
                                 )
-                            },
-                            label = stringResource(R.string.repeat_panic_pin),
-                            modifier = Modifier.weight(1f),
-                            isValid = state.isPanicPinValid
+                            )
+                        },
+                        modifier = Modifier
+                            .width(80.dp)
+                            .padding(horizontal = 8.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Next
                         )
-                    }
+                    )
+                    Text(stringResource(R.string.max_attempts))
+                }
+
+                // Panic PIN Section
+                Text(
+                    stringResource(R.string.panic_pin_descr)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PinField(
+                        value = state.panicPin,
+                        onValueChange = { onAction(PinSetupViewModel.Action.OnPanicPinChanged(it)) },
+                        label = stringResource(R.string.panic_pin),
+                        modifier = Modifier.weight(1f)
+                    )
+                    PinField(
+                        value = state.repeatPanicPin,
+                        onValueChange = {
+                            onAction(
+                                PinSetupViewModel.Action.OnRepeatPanicPinChanged(
+                                    it
+                                )
+                            )
+                        },
+                        label = stringResource(R.string.repeat_panic_pin),
+                        modifier = Modifier.weight(1f),
+                        isValid = state.isPanicPinValid
+                    )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = { onAction(PinSetupViewModel.Action.OnSave) },
-                enabled = state.canSave,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.save))
-            }
+        Button(
+            onClick = { onAction(PinSetupViewModel.Action.OnSave) },
+            enabled = state.canSave,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.save))
         }
     }
 }
