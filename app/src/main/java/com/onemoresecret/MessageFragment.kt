@@ -119,7 +119,7 @@ class MessageFragment : Fragment() {
 
     @Throws(Exception::class)
     private fun onMessage() {
-        val messageData = requireArguments().getByteArray(QRFragment.ARG_MESSAGE)
+        val messageData = requireNotNull(requireArguments().getByteArray(QRFragment.ARG_MESSAGE))
         val applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID)
 
         when (applicationId) {
