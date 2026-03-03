@@ -1,5 +1,6 @@
 package com.onemoresecret.composable
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,55 +24,56 @@ fun WiFiPairing(
     isPairingAccepted: Boolean,
     onConfirm: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Text(
-            text = stringResource(id = R.string.pairing_info_request),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Text(
-            text = requestId,
+    AnimatedContent(targetState = isPairingAccepted) { isPairingAccepted ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center
-        )
-
-        Button(
-            onClick = onConfirm,
-            enabled = !isPairingAccepted,
-            modifier = Modifier.padding(top = 8.dp)
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            Text(
-                text = stringResource(
-                    id = if (isPairingAccepted) R.string.pairing_accepted else R.string.accept_pairing
+            if (isPairingAccepted) {
+                Text(
+                    text = stringResource(id = R.string.pairing_info_response),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 )
-            )
-        }
 
-        if (isPairingAccepted) {
-            Text(
-                text = stringResource(id = R.string.pairing_info_response),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            )
+                Text(
+                    text = responseCode,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    text = stringResource(id = R.string.pairing_info_request),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            Text(
-                text = responseCode,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
-            )
+                Text(
+                    text = requestId,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(
+                            id = R.string.accept_pairing
+                        )
+                    )
+                }
+            }
         }
     }
 }

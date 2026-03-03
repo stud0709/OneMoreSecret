@@ -120,9 +120,7 @@ class MessageFragment : Fragment() {
     @Throws(Exception::class)
     private fun onMessage() {
         val messageData = requireNotNull(requireArguments().getByteArray(QRFragment.ARG_MESSAGE))
-        val applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID)
-
-        when (applicationId) {
+        when (val applicationId = requireArguments().getInt(QRFragment.ARG_APPLICATION_ID)) {
             MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED, MessageComposer.APPLICATION_ENCRYPTED_MESSAGE, MessageComposer.APPLICATION_ENCRYPTED_OTP -> messageFragmentPlugin =
                 MsgPluginEncryptedMessage(this, messageData)
 
@@ -138,7 +136,7 @@ class MessageFragment : Fragment() {
             MessageComposer.APPLICATION_WIFI_PAIRING -> messageFragmentPlugin =
                 MsgPluginWiFiPairing(this, messageData)
 
-            else -> throw IllegalArgumentException(getString(R.string.wrong_application) + " " + applicationId)
+            else -> throw IllegalArgumentException(getString(R.string.wrong_application).format(applicationId))
         }
     }
 
