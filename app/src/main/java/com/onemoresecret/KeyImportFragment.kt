@@ -3,8 +3,6 @@ package com.onemoresecret
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
@@ -13,12 +11,19 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.discardBackStack
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
+import com.onemoresecret.composable.KeyImportScreen
+import com.onemoresecret.composable.OneMoreSecretTheme
 import com.onemoresecret.crypto.AESUtil.getAesKeyMaterialFromPassword
 import com.onemoresecret.crypto.AESUtil.process
 import com.onemoresecret.crypto.AesKeyAlgorithm
@@ -27,7 +32,6 @@ import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
-import com.onemoresecret.databinding.FragmentKeyImportBinding
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.security.interfaces.RSAPublicKey
@@ -39,10 +43,20 @@ import javax.crypto.Cipher
  * Key import Fragment.
  */
 class KeyImportFragment : Fragment() {
-    private lateinit var binding: FragmentKeyImportBinding
     private val cryptographyManager = CryptographyManager()
     private val menuProvider = KeyImportMenu()
-    private var preferences: SharedPreferences? = null
+    private lateinit var preferences: SharedPreferences
+
+    private var keyAlias by mutableStateOf("")
+    private var passphrase by mutableStateOf("")
+    private var fingerprint by mutableStateOf("")
+    private var warning by mutableStateOf("")
+    private var saveEnabled by mutableStateOf(false)
+
+    private var decryptedPrivateKeyMaterial: ByteArray? = null
+    private var decryptedPublicKeyMaterial: ByteArray? = null
+    private var decryptedFingerprintBytes: ByteArray? = null
+    private var encryptedPayload: EncryptedPayload? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -58,7 +72,7 @@ class KeyImportFragment : Fragment() {
                 // (2) alias
                 val alias = dataInputStream.readString()
                 Log.d(TAG, "alias: $alias")
-                binding.editTextKeyAlias.setText(alias)
+                keyAlias = alias
 
                 // --- AES parameter ---
 
@@ -93,20 +107,15 @@ class KeyImportFragment : Fragment() {
                 val cipherText = dataInputStream.readByteArray()
                 Log.d(TAG, cipherText.size.toString() + " bytes cipher text read")
 
-                binding.editTextKeyAlias.setText(alias)
-                binding.btnDecrypt.setOnClickListener { _: View? ->
-                    Thread {
-                        onPasswordEntry(
-                            salt,
-                            iv,
-                            cipherText,
-                            aesTransformation,
-                            aesKeyAlg,
-                            aesKeyLength,
-                            iterations
-                        )
-                    }.start()
-                }
+                encryptedPayload = EncryptedPayload(
+                    salt = salt,
+                    iv = iv,
+                    cipherText = cipherText,
+                    aesTransformation = aesTransformation,
+                    keyAlg = aesKeyAlg,
+                    keyLength = aesKeyLength,
+                    iterations = iterations
+                )
             }
         } catch (ex: IOException) {
             printStackTrace(ex)
@@ -119,31 +128,30 @@ class KeyImportFragment : Fragment() {
         }
     }
 
-    private fun onPasswordEntry(
-        salt: ByteArray,
-        iv: ByteArray,
-        cipherText: ByteArray,
-        aesTransformation: AesTransformation,
-        keyAlg: String,
-        keyLength: Int,
-        iterations: Int
-    ) {
+    private fun onDecryptClicked() {
+        val payload = encryptedPayload ?: return
+        Thread {
+            onPasswordEntry(payload)
+        }.start()
+    }
+
+    private fun onPasswordEntry(payload: EncryptedPayload) {
         try {
             //try decrypt
             val aesKeyMaterial = getAesKeyMaterialFromPassword(
-                binding.editTextPassphrase.getText().toString().toCharArray(),
-                salt,
-                keyAlg,
-                keyLength,
-                iterations
+                passphrase.toCharArray(),
+                payload.salt,
+                payload.keyAlg,
+                payload.keyLength,
+                payload.iterations
             )
 
             val bArr = process(
                 Cipher.DECRYPT_MODE,
-                cipherText,
+                payload.cipherText,
                 aesKeyMaterial,
-                iv,
-                aesTransformation
+                payload.iv,
+                payload.aesTransformation
             )
 
             Arrays.fill(aesKeyMaterial, 0.toByte())
@@ -158,69 +166,14 @@ class KeyImportFragment : Fragment() {
 
                     val publicKey = restorePublicKey(publicKeyMaterial)
                     val fingerprintBytes = getFingerprint(publicKey)
-                    val fingerprint = byteArrayToHex(fingerprintBytes)
+                    val fingerprintString = byteArrayToHex(fingerprintBytes)
                     requireContext().mainExecutor.execute {
-                        binding.textFingerprintData.text = fingerprint
-                        //check alias
-                        binding.editTextKeyAlias.addTextChangedListener(
-                            getTextWatcher(
-                                fingerprintBytes
-                            )
-                        )
-
+                        decryptedPrivateKeyMaterial = privateKeyMaterial
+                        decryptedPublicKeyMaterial = publicKeyMaterial
+                        decryptedFingerprintBytes = fingerprintBytes
+                        fingerprint = fingerprintString
+                        saveEnabled = true
                         validateAlias(fingerprintBytes)
-
-                        binding.btnSave.setEnabled(true)
-                        binding.btnSave.setOnClickListener { _: View? ->
-                            Thread {
-                                try {
-                                    //delete other keys with the same fingerprint
-                                    val sameFingerprint = cryptographyManager.getByFingerprint(
-                                        fingerprintBytes,
-                                        preferences!!
-                                    )
-                                    if (sameFingerprint != null) cryptographyManager.deleteKey(
-                                        sameFingerprint.alias,
-                                        preferences!!
-                                    )
-
-                                    val keyAlias: String =
-                                        binding.editTextKeyAlias.getText().toString()
-                                            .trim { it <= ' ' }
-                                    cryptographyManager.importRsaKey(
-                                        preferences!!,
-                                        privateKeyMaterial,
-                                        publicKeyMaterial,
-                                        keyAlias
-                                    )
-
-                                    //neuer Keystore
-                                    cryptographyManager.importRsaKey(
-                                        requireActivity().getPreferences(Context.MODE_PRIVATE),
-                                        privateKeyMaterial,
-                                        publicKeyMaterial,
-                                        keyAlias
-                                    )
-                                    requireContext().mainExecutor.execute {
-                                        Toast.makeText(
-                                            this.context,
-                                            "Private key '$keyAlias' successfully imported",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        discardBackStack(this)
-                                    }
-                                } catch (ex: Exception) {
-                                    printStackTrace(ex)
-                                    requireContext().mainExecutor.execute {
-                                        Toast.makeText(
-                                            this.context,
-                                            ex.message,
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-                                }
-                            }.start()
-                        }
                     }
                 }
             } catch (ex: IOException) {
@@ -238,12 +191,92 @@ class KeyImportFragment : Fragment() {
         }
     }
 
+    private fun onSaveClicked() {
+        if (!saveEnabled) return
+
+        val fingerprintBytes = decryptedFingerprintBytes ?: return
+        val privateKeyMaterial = decryptedPrivateKeyMaterial ?: return
+        val publicKeyMaterial = decryptedPublicKeyMaterial ?: return
+
+        Thread {
+            try {
+                //delete other keys with the same fingerprint
+                val sameFingerprint = cryptographyManager.getByFingerprint(
+                    fingerprintBytes,
+                    preferences
+                )
+                if (sameFingerprint != null) {
+                    cryptographyManager.deleteKey(sameFingerprint.alias, preferences)
+                }
+
+                val alias = keyAlias.trim { it <= ' ' }
+                cryptographyManager.importRsaKey(
+                    preferences,
+                    privateKeyMaterial,
+                    publicKeyMaterial,
+                    alias
+                )
+
+                //neuer Keystore
+                cryptographyManager.importRsaKey(
+                    requireActivity().getPreferences(Context.MODE_PRIVATE),
+                    privateKeyMaterial,
+                    publicKeyMaterial,
+                    alias
+                )
+
+                requireContext().mainExecutor.execute {
+                    Toast.makeText(
+                        this.context,
+                        "Private key '$alias' successfully imported",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    discardBackStack(this)
+                }
+            } catch (ex: Exception) {
+                printStackTrace(ex)
+                requireContext().mainExecutor.execute {
+                    Toast.makeText(
+                        this.context,
+                        ex.message,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }.start()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentKeyImportBinding.inflate(inflater, container, false)
-        return binding.getRoot()
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OneMoreSecretTheme {
+                    KeyImportScreen(
+                        alias = keyAlias,
+                        passphrase = passphrase,
+                        fingerprint = if (fingerprint.isNotBlank()) {
+                            fingerprint
+                        } else {
+                            getString(R.string.unknown_decrypt_first)
+                        },
+                        warning = warning,
+                        saveEnabled = saveEnabled,
+                        onAliasChange = {
+                            keyAlias = it
+                            decryptedFingerprintBytes?.let { fingerprintBytes ->
+                                validateAlias(fingerprintBytes)
+                            }
+                        },
+                        onPassphraseChange = { passphrase = it },
+                        onDecrypt = { onDecryptClicked() },
+                        onSave = { onSaveClicked() }
+                    )
+                }
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -253,16 +286,16 @@ class KeyImportFragment : Fragment() {
 
     private fun validateAlias(fingerprintNew: ByteArray) {
         try {
-            val alias = binding.editTextKeyAlias.getText().toString()
+            val alias = keyAlias
             Log.d(TAG, "alias: $alias")
-            var warning: String? = null
+            var warningText: String? = null
 
             if (cryptographyManager.keyStore.containsAlias(alias)) {
                 val publicKey =
                     cryptographyManager.keyStore.getCertificate(alias)?.publicKey as RSAPublicKey
                 val fingerprint = getFingerprint(publicKey)
                 if (!fingerprint.contentEquals(fingerprintNew)) {
-                    warning = String.format(
+                    warningText = String.format(
                         getString(R.string.warning_alias_exists),
                         byteArrayToHex(fingerprint)
                     )
@@ -270,34 +303,19 @@ class KeyImportFragment : Fragment() {
             }
 
             val sameFingerprint =
-                cryptographyManager.getByFingerprint(fingerprintNew, preferences!!)
+                cryptographyManager.getByFingerprint(fingerprintNew, preferences)
             if (sameFingerprint != null) {
-                warning = String.format(
+                warningText = String.format(
                     getString(R.string.warning_same_fingerprint),
                     sameFingerprint.alias
                 )
             }
 
             requireContext().mainExecutor.execute {
-                binding.txtWarnings.text = warning ?: ""
-                binding.txtWarnings.visibility = if (warning == null) View.GONE else View.VISIBLE
+                warning = warningText ?: ""
             }
         } catch (e: Exception) {
             printStackTrace(e)
-        }
-    }
-
-    private fun getTextWatcher(fingerprintBytes: ByteArray): TextWatcher {
-        return object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                validateAlias(fingerprintBytes)
-            }
         }
     }
 
@@ -319,4 +337,14 @@ class KeyImportFragment : Fragment() {
     companion object {
         private val TAG: String = KeyImportFragment::class.java.getSimpleName()
     }
+
+    private data class EncryptedPayload(
+        val salt: ByteArray,
+        val iv: ByteArray,
+        val cipherText: ByteArray,
+        val aesTransformation: AesTransformation,
+        val keyAlg: String,
+        val keyLength: Int,
+        val iterations: Int
+    )
 }

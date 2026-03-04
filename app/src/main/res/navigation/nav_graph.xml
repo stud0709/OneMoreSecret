@@ -54,8 +54,7 @@
     <fragment
         android:id="@+id/KeyImportFragment"
         android:name="com.onemoresecret.KeyImportFragment"
-        android:label="@string/private_key_import"
-        tools:layout="@layout/fragment_key_import" />
+        android:label="@string/private_key_import" />
     <fragment
         android:id="@+id/newPrivateKeyFragment"
         android:name="com.onemoresecret.NewPrivateKeyFragment"
