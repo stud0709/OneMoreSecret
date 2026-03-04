@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.colorResource
@@ -24,48 +26,60 @@ import androidx.compose.ui.unit.dp
 import com.onemoresecret.R
 
 @Composable
-fun PrivateKeyListItem(alias: String, fingerprint: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.baseline_key_24),
-            contentDescription = stringResource(id = R.string.key_icon),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp)
-        )
+fun PrivateKeyListItem(
+    alias: String,
+    fingerprint: String,
+    selected: Boolean
+) {
 
-        Column(
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        Color.Transparent
+    }
+    Surface(color = backgroundColor) {
+        Row(
             modifier = Modifier
-                .padding(start = 12.dp)
-                .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = alias,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth()
+            Icon(
+                painter = painterResource(id = R.drawable.baseline_key_24),
+                contentDescription = stringResource(id = R.string.key_icon),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_fingerprint_24),
-                    contentDescription = stringResource(id = R.string.fingerprint),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
+                Text(
+                    text = alias,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                Text(
-                    text = fingerprint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_fingerprint_24),
+                        contentDescription = stringResource(id = R.string.fingerprint),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+
+                    Text(
+                        text = fingerprint,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -82,10 +96,10 @@ fun createPrivateKeyListItemComposeView(parent: ViewGroup): ComposeView {
     }
 }
 
-fun bindPrivateKeyListItem(composeView: ComposeView, alias: String, fingerprint: String) {
+fun bindPrivateKeyListItem(composeView: ComposeView, alias: String, fingerprint: String, selected: Boolean) {
     composeView.setContent {
         OneMoreSecretTheme {
-            PrivateKeyListItem(alias = alias, fingerprint = "…%s".format(fingerprint.takeLast(10)))
+            PrivateKeyListItem(alias = alias, fingerprint = "…%s".format(fingerprint.takeLast(10)), selected)
         }
     }
 }

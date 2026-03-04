@@ -77,7 +77,7 @@ class NewPrivateKeyViewModel(
                     }
                     return@launch
                 }
-                if (cryptographyManager.keyStore.containsAlias(state.alias)) {
+                cryptographyManager.getByAlias(state.alias, preferences)?.let {
                     _fragmentEvent.emit { fragment ->
                         Toast.makeText(
                             fragment.context,
@@ -304,7 +304,10 @@ class NewPrivateKeyViewModel(
         val isKeyCreated: Boolean = false
     )
 
-    class Factory(private val preferences: SharedPreferences, private val cryptographyManager: CryptographyManager) :
+    class Factory(
+        private val preferences: SharedPreferences,
+        private val cryptographyManager: CryptographyManager
+    ) :
         ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(NewPrivateKeyViewModel::class.java)) {

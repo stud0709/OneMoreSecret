@@ -187,13 +187,9 @@ public class QRFragment extends Fragment {
     public void onStart() {
         super.onStart();
         if(!checkBiometrics())return;
-        try {
-            if (!cryptographyManager.keyStore.containsAlias(CryptographyManager.MASTER_KEY_ALIAS)) {
-                cryptographyManager.createMasterRsaKey(requireContext());
-                Log.d(TAG, "RSA master key created");
-            }
-        } catch (KeyStoreException e) {
-            throw new RuntimeException(e);
+        if (!cryptographyManager.isMasterKeySetUp()) {
+            cryptographyManager.createMasterRsaKey(requireContext());
+            Log.d(TAG, "RSA master key created");
         }
     }
 

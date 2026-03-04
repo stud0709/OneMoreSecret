@@ -156,10 +156,12 @@ public class KeyStoreListFragment extends Fragment {
                 var publicKey = RSAUtil.restorePublicKey(keyStoreEntry.getPublic());
                 var fingerprint = Util.byteArrayToHex(
                         RSAUtil.getFingerprint(publicKey));
-                bindPrivateKeyListItem(composeView, alias, fingerprint);
+                bindPrivateKeyListItem(composeView, alias, fingerprint, selectionTracker.isSelected(alias));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+
+            // This is still good practice for accessibility/legacy state
             composeView.setActivated(selectionTracker.isSelected(alias));
         }
     }

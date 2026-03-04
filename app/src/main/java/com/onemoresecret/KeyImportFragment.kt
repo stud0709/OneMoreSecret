@@ -29,6 +29,7 @@ import com.onemoresecret.crypto.AESUtil.process
 import com.onemoresecret.crypto.AesKeyAlgorithm
 import com.onemoresecret.crypto.AesTransformation
 import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.CryptographyManager.Companion.PROP_KEYSTORE
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
@@ -90,7 +91,8 @@ class KeyImportFragment : Fragment() {
                 Log.d(TAG, "cipher algorithm: $aesTransformation")
 
                 // (6) key algorithm index
-                val aesKeyAlg: String = AesKeyAlgorithm.entries[dataInputStream.readUnsignedShort()].keyAlgorithm
+                val aesKeyAlg: String =
+                    AesKeyAlgorithm.entries[dataInputStream.readUnsignedShort()].keyAlgorithm
                 Log.d(TAG, "AES key algorithm: $aesKeyAlg")
 
                 // (7) key length
@@ -99,7 +101,7 @@ class KeyImportFragment : Fragment() {
 
                 // (8) AES iterations
                 val iterations = dataInputStream.readUnsignedShort()
-                Log.d(TAG, "iterations: " + iterations)
+                Log.d(TAG, "iterations: $iterations")
 
                 // --- Encrypted part ---
 
@@ -258,7 +260,7 @@ class KeyImportFragment : Fragment() {
                         alias = keyAlias,
                         passphrase = passphrase,
                         fingerprint = if (fingerprint.isNotBlank()) {
-                            fingerprint
+                            "…%s".format(fingerprint.takeLast(10))
                         } else {
                             getString(R.string.unknown_decrypt_first)
                         },
@@ -266,9 +268,7 @@ class KeyImportFragment : Fragment() {
                         saveEnabled = saveEnabled,
                         onAliasChange = {
                             keyAlias = it
-                            decryptedFingerprintBytes?.let { fingerprintBytes ->
-                                validateAlias(fingerprintBytes)
-                            }
+                            validateAlias(decryptedFingerprintBytes)
                         },
                         onPassphraseChange = { passphrase = it },
                         onDecrypt = { onDecryptClicked() },
@@ -284,31 +284,31 @@ class KeyImportFragment : Fragment() {
         requireActivity().removeMenuProvider(menuProvider)
     }
 
-    private fun validateAlias(fingerprintNew: ByteArray) {
+    private fun validateAlias(fingerprintNew: ByteArray?) {
         try {
             val alias = keyAlias
             Log.d(TAG, "alias: $alias")
             var warningText: String? = null
 
-            if (cryptographyManager.keyStore.containsAlias(alias)) {
-                val publicKey =
-                    cryptographyManager.keyStore.getCertificate(alias)?.publicKey as RSAPublicKey
-                val fingerprint = getFingerprint(publicKey)
-                if (!fingerprint.contentEquals(fingerprintNew)) {
-                    warningText = String.format(
-                        getString(R.string.warning_alias_exists),
-                        byteArrayToHex(fingerprint)
-                    )
+            cryptographyManager.getByAlias(alias, preferences)?.let {
+                if (!it.fingerprint.contentEquals(fingerprintNew)) {
+                    warningText = getString(R.string.warning_alias_exists)
+                        .format(
+                            byteArrayToHex(it.fingerprint).takeLast(
+                                10
+                            )
+                        )
                 }
             }
 
-            val sameFingerprint =
-                cryptographyManager.getByFingerprint(fingerprintNew, preferences)
-            if (sameFingerprint != null) {
-                warningText = String.format(
-                    getString(R.string.warning_same_fingerprint),
-                    sameFingerprint.alias
-                )
+            fingerprintNew?.let {
+                val sameFingerprint =
+                    cryptographyManager.getByFingerprint(it, preferences)
+                if (sameFingerprint != null) {
+                    warningText = getString(R.string.warning_same_fingerprint).format(
+                        sameFingerprint.alias
+                    )
+                }
             }
 
             requireContext().mainExecutor.execute {
@@ -325,7 +325,7 @@ class KeyImportFragment : Fragment() {
         }
 
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-            if (menuItem.getItemId() == R.id.menuItemHelp) {
+            if (menuItem.itemId == R.id.menuItemHelp) {
                 openUrl(R.string.key_import_md_url, requireContext())
             } else {
                 return false
@@ -346,5 +346,31 @@ class KeyImportFragment : Fragment() {
         val keyAlg: String,
         val keyLength: Int,
         val iterations: Int
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is EncryptedPayload) return false
+
+            if (keyLength != other.keyLength) return false
+            if (iterations != other.iterations) return false
+            if (!salt.contentEquals(other.salt)) return false
+            if (!iv.contentEquals(other.iv)) return false
+            if (!cipherText.contentEquals(other.cipherText)) return false
+            if (aesTransformation != other.aesTransformation) return false
+            if (keyAlg != other.keyAlg) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = keyLength
+            result = 31 * result + iterations
+            result = 31 * result + salt.contentHashCode()
+            result = 31 * result + iv.contentHashCode()
+            result = 31 * result + cipherText.contentHashCode()
+            result = 31 * result + aesTransformation.hashCode()
+            result = 31 * result + keyAlg.hashCode()
+            return result
+        }
+    }
 }

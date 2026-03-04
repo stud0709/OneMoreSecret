@@ -23,11 +23,13 @@ fun PasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
     OutlinedTextField(
+        enabled = enabled,
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },

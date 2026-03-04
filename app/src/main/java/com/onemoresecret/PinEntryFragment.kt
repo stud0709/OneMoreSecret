@@ -112,14 +112,7 @@ class PinEntryFragment(
         val cryptographyManager = CryptographyManager()
 
         //delete all keys from Android KeyStore
-        try {
-            val aliasesEnum = cryptographyManager.keyStore.aliases()
-            while (aliasesEnum.hasMoreElements()) {
-                cryptographyManager.keyStore.deleteEntry(aliasesEnum.nextElement())
-            }
-        } catch (e: KeyStoreException) {
-            throw RuntimeException(e)
-        }
+        cryptographyManager.deleteAndroidKeystoreEntries()
 
         //delete all sensitive information from SharedPreferences
         preferences.edit {

@@ -22,6 +22,7 @@ import java.security.Key
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
 import java.security.SecureRandom
@@ -31,8 +32,7 @@ import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 
 class CryptographyManager {
-    @JvmField
-    val keyStore: KeyStore
+    private val keyStore: KeyStore
 
     init {
         try {
@@ -95,6 +95,10 @@ class CryptographyManager {
         } catch (ex: Exception) {
             throw RuntimeException(ex)
         }
+    }
+
+    fun isMasterKeySetUp(): Boolean {
+        return keyStore.containsAlias(MASTER_KEY_ALIAS)
     }
 
     /**
@@ -253,6 +257,17 @@ class CryptographyManager {
             .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
             .find { it.alias == alias }
         return result
+    }
+
+    fun deleteAndroidKeystoreEntries() {
+        try {
+            val aliasesEnum = keyStore.aliases()
+            while (aliasesEnum.hasMoreElements()) {
+                keyStore.deleteEntry(aliasesEnum.nextElement())
+            }
+        } catch (e: KeyStoreException) {
+            throw RuntimeException(e)
+        }
     }
 
     companion object {
