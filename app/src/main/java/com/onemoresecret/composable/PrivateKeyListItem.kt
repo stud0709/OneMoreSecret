@@ -4,8 +4,11 @@ import android.view.ViewGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,43 +25,48 @@ import com.onemoresecret.R
 
 @Composable
 fun PrivateKeyListItem(alias: String, fingerprint: String) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(16.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_key_24),
-                contentDescription = stringResource(id = R.string.key_icon),
-                tint = colorResource(id = android.R.color.tertiary_text_dark),
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp)
-            )
+        Icon(
+            painter = painterResource(id = R.drawable.baseline_key_24),
+            contentDescription = stringResource(id = R.string.key_icon),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp)
+        )
 
+        Column(
+            modifier = Modifier
+                .padding(start = 12.dp)
+                .weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Text(
                 text = alias,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(id = R.string.fingerprint),
-                modifier = Modifier.padding(start = 40.dp, end = 8.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_fingerprint_24),
+                    contentDescription = stringResource(id = R.string.fingerprint),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
 
-            Text(
-                text = fingerprint,
-                modifier = Modifier.fillMaxWidth()
-            )
+                Text(
+                    text = fingerprint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -77,7 +85,7 @@ fun createPrivateKeyListItemComposeView(parent: ViewGroup): ComposeView {
 fun bindPrivateKeyListItem(composeView: ComposeView, alias: String, fingerprint: String) {
     composeView.setContent {
         OneMoreSecretTheme {
-            PrivateKeyListItem(alias = alias, fingerprint = fingerprint)
+            PrivateKeyListItem(alias = alias, fingerprint = "…%s".format(fingerprint.takeLast(10)))
         }
     }
 }
