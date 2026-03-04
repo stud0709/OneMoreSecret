@@ -18,7 +18,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:context=".KeyStoreListFragment"
-        tools:listitem="@layout/private_key_list_item" />
+        tools:context=".KeyStoreListFragment" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.compose.ui.platform.ComposeView;
 import androidx.recyclerview.selection.ItemDetailsLookup;
 import androidx.recyclerview.selection.ItemKeyProvider;
 import androidx.recyclerview.selection.SelectionPredicates;
@@ -22,7 +23,9 @@ import com.onemoresecret.crypto.CryptographyManager;
 import com.onemoresecret.crypto.KeyStoreEntry;
 import com.onemoresecret.crypto.RSAUtil;
 import com.onemoresecret.databinding.FragmentKeyStoreListBinding;
-import com.onemoresecret.databinding.PrivateKeyListItemBinding;
+
+import static com.onemoresecret.composable.PrivateKeyListItemKt.bindPrivateKeyListItem;
+import static com.onemoresecret.composable.PrivateKeyListItemKt.createPrivateKeyListItemComposeView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -114,11 +117,8 @@ public class KeyStoreListFragment extends Fragment {
         @NonNull
         @Override
         public KeyStoreListFragment.PrivateKeyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            var binding =
-                    PrivateKeyListItemBinding.inflate(LayoutInflater.from(parent.getContext()),
-                            parent,
-                            false);
-            return new KeyStoreListFragment.PrivateKeyViewHolder(binding);
+            var composeView = createPrivateKeyListItemComposeView(parent);
+            return new KeyStoreListFragment.PrivateKeyViewHolder(composeView);
         }
 
         @Override
@@ -135,33 +135,32 @@ public class KeyStoreListFragment extends Fragment {
 
 
     public class PrivateKeyViewHolder extends RecyclerView.ViewHolder {
-        private final PrivateKeyListItemBinding binding;
+        private final ComposeView composeView;
         private String alias;
         private int position;
 
-        public PrivateKeyViewHolder(@NonNull PrivateKeyListItemBinding binding) {
-            super(binding.getRoot());
-            this.binding = binding;
+        public PrivateKeyViewHolder(@NonNull ComposeView composeView) {
+            super(composeView);
+            this.composeView = composeView;
         }
 
         public void bind(int position) {
             this.position = position;
             this.alias = aliasList.get(position);
             try {
-                binding.textItemKeyAlias.setText(alias);
                 var keyStoreEntry = keyStoreEntries
                         .stream()
                         .filter(e -> e.getAlias().equals(alias))
                         .findAny()
                         .get();
                 var publicKey = RSAUtil.restorePublicKey(keyStoreEntry.getPublic());
-                binding.textItemFingerprint.setText(
-                        Util.byteArrayToHex(
-                                RSAUtil.getFingerprint(publicKey)));
+                var fingerprint = Util.byteArrayToHex(
+                        RSAUtil.getFingerprint(publicKey));
+                bindPrivateKeyListItem(composeView, alias, fingerprint);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            binding.getRoot().setActivated(selectionTracker.isSelected(alias));
+            composeView.setActivated(selectionTracker.isSelected(alias));
         }
     }
 
