@@ -51,7 +51,7 @@ import java.util.stream.Collectors
 import kotlin.enums.EnumEntries
 import androidx.core.content.edit
 
-class OutputFragment : FragmentWithNotificationBeforePause() {
+open class OutputFragment : FragmentWithNotificationBeforePause() {
     private var bluetoothController: BluetoothController? = null
     private var arrayAdapterDevice: ArrayAdapter<SpinnerItemDevice?>? = null
     private val REQUIRED_PERMISSIONS = arrayOf(
