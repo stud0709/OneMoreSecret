@@ -212,6 +212,10 @@ class KeyImportFragment : Fragment() {
                 }
 
                 val alias = keyAlias.trim { it <= ' ' }
+
+                //delete key with the same alias
+                cryptographyManager.deleteKey(alias, preferences)
+
                 cryptographyManager.importRsaKey(
                     preferences,
                     privateKeyMaterial,
