@@ -45,8 +45,7 @@ public class KeyManagementFragment extends Fragment {
         keyStoreListFragment = binding.fragmentContainerView.getFragment();
         outputFragment = binding.fragmentContainerView2.getFragment();
         keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment.
-                        getSelectionTracker()
+                selectionTracker -> selectionTracker
                         .addObserver(new SelectionTracker.SelectionObserver<>() {
                             @Override
                             public void onSelectionChanged() {
