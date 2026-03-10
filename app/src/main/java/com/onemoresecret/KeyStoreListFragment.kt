@@ -65,8 +65,12 @@ class KeyStoreListFragment : Fragment() {
     }
 
     fun onItemRemoved(alias: String) {
+        val index = aliasList.indexOf(alias)
+        if (index == -1) return
         aliasList.remove(alias)
-        itemAdapter.notifyDataSetChanged()
+        itemAdapter.notifyItemRemoved(index)
+        //Update indices for items below the removed one
+        itemAdapter.notifyItemRangeChanged(index, aliasList.size - index)
     }
 
     override fun onStart() {
