@@ -64,7 +64,7 @@ class TotpImportFragment : Fragment() {
             require(otp.valid) { "Invalid scheme or authority" }
 
             totpFragment.init(otp, this, Observer { code: String? ->
-                val hasSelection = keyStoreListFragment.selectionTracker.hasSelection()
+                val hasSelection = keyStoreListFragment.getSelectionTracker().hasSelection()
                 totpFragment.setTotpText(code!!)
                 if (!hasSelection) outputFragment.setMessage(code, "One-Time Password")
             })
