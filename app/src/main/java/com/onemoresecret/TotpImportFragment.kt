@@ -24,7 +24,6 @@ import com.onemoresecret.crypto.MessageComposer.Companion.encodeAsOmsText
 import com.onemoresecret.crypto.OneTimePassword
 import com.onemoresecret.crypto.RSAUtil
 import com.onemoresecret.crypto.TotpUriTransfer
-import com.onemoresecret.databinding.FragmentKeyStoreListBinding
 import com.onemoresecret.databinding.FragmentTotpImportBinding
 import java.util.Objects
 import java.util.function.Consumer
@@ -70,15 +69,14 @@ class TotpImportFragment : Fragment() {
                 if (!hasSelection) outputFragment.setMessage(code, "One-Time Password")
             })
 
-            keyStoreListFragment.setRunOnStart { _: FragmentKeyStoreListBinding? ->
-                keyStoreListFragment
-                    .selectionTracker
+            keyStoreListFragment.setRunOnStart { selectionTracker ->
+                selectionTracker
                     .addObserver(object : SelectionTracker.SelectionObserver<String?>() {
                         override fun onSelectionChanged() {
                             super.onSelectionChanged()
-                            if (keyStoreListFragment.selectionTracker.hasSelection()) {
+                            if (selectionTracker.hasSelection()) {
                                 val selectedAlias =
-                                    keyStoreListFragment.selectionTracker.getSelection()
+                                    selectionTracker.getSelection()
                                         .iterator().next()
                                 val encrypted = encrypt(selectedAlias, message)
                                 outputFragment.setMessage(
