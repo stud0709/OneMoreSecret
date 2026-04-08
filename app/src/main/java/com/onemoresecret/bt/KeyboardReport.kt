@@ -1,9 +1,5 @@
 package com.onemoresecret.bt
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
-import java.util.Arrays
-
-@JsonSerialize(using = KeyboardReportSerializer::class)
 class KeyboardReport {
     val modifiers: MutableSet<KeyModifier> = HashSet()
     val usage: KeyboardUsage
@@ -35,6 +31,10 @@ class KeyboardReport {
             }
             return byteArrayOf(mByte, usage.value)
         }
+
+    override fun toString(): String {
+        return "KeyboardReport(usage=$usage, modifiers=${modifiers.sortedBy { it.name }})"
+    }
 
     companion object {
         const val NUM_LOCK: Int = 1

@@ -15,7 +15,6 @@ import androidx.recyclerview.selection.SelectionPredicates
 import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.RecyclerView
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.onemoresecret.composable.KeyStoreList
 import com.onemoresecret.composable.OneMoreSecretTheme
 import com.onemoresecret.composable.bindPrivateKeyListItem
@@ -91,11 +90,7 @@ class KeyStoreListFragment : Fragment() {
             preferences.getStringSet(CryptographyManager.PROP_KEYSTORE, HashSet()) ?: emptySet()
 
         keyStoreEntries = keyStoreStringSet.map { entry ->
-            try {
-                Util.JACKSON_MAPPER.readValue(entry, KeyStoreEntry::class.java)
-            } catch (e: JsonProcessingException) {
-                throw RuntimeException(e)
-            }
+            OmsJson.decode<KeyStoreEntry>(entry)
         }.toSet()
 
         aliasList.addAll(keyStoreEntries.map { it.alias }.sorted())

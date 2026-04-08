@@ -8,7 +8,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import androidx.core.content.edit
-import com.onemoresecret.Util
+import com.onemoresecret.OmsJson
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import org.spongycastle.crypto.generators.RSAKeyPairGenerator
 import org.spongycastle.crypto.params.RSAKeyGenerationParameters
@@ -180,7 +180,7 @@ class CryptographyManager {
         //add the new KeyStoreEntry to the keystore property
         val keystoreSet: Set<String?> = preferences.getStringSet(PROP_KEYSTORE, setOf<String?>())!!
         val mutableSet = keystoreSet.toMutableSet()
-        mutableSet.add(Util.JACKSON_MAPPER.writeValueAsString(entry))
+        mutableSet.add(OmsJson.encode(entry))
         preferences.edit { putStringSet(PROP_KEYSTORE, mutableSet) }
     }
 
@@ -229,9 +229,9 @@ class CryptographyManager {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
         val result = keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .filter { it.alias != alias }
-            .map { Util.JACKSON_MAPPER.writeValueAsString(it) }
+            .map { OmsJson.encode(it) }
             .toSet()
         preferences.edit { putStringSet(PROP_KEYSTORE, result) }
     }
@@ -246,7 +246,7 @@ class CryptographyManager {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
         return keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .find { it.fingerprint contentEquals fingerprint }
     }
 
@@ -254,7 +254,7 @@ class CryptographyManager {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
         val result = keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .find { it.alias == alias }
         return result
     }
@@ -303,4 +303,3 @@ class CryptographyManager {
         }
     }
 }
-

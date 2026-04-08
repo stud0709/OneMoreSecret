@@ -38,8 +38,6 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.onemoresecret.composable.PinSetupViewModel;
 import com.onemoresecret.crypto.AESUtil;
 import com.onemoresecret.crypto.CryptographyManager;
@@ -98,12 +96,6 @@ public class QRFragment extends Fragment {
             ARG_APPLICATION_ID = "AI";
 
     private final List<ImageButton> recentButtons = new ArrayList<>();
-
-
-    public record RecentEntry(@JsonProperty("message") String message,
-                              @JsonProperty("drawableId") int drawableId,
-                              @JsonProperty("ttl") long ttl) {
-    }
 
     @Override
     public View onCreateView(
@@ -474,15 +466,13 @@ public class QRFragment extends Fragment {
 
     public void setRecent(String message, int drawableId) {
         try {
-            var recentEntries = Util.JACKSON_MAPPER.readValue(
-                    preferences.getString(PROP_RECENT_ENTRIES, "[]"),
-                    new TypeReference<List<RecentEntry>>() {
-                    });
+            var recentEntries = OmsJson.decodeRecentEntries(
+                    preferences.getString(PROP_RECENT_ENTRIES, "[]"));
 
-            recentEntries.removeIf(item -> item.ttl < System.currentTimeMillis());
+            recentEntries.removeIf(item -> item.getTtl() < System.currentTimeMillis());
 
             if (!recentEntries.isEmpty() &&
-                    recentEntries.get(0).message.equals(message))
+                    recentEntries.get(0).getMessage().equals(message))
                 return; //do not store duplicates in history
 
             var recentSize = preferences.getInt(PROP_RECENT_SIZE, DEF_RECENT_SIZE);
@@ -501,7 +491,7 @@ public class QRFragment extends Fragment {
             }
 
             preferences.edit()
-                    .putString(PROP_RECENT_ENTRIES, Util.JACKSON_MAPPER.writeValueAsString(recentEntries))
+                    .putString(PROP_RECENT_ENTRIES, OmsJson.encodeRecentEntries(recentEntries))
                     .apply();
         } catch (Exception ex) {
             Util.printStackTrace(ex);
@@ -513,12 +503,10 @@ public class QRFragment extends Fragment {
         recentButtons.clear();
 
         try {
-            var recentEntries = Util.JACKSON_MAPPER.readValue(
-                    preferences.getString(PROP_RECENT_ENTRIES, "[]"),
-                    new TypeReference<List<RecentEntry>>() {
-                    });
+            var recentEntries = OmsJson.decodeRecentEntries(
+                    preferences.getString(PROP_RECENT_ENTRIES, "[]"));
 
-            recentEntries.removeIf(item -> item.ttl < System.currentTimeMillis());
+            recentEntries.removeIf(item -> item.getTtl() < System.currentTimeMillis());
 
             for (int i = 0; i < preferences.getInt(PROP_RECENT_SIZE, DEF_RECENT_SIZE); i++) {
                 if (recentEntries.size() == i)
@@ -537,9 +525,9 @@ public class QRFragment extends Fragment {
                 b.setLayoutParams(layoutParams);
                 b.setImageDrawable(
                         ResourcesCompat.getDrawable(getResources(),
-                                recentEntry.drawableId,
+                                recentEntry.getDrawableId(),
                                 requireContext().getTheme()));
-                b.setOnClickListener(v -> onMessage(recentEntry.message, false));
+                b.setOnClickListener(v -> onMessage(recentEntry.getMessage(), false));
 
                 binding.linearRecent.addView(b);
                 recentButtons.add(b);

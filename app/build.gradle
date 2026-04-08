@@ -4,6 +4,7 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
+    id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
 android {
@@ -83,9 +84,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview-selection:1.2.0'
     implementation 'com.google.android.flexbox:flexbox:3.0.0'
 
-    //Jackson Databind
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.0'
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0'
 
     //Jetpack Compose
     implementation platform('androidx.compose:compose-bom:2026.02.00')

@@ -7,17 +7,13 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.NavHostFragment
-import com.fasterxml.jackson.databind.ObjectMapper
 import java.util.Objects
 import androidx.core.net.toUri
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 
 object Util {
     //class Ref<T>(var value: T? = null)
     const val FLAVOR_FOSS: String = "foss"
     const val BASE64_LINE_LENGTH: Int = 75
-    @JvmField
-    val JACKSON_MAPPER: ObjectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
     @JvmStatic
     @JvmOverloads

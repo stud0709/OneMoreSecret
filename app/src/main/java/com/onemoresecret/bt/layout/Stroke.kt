@@ -1,12 +1,10 @@
 package com.onemoresecret.bt.layout
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.onemoresecret.bt.KeyModifier
 import com.onemoresecret.bt.KeyboardReport
 import com.onemoresecret.bt.KeyboardUsage
 import java.util.function.Consumer
 
-@JsonSerialize(using = StrokeSerializer::class)
 class Stroke {
     private val reports: MutableList<KeyboardReport> = ArrayList()
     private val modifiers: MutableSet<KeyModifier> = HashSet()
@@ -101,5 +99,9 @@ class Stroke {
         }
 
         return upperCaseStroke
+    }
+
+    override fun toString(): String {
+        return get().joinToString(prefix = "[", postfix = "]")
     }
 }
