@@ -1,134 +1,70 @@
 package com.onemoresecret.crypto
 
 import com.onemoresecret.crypto.Base58.decode
+import fr.acinq.secp256k1.Secp256k1
 import org.jetbrains.annotations.Contract
-import org.spongycastle.jce.ECNamedCurveTable
-import org.spongycastle.jce.provider.BouncyCastleProvider
-import org.spongycastle.jce.spec.ECParameterSpec
-import org.spongycastle.jce.spec.ECPrivateKeySpec
-import org.spongycastle.jce.spec.ECPublicKeySpec
-import java.math.BigInteger
-import java.security.InvalidAlgorithmParameterException
-import java.security.InvalidKeyException
-import java.security.KeyFactory
-import java.security.KeyPairGenerator
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.security.NoSuchProviderException
-import java.security.Security
-import java.security.Signature
-import java.security.SignatureException
-import java.security.interfaces.ECPrivateKey
-import java.security.interfaces.ECPublicKey
-import java.security.spec.ECGenParameterSpec
-import java.security.spec.InvalidKeySpecException
-import java.util.function.Function
-import kotlin.math.max
-import kotlin.math.min
+import java.security.SecureRandom
 
 object BTCAddress {
-    private var keyPairGenerator: KeyPairGenerator? = null
-
-    init {
-        Security.insertProviderAt(BouncyCastleProvider(), 1)
-        val parameterSpec = ECGenParameterSpec("secp256k1")
-        try {
-            keyPairGenerator = KeyPairGenerator.getInstance("EC")
-            keyPairGenerator?.initialize(parameterSpec)
-        } catch (e: Exception) {
-            throw RuntimeException(e)
-        }
-    }
-
     private val TAG: String = BTCAddress::class.java.simpleName
+    private val secureRandom = SecureRandom()
 
-    private val toByte32 = Function { bi: BigInteger? ->
-        val src = bi!!.toByteArray()
-        /* The byte representation can be either longer than 32 bytes - because of leading zeros -
-         * or shorter than 32 bytes. We must handle both cases */
-        val dest = ByteArray(32)
-        System.arraycopy(
-            src,
-            max(0, src.size - dest.size),  //skip leading zeros if longer than 32 bytes
-            dest,
-            max(0, dest.size - src.size),  //prepend with leading zeros if shorter than 32 bytes
-            min(src.size, dest.size)
-        )
-        dest
-    }
-
-    private val sha256 = Function { bArr: ByteArray ->
+    private fun sha256(bytes: ByteArray): ByteArray {
         try {
-            return@Function MessageDigest.getInstance("SHA-256").digest(bArr)
+            return MessageDigest.getInstance("SHA-256").digest(bytes)
         } catch (e: NoSuchAlgorithmException) {
             throw RuntimeException(e)
         }
     }
 
-    private val ripeMD160 = Function { bArr: ByteArray ->
-        try {
-            return@Function MessageDigest.getInstance("RipeMD160").digest(bArr)
-        } catch (e: NoSuchAlgorithmException) {
-            throw RuntimeException(e)
-        }
+    private fun requirePrivateKeyBytes(privateKey: ByteArray): ByteArray {
+        require(privateKey.size == 32) { "Private key must be 32 bytes" }
+        return privateKey
+    }
+
+    private fun requirePrivateKey(privateKey: ByteArray): ByteArray {
+        val normalizedPrivateKey = requirePrivateKeyBytes(privateKey)
+        require(Secp256k1.secKeyVerify(normalizedPrivateKey)) { "Invalid secp256k1 private key" }
+        return normalizedPrivateKey
     }
 
     @JvmStatic
     @Contract("_ -> new")
-    @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
     fun toKeyPair(privateKey: ByteArray?): ECKeyPair {
-        val ecParameterSpec = ECNamedCurveTable.getParameterSpec("secp256k1")
-        val s = BigInteger(1, privateKey)
-
-        val privateKeySpec = ECPrivateKeySpec(
-            s,
-            ECParameterSpec(
-                ecParameterSpec.curve,
-                ecParameterSpec.g,
-                ecParameterSpec.n,
-                ecParameterSpec.h
-            )
-        )
-
-        val publicKeySpec = ECPublicKeySpec(ecParameterSpec.g.multiply(s), ecParameterSpec)
-        val keyFactory = KeyFactory.getInstance("EC")
+        val normalizedPrivateKey = requirePrivateKey(requireNotNull(privateKey))
         return ECKeyPair(
-            keyFactory.generatePrivate(privateKeySpec) as ECPrivateKey?,
-            keyFactory.generatePublic(publicKeySpec) as ECPublicKey?
+            normalizedPrivateKey,
+            Secp256k1.pubkeyCreate(normalizedPrivateKey)
         )
     }
 
     @JvmStatic
-    @Throws(NoSuchAlgorithmException::class, InvalidAlgorithmParameterException::class)
     fun newKeyPair(): ECKeyPair {
-        //generate key pair
-        val keyPair = keyPairGenerator!!.generateKeyPair()
+        val privateKey = ByteArray(32)
+        do {
+            secureRandom.nextBytes(privateKey)
+        } while (!Secp256k1.secKeyVerify(privateKey))
 
-        return ECKeyPair(keyPair.private as ECPrivateKey?, keyPair.public as ECPublicKey?)
+        return ECKeyPair(privateKey, Secp256k1.pubkeyCreate(privateKey))
     }
 
-    fun toBTCAddress(publicKey: ECPublicKey): ByteArray {
+    fun toBTCAddress(publicKey: ByteArray): ByteArray {
         // https://gobittest.appspot.com/Address
-
-        val ecPoint = publicKey.w
-        val x = toByte32.apply(ecPoint.affineX)
-        val y = toByte32.apply(ecPoint.affineY)
-        val btcPublicKey = ByteArray(65)
-        btcPublicKey[0] = 0x04
-        System.arraycopy(x, 0, btcPublicKey, 1, x.size)
-        System.arraycopy(y, 0, btcPublicKey, x.size + 1, y.size)
+        require(publicKey.size == 65 && publicKey[0] == 0x04.toByte()) {
+            "Public key must be an uncompressed 65-byte secp256k1 public key"
+        }
 
         //SHA-256 and RIPEMD digest
-        val digest = ripeMD160.apply(
-            sha256.apply(btcPublicKey)
-        )
+        val digest = Ripemd160.digest(sha256(publicKey))
 
         //prepend with version byte (0x00)
         val digestWithVersionByte = ByteArray(digest.size + 1)
         System.arraycopy(digest, 0, digestWithVersionByte, 1, digest.size)
 
         //calculate checksum
-        val checksum = sha256.apply(sha256.apply(digestWithVersionByte))
+        val checksum = sha256(sha256(digestWithVersionByte))
 
         //BTC address = version byte + digest + first 4 bytes of the checksum
         val btcAddress = ByteArray(digestWithVersionByte.size + 4)
@@ -140,11 +76,7 @@ object BTCAddress {
     }
 
     fun toBTCKeyPair(keyPair: ECKeyPair): BTCKeyPair {
-        //private key
-        val s = keyPair.privateKey!!.s
-        val privateKey = toByte32.apply(s)
-
-        return BTCKeyPair(toWIF(privateKey), toBTCAddress(keyPair.publicKey!!))
+        return BTCKeyPair(toWIF(keyPair.privateKey), toBTCAddress(keyPair.publicKey))
     }
 
     /**
@@ -155,14 +87,15 @@ object BTCAddress {
      */
     fun toWIF(privateKey: ByteArray): ByteArray {
         //as of https://gobittest.appspot.com/PrivateKey
+        val normalizedPrivateKey = requirePrivateKeyBytes(privateKey)
 
         //prepend with 0x80
 
-        val withQualifier = ByteArray(privateKey.size + 1)
+        val withQualifier = ByteArray(normalizedPrivateKey.size + 1)
         withQualifier[0] = 0x80.toByte()
-        System.arraycopy(privateKey, 0, withQualifier, 1, privateKey.size)
+        System.arraycopy(normalizedPrivateKey, 0, withQualifier, 1, normalizedPrivateKey.size)
 
-        val digest = sha256.apply(sha256.apply(withQualifier))
+        val digest = sha256(sha256(withQualifier))
 
         val wif = ByteArray(withQualifier.size + 4)
         System.arraycopy(withQualifier, 0, wif, 0, withQualifier.size)
@@ -183,7 +116,7 @@ object BTCAddress {
         val withQualifier = wif.copyOfRange(0, wif.size - 4)
 
         //calculate dual sha256
-        val digest = sha256.apply(sha256.apply(withQualifier))
+        val digest = sha256(sha256(withQualifier))
 
         //compare checksums
         return digest.copyOfRange(0, 4).contentEquals( //first 4 bytes of the digest
@@ -199,47 +132,48 @@ object BTCAddress {
     @JvmStatic
     fun toPrivateKey(wif: ByteArray): ByteArray {
         //drop first one and last 4 bytes
-        return wif.copyOfRange(1, wif.size - 4)
+        return requirePrivateKeyBytes(wif.copyOfRange(1, wif.size - 4))
     }
 
-    @Throws(
-        NoSuchAlgorithmException::class,
-        NoSuchProviderException::class,
-        InvalidKeyException::class,
-        SignatureException::class
-    )
-    fun sign(data: ByteArray?, privateKey: ECPrivateKey?): ByteArray? {
-        val signer = Signature.getInstance("SHA256withECDSA", "BC")
-        signer.initSign(privateKey)
-        signer.update(data)
-
-        return signer.sign()
+    fun sign(data: ByteArray?, privateKey: ByteArray): ByteArray {
+        val messageHash = sha256(requireNotNull(data))
+        return Secp256k1.compact2der(Secp256k1.sign(messageHash, requirePrivateKey(privateKey)))
     }
 
-    @Throws(
-        NoSuchAlgorithmException::class,
-        NoSuchProviderException::class,
-        InvalidKeyException::class,
-        SignatureException::class
-    )
-    fun validate(publicKey: ECPublicKey?, data: ByteArray?, signature: ByteArray?): Boolean {
-        val signer = Signature.getInstance("SHA256withECDSA", "BC")
-        signer.initVerify(publicKey)
-        signer.update(data)
-        return signer.verify(signature)
+    fun validate(publicKey: ByteArray, data: ByteArray?, signature: ByteArray?): Boolean {
+        val messageHash = sha256(requireNotNull(data))
+        return Secp256k1.verify(
+            Secp256k1.der2compact(requireNotNull(signature)),
+            messageHash,
+            publicKey
+        )
     }
 
-    @JvmRecord
-    data class ECKeyPair(val privateKey: ECPrivateKey?, val publicKey: ECPublicKey?) {
+    data class ECKeyPair(@JvmField val privateKey: ByteArray, val publicKey: ByteArray) {
         fun toBTCKeyPair(): BTCKeyPair {
             return toBTCKeyPair(this)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is ECKeyPair) return false
+
+            if (!privateKey.contentEquals(other.privateKey)) return false
+            if (!publicKey.contentEquals(other.publicKey)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = privateKey.contentHashCode()
+            result = 31 * result + publicKey.contentHashCode()
+            return result
         }
     }
 
     @JvmRecord
     data class BTCKeyPair(@JvmField val wif: ByteArray, val btcAddress: ByteArray) {
         @Contract(" -> new")
-        @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
         fun toECKeyPair(): ECKeyPair {
             return toKeyPair(toPrivateKey(wif))
         }
