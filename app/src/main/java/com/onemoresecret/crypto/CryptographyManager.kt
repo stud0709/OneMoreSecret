@@ -10,13 +10,6 @@ import android.security.keystore.StrongBoxUnavailableException
 import androidx.core.content.edit
 import com.onemoresecret.OmsJson
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
-import org.spongycastle.crypto.generators.RSAKeyPairGenerator
-import org.spongycastle.crypto.params.RSAKeyGenerationParameters
-import org.spongycastle.crypto.util.PrivateKeyInfoFactory
-import org.spongycastle.crypto.util.SubjectPublicKeyInfoFactory
-import org.spongycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator
-import java.io.IOException
-import java.math.BigInteger
 import java.security.InvalidAlgorithmParameterException
 import java.security.Key
 import java.security.KeyFactory
@@ -277,27 +270,17 @@ class CryptographyManager {
         const val PROP_KEYSTORE: String = "keystore"
 
         /**
-         * Generate key pair using BouncyCastle library
+         * Generate key pair using standard JCA APIs.
          */
         @JvmStatic
-        @Throws(IOException::class, NoSuchAlgorithmException::class, InvalidKeySpecException::class)
+        @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
         fun generateKeyPair(keyLength: Int): Pair<ByteArray, ByteArray> {
-            val rsaKeyPairGenerator = RSAKeyPairGenerator()
+            val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+            keyPairGenerator.initialize(keyLength, SecureRandom())
 
-            rsaKeyPairGenerator.init(
-                RSAKeyGenerationParameters(
-                    BigInteger.valueOf(0x10001),
-                    SecureRandom(),
-                    keyLength,
-                    PrimeCertaintyCalculator.getDefaultCertainty(keyLength)
-                )
-            )
-
-            val asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair()
-            val privateKeyMaterial = PrivateKeyInfoFactory
-                .createPrivateKeyInfo(asymmetricCipherKeyPair.private).encoded
-            val publicKeyMaterial = SubjectPublicKeyInfoFactory
-                .createSubjectPublicKeyInfo(asymmetricCipherKeyPair.public).encoded
+            val keyPair = keyPairGenerator.generateKeyPair()
+            val privateKeyMaterial = keyPair.private.encoded
+            val publicKeyMaterial = keyPair.public.encoded
 
             return Pair(publicKeyMaterial, privateKeyMaterial)
         }
