@@ -31,9 +31,12 @@ import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.ActivityCompat
-import androidx.core.content.res.ResourcesCompat
+import androidx.core.content.edit
 import androidx.core.view.MenuProvider
+import androidx.fragment.app.viewModels
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
@@ -42,40 +45,41 @@ import com.onemoresecret.bt.KeyboardReport
 import com.onemoresecret.bt.KeyboardUsage
 import com.onemoresecret.bt.layout.KeyboardLayout
 import com.onemoresecret.bt.layout.Stroke
-import com.onemoresecret.databinding.FragmentOutputBinding
+import com.onemoresecret.composable.OneMoreSecretTheme
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
 import com.onemoresecret.msg_fragment_plugins.FragmentWithNotificationBeforePause
 import java.util.Arrays
 import java.util.Objects
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Collectors
 import kotlin.enums.EnumEntries
-import androidx.core.content.edit
 
 open class OutputFragment : FragmentWithNotificationBeforePause() {
     private var bluetoothController: BluetoothController? = null
-    private var arrayAdapterDevice: ArrayAdapter<SpinnerItemDevice?>? = null
     private val REQUIRED_PERMISSIONS = arrayOf(
         Manifest.permission.BLUETOOTH_CONNECT,
         Manifest.permission.BLUETOOTH_ADVERTISE
     )
 
-    private var binding: FragmentOutputBinding? = null
     private var bluetoothBroadcastReceiver: BluetoothBroadcastReceiver? = null
-
     private var preferences: SharedPreferences? = null
     private val refreshingBtControls = AtomicBoolean()
     private var clipboardManager: ClipboardManager? = null
     private val menuProvider = OutputMenuProvider()
-    private var copyValue: (()->Unit)? = null
+    private var copyValue: (() -> Unit)? = null
     private var message: String? = null
     private var shareTitle = ""
-
-
     private val typing = AtomicBoolean(false)
+
+    private val viewModel: OutputViewModel by viewModels {
+        OutputViewModel.Factory(requireActivity().getPreferences(Context.MODE_PRIVATE))
+    }
 
     fun setMessage(message: String?, shareTitle: String?) {
         this.message = message
         this.shareTitle = Objects.requireNonNullElse(shareTitle, "")
+        viewModel.setShareTitle(this.shareTitle)
         refreshBluetoothControls()
         requireActivity().invalidateOptionsMenu()
     }
@@ -83,36 +87,92 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
     override fun setBeforePause(r: Runnable?) {
         super.setBeforePause {
             typing.set(false)
+            refreshBluetoothControls()
             r?.run()
         }
     }
 
     val selectedLayout: KeyboardLayout?
-        get() = binding!!.spinnerKeyboardLayout.getSelectedItem() as KeyboardLayout?
+        get() = viewModel.getSelectedKeyboardLayout()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentOutputBinding.inflate(inflater, container, false)
-        return binding!!.getRoot()
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OneMoreSecretTheme {
+                    OutputScreen(
+                        state = viewModel.state,
+                        onBluetoothTargetSelected = { address ->
+                            if (!refreshingBtControls.get()) {
+                                viewModel.onBluetoothTargetSelected(address)
+                                checkConnectSelectedDevice()
+                                refreshBluetoothControls()
+                            }
+                        },
+                        onKeyboardLayoutSelected = { className ->
+                            if (!refreshingBtControls.get()) {
+                                viewModel.onKeyboardLayoutSelected(className)
+                                refreshBluetoothControls()
+                            }
+                        },
+                        onDelayedStrokesChanged = { enabled ->
+                            viewModel.onDelayedStrokesChanged(enabled)
+                        },
+                        onDiscoverableClick = {
+                            beforePause?.run()
+                            bluetoothController?.requestDiscoverable(discoverableDuration)
+                        },
+                        onTypeClick = {
+                            if (typing.get()) {
+                                typing.set(false)
+                                refreshBluetoothControls()
+                                return@OutputScreen
+                            }
+                            val selectedLayout = viewModel.getSelectedKeyboardLayout() ?: return@OutputScreen
+                            val outputMessage = message ?: return@OutputScreen
+                            val strokes = selectedLayout.forString(outputMessage)
+
+                            if (strokes.contains(null)) {
+                                requireContext().mainExecutor.execute {
+                                    Toast.makeText(
+                                        context,
+                                        getString(R.string.wrong_keyboard_layout),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                return@OutputScreen
+                            }
+                            type(strokes)
+                        }
+                    )
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        requireActivity().addMenuProvider(menuProvider)
+        requireActivity().addMenuProvider(
+            menuProvider,
+            viewLifecycleOwner,
+            androidx.lifecycle.Lifecycle.State.RESUMED
+        )
 
         preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
-
         bluetoothController = BluetoothController(
             this,
             { },
             BluetoothHidDeviceCallback()
         )
-
         clipboardManager =
             requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+        viewModel.initializeKeyboardLayouts()
+        viewModel.setShareTitle(shareTitle)
 
         if (PermissionsFragment.isAllPermissionsGranted(
                 TAG,
@@ -125,35 +185,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
             refreshBluetoothControls()
         }
 
-        initSpinnerTargetDevice()
-
-        initSpinnerKeyboardLayout()
-
-        binding!!.btnType.setOnClickListener(View.OnClickListener { _: View? ->
-            if (typing.get()) {
-                //cancel typing
-                typing.set(false)
-                return@OnClickListener
-            }
-            val selectedLayout = binding!!.spinnerKeyboardLayout.getSelectedItem() as KeyboardLayout
-            val strokes = selectedLayout.forString(message!!)
-
-            if (strokes.contains(null)) {
-                //not all characters could be converted into keystrokes
-                requireContext().mainExecutor.execute {
-                    Toast.makeText(
-                        context,
-                        getString(R.string.wrong_keyboard_layout),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                return@OnClickListener
-            }
-            type(strokes)
-        })
-
-        binding!!.textTyping.text = shareTitle
-
         copyValue = {
             val clipData = ClipData.newPlainText("oneMoreSecret", message)
 
@@ -163,7 +194,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 "android.content.extra.IS_SENSITIVE"
             }
 
-            // Initialize as PersistableBundle to match the expected type exactly
             val extras = PersistableBundle().apply {
                 putBoolean(isSensitiveKey, true)
             }
@@ -173,150 +203,39 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
         }
     }
 
-    private fun initSpinnerTargetDevice() {
-        arrayAdapterDevice =
-            ArrayAdapter<SpinnerItemDevice?>(requireContext(), android.R.layout.simple_spinner_item)
-        arrayAdapterDevice!!.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding!!.spinnerBluetoothTarget.setAdapter(arrayAdapterDevice)
-        binding!!.spinnerBluetoothTarget.onItemSelectedListener = object :
-            AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                if (refreshingBtControls.get()) return
-                val selectedItem =
-                    binding!!.spinnerBluetoothTarget.getSelectedItem() as SpinnerItemDevice
-                preferences!!.edit {
-                    putString(
-                        PROP_LAST_SELECTED_BT_TARGET,
-                        selectedItem.bluetoothDevice.getAddress()
-                    )
-                }
-
-                checkConnectSelectedDevice()
-                refreshBluetoothControls()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                if (refreshingBtControls.get()) return
-                refreshBluetoothControls()
-            }
-        }
-    }
-
-    private fun initSpinnerKeyboardLayout() {
-        val keyboardLayoutAdapter =
-            ArrayAdapter<KeyboardLayout?>(requireContext(), android.R.layout.simple_spinner_item)
-        keyboardLayoutAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        Arrays.stream(KeyboardLayout.knownSubclasses)
-            .map<KeyboardLayout?> { clazz: Class<*>? ->
-                try {
-                    return@map clazz!!.getDeclaredConstructor().newInstance() as KeyboardLayout?
-                } catch (e: Exception) {
-                    printStackTrace(e)
-                    return@map null
-                }
-            }
-            .filter { obj -> Objects.nonNull(obj) }  /* just in case */
-            .sorted(Comparator.comparing { obj -> obj.toString() })
-            .forEach { `object`: KeyboardLayout? -> keyboardLayoutAdapter.add(`object`) }
-
-        binding!!.spinnerKeyboardLayout.setAdapter(keyboardLayoutAdapter)
-
-        //select last used keyboard layout
-        val lastSelectedKeyboardLayout =
-            preferences!!.getString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, null)
-        for (i in 0..<keyboardLayoutAdapter.count) {
-            if (Objects.requireNonNull<KeyboardLayout?>(keyboardLayoutAdapter.getItem(i)).javaClass.getName() == lastSelectedKeyboardLayout) {
-                binding!!.spinnerKeyboardLayout.setSelection(i)
-                break
-            }
-        }
-
-        binding!!.spinnerKeyboardLayout.onItemSelectedListener = object :
-            AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                if (refreshingBtControls.get()) return
-
-                val selectedLayout =
-                    binding!!.spinnerKeyboardLayout.getSelectedItem() as KeyboardLayout
-                preferences!!.edit {
-                    putString(
-                        PROP_LAST_SELECTED_KEYBOARD_LAYOUT,
-                        selectedLayout.javaClass.getName()
-                    )
-                }
-
-                refreshBluetoothControls()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                if (refreshingBtControls.get()) return
-                refreshBluetoothControls()
-            }
-        }
-    }
-
     private fun onAllPermissionsGranted() {
-        //register broadcast receiver for BT events
         bluetoothBroadcastReceiver = BluetoothBroadcastReceiver()
 
         val ctx = requireContext()
-
         ctx.registerReceiver(
             bluetoothBroadcastReceiver,
             IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)
         )
-
         ctx.registerReceiver(
             bluetoothBroadcastReceiver,
             IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         )
-
         ctx.registerReceiver(
             bluetoothBroadcastReceiver,
             IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
         )
 
-        //initialize "request discoverable" button
-        binding!!.imgButtonDiscoverable.setOnClickListener { _: View? ->
-            if (beforePause != null) beforePause.run()
-            bluetoothController!!.requestDiscoverable(this.discoverableDuration)
-        }
-
         refreshBluetoothControls()
     }
 
-    /**
-     * Check if the selected device is connected, try to connect.
-     */
     private fun checkConnectSelectedDevice() {
-        if (binding == null) return
         if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             return
         }
 
-        val selectedSpinnerItem =
-            binding!!.spinnerBluetoothTarget.getSelectedItem() as? SpinnerItemDevice? ?: return
-        val device = selectedSpinnerItem.bluetoothDevice
-        Log.d(TAG, String.format("Selected device: %s", device.getName()))
+        val device = viewModel.getSelectedBluetoothDevice()?.bluetoothDevice ?: return
+        Log.d(TAG, String.format("Selected device: %s", device.name))
 
-        //disconnect if anything connected
         val proxy = bluetoothController!!.bluetoothHidDevice ?: return
-        //https://github.com/stud0709/OneMoreSecret/issues/11
 
-
-        proxy.getConnectedDevices().stream()
-            .filter { d: BluetoothDevice? -> d!!.getAddress() != device.getAddress() }
-            .forEach { device: BluetoothDevice? -> proxy.disconnect(device) }
+        proxy.connectedDevices.stream()
+            .filter { d: BluetoothDevice? -> d!!.address != device.address }
+            .forEach { connectedDevice: BluetoothDevice? -> proxy.disconnect(connectedDevice) }
 
         if (bluetoothController!!.bluetoothHidDevice
                 .getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED
@@ -324,7 +243,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
             Log.d(
                 TAG, String.format(
                     "Trying to connect %s: %s",
-                    device.getName(),
+                    device.name,
                     bluetoothController!!.bluetoothHidDevice.connect(device)
                 )
             )
@@ -342,9 +261,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
         refreshBluetoothControls()
 
         Thread {
-            val bluetoothDevice = (binding!!
-                .spinnerBluetoothTarget
-                .getSelectedItem() as SpinnerItemDevice).bluetoothDevice
+            val bluetoothDevice = viewModel.getSelectedBluetoothDevice()?.bluetoothDevice ?: return@Thread
             list.stream()
                 .filter { _: Stroke? -> typing.get() }
                 .flatMap<KeyboardReport?> { s: Stroke? -> s!!.get().stream() }
@@ -363,7 +280,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                         return@forEach
                     }
                     try {
-                        Thread.sleep(if (binding!!.swDelayedStrokes.isChecked) this.keyStrokeDelayOn else this.keyStrokeDelayOff)
+                        Thread.sleep(if (viewModel.state.delayedStrokes) keyStrokeDelayOn else keyStrokeDelayOff)
                     } catch (e: InterruptedException) {
                         printStackTrace(e)
                     }
@@ -377,27 +294,20 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
     override fun onDestroyView() {
         super.onDestroyView()
 
-        typing.set(false) //cancel typing, if any
+        typing.set(false)
 
         if (bluetoothBroadcastReceiver != null) requireContext().unregisterReceiver(
             bluetoothBroadcastReceiver
         )
 
-        if (bluetoothController != null) bluetoothController!!.destroy()
-
-        binding!!.btnType.setOnClickListener(null)
-        requireActivity().removeMenuProvider(menuProvider)
+        bluetoothController?.destroy()
         copyValue = null
-        binding = null
     }
 
     protected fun refreshBluetoothControls() {
-        if (binding == null) return
-        if (refreshingBtControls.get()) return  //called in loop
-
+        if (refreshingBtControls.get()) return
 
         Thread(Runnable {
-            if (binding == null) return@Runnable  //already being destroyed
             try {
                 if (!bluetoothController!!.isBluetoothAvailable ||
                     !PermissionsFragment.isAllPermissionsGranted(
@@ -406,27 +316,23 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                         *REQUIRED_PERMISSIONS
                     )
                 ) {
-                    //disable all bluetooth functionality
-
                     requireContext().mainExecutor.execute {
                         refreshingBtControls.set(true)
                         try {
-                            val drawable = ResourcesCompat.getDrawable(
-                                resources,
-                                R.drawable.ic_baseline_bluetooth_disabled_24,
-                                requireContext().theme
+                            viewModel.updateUiState(
+                                bluetoothAvailable = false,
+                                bluetoothTargets = emptyList(),
+                                bluetoothStatusText = getString(R.string.bt_not_available),
+                                bluetoothStatusIcon = R.drawable.ic_baseline_bluetooth_disabled_24,
+                                discoverableEnabled = false,
+                                keyboardLayoutEnabled = false,
+                                bluetoothTargetEnabled = false,
+                                typeButtonEnabled = false,
+                                delayedStrokesEnabled = false,
+                                typingText = shareTitle,
+                                isTyping = false
                             )
-                            binding!!.chipBtStatus.chipIcon = drawable
-                            binding!!.chipBtStatus.text = getString(R.string.bt_not_available)
-
-                            binding!!.spinnerKeyboardLayout.setEnabled(false)
-                            binding!!.spinnerBluetoothTarget.setEnabled(false)
-                            binding!!.btnType.setEnabled(false)
-                            binding!!.imgButtonDiscoverable.setEnabled(false)
-                            binding!!.swDelayedStrokes.setEnabled(false)
-                            binding!!.textTyping.text = shareTitle
                         } catch (_: IllegalStateException) {
-                            //things are happening outside the context
                             Log.e(
                                 TAG,
                                 String.format("%s not attached to a context", this@OutputFragment)
@@ -439,7 +345,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 }
 
                 val bluetoothAdapter = bluetoothController!!.adapter
-
                 val bluetoothAdapterEnabled = bluetoothAdapter.isEnabled
 
                 if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
@@ -447,28 +352,21 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 }
 
                 val discoverable =
-                    bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE
+                    bluetoothAdapter.scanMode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE
 
                 val connectedDevices =
                     if (bluetoothController!!.bluetoothHidDevice == null) mutableListOf<BluetoothDevice?>() else bluetoothController!!.bluetoothHidDevice
-                        .getConnectedDevices()
+                        .connectedDevices
 
-                val spinnerItems = bluetoothAdapter.getBondedDevices()
+                val spinnerItems = bluetoothAdapter.bondedDevices
                     .stream()
                     .filter { d: BluetoothDevice? ->
-                        d!!.getBluetoothClass()
+                        d!!.bluetoothClass
                             .majorDeviceClass == BluetoothClass.Device.Major.COMPUTER
                     }
-                    .map { bluetoothDevice ->
-                        SpinnerItemDevice(
-                            bluetoothDevice
-                        )
-                    }
+                    .map { bluetoothDevice -> SpinnerItemDevice(bluetoothDevice) }
                     .sorted { s1: SpinnerItemDevice?, s2: SpinnerItemDevice? ->
-                        val i1 = if (connectedDevices.contains(
-                                s1!!.bluetoothDevice
-                            )
-                        ) 0 else 1
+                        val i1 = if (connectedDevices.contains(s1!!.bluetoothDevice)) 0 else 1
                         val i2 = if (connectedDevices.contains(s2!!.bluetoothDevice)) 0 else 1
                         if (i1 != i2) return@sorted i1.compareTo(i2)
                         s1.toString().compareTo(s2.toString())
@@ -476,97 +374,56 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     .collect(Collectors.toList())
 
                 requireContext().mainExecutor.execute(Runnable {
-                    if (binding == null) return@Runnable  //already being destroyed
-
-
                     refreshingBtControls.set(true)
                     try {
                         val isTyping = typing.get()
-
-                        binding!!.imgButtonDiscoverable.setEnabled(
-                            bluetoothAdapterEnabled
-                                    && !discoverable && !isTyping
-                        )
-
                         var status = getString(R.string.bt_off)
-                        var drawable = ResourcesCompat.getDrawable(
-                            resources,
-                            R.drawable.ic_baseline_bluetooth_disabled_24,
-                            requireContext().theme
-                        )
+                        var icon = R.drawable.ic_baseline_bluetooth_disabled_24
 
                         if (bluetoothAdapterEnabled) {
                             status = getString(R.string.bt_disconnected)
-                            drawable = ResourcesCompat.getDrawable(
-                                resources,
-                                R.drawable.ic_baseline_bluetooth_24,
-                                requireContext().theme
-                            )
+                            icon = R.drawable.ic_baseline_bluetooth_24
                         }
 
-                        binding!!.spinnerBluetoothTarget.setEnabled(bluetoothAdapterEnabled && !isTyping)
-
-                        //remember selection
-                        run {
-                            val selectedBluetoothTarget =
-                                binding!!.spinnerBluetoothTarget.getSelectedItem() as SpinnerItemDevice?
-                            val selectedBtAddress =
-                                if (selectedBluetoothTarget == null) preferences!!.getString(
-                                    PROP_LAST_SELECTED_BT_TARGET, null
-                                ) else selectedBluetoothTarget.bluetoothDevice.getAddress()
-
-                            //refreshing the list
-                            arrayAdapterDevice!!.clear()
-                            arrayAdapterDevice!!.addAll(spinnerItems)
-
-                            //restore selection
-                            if (selectedBtAddress != null) {
-                                for (i in 0..<arrayAdapterDevice!!.count) {
-                                    if (arrayAdapterDevice!!.getItem(i)?.bluetoothDevice?.address == selectedBtAddress) {
-                                        binding!!.spinnerBluetoothTarget.setSelection(i)
-                                        break
-                                    }
-                                }
-                            }
+                        val restoredAddress = viewModel.state.selectedBluetoothAddress
+                            ?: preferences!!.getString(PROP_LAST_SELECTED_BT_TARGET, null)
+                        val targetItems = spinnerItems.map {
+                            OutputViewModel.BluetoothTargetItem(it.bluetoothDevice.address, it.toString(), it.bluetoothDevice)
+                        }
+                        if (viewModel.state.selectedBluetoothAddress == null && restoredAddress != null) {
+                            viewModel.onBluetoothTargetSelected(restoredAddress)
                         }
 
-                        //set BT connection state
-                        val selectedBluetoothTarget =
-                            binding!!.spinnerBluetoothTarget.getSelectedItem() as SpinnerItemDevice?
+                        val selectedBluetoothTarget = spinnerItems.firstOrNull {
+                            it.bluetoothDevice.address == viewModel.state.selectedBluetoothAddress
+                        }
                         var selectedDeviceConnected = false
 
                         if (selectedBluetoothTarget != null) {
-                            val selectedBtAddress =
-                                selectedBluetoothTarget.bluetoothDevice.getAddress()
+                            val selectedBtAddress = selectedBluetoothTarget.bluetoothDevice.address
                             selectedDeviceConnected = connectedDevices.stream()
-                                .anyMatch { d: BluetoothDevice? -> d!!.getAddress() == selectedBtAddress }
+                                .anyMatch { d: BluetoothDevice? -> d!!.address == selectedBtAddress }
                             if (selectedDeviceConnected) {
                                 status = getString(R.string.bt_connected)
-                                drawable = ResourcesCompat.getDrawable(
-                                    resources,
-                                    R.drawable.ic_baseline_bluetooth_connected_24,
-                                    requireContext().theme
-                                )
+                                icon = R.drawable.ic_baseline_bluetooth_connected_24
                             }
                         }
 
-                        binding!!.chipBtStatus.chipIcon = drawable
-                        binding!!.chipBtStatus.text = status
-                        binding!!.swDelayedStrokes.setEnabled(selectedDeviceConnected && !isTyping)
-                        binding!!.spinnerKeyboardLayout.setEnabled(!isTyping)
-
-                        //set TYPE button state
-                        val selectedLayout =
-                            binding!!.spinnerKeyboardLayout.getSelectedItem() as KeyboardLayout?
-                        binding!!.btnType.setEnabled(selectedDeviceConnected && selectedLayout != null && message != null)
-
-                        binding!!.btnType.text = if (isTyping) getString(R.string.cancel) else getString(
-                            R.string.type
+                        val selectedLayout = viewModel.getSelectedKeyboardLayout()
+                        viewModel.updateUiState(
+                            bluetoothAvailable = true,
+                            bluetoothTargets = targetItems,
+                            bluetoothStatusText = status,
+                            bluetoothStatusIcon = icon,
+                            discoverableEnabled = bluetoothAdapterEnabled && !discoverable && !isTyping,
+                            keyboardLayoutEnabled = !isTyping,
+                            bluetoothTargetEnabled = bluetoothAdapterEnabled && !isTyping,
+                            typeButtonEnabled = selectedDeviceConnected && selectedLayout != null && message != null,
+                            delayedStrokesEnabled = selectedDeviceConnected && !isTyping,
+                            typingText = if (isTyping) getString(R.string.typing_please_wait) else shareTitle,
+                            isTyping = isTyping
                         )
-
-                        binding!!.textTyping.text = if (isTyping) getText(R.string.typing_please_wait) else shareTitle
                     } catch (_: IllegalStateException) {
-                        //things are happening outside the context
                         Log.e(
                             TAG,
                             String.format("%s not attached to a context", this@OutputFragment)
@@ -576,7 +433,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     }
                 })
             } catch (_: IllegalStateException) {
-                //things are happening outside the context
                 Log.e(TAG, String.format("%s not attached to a context", this@OutputFragment))
             }
         }).start()
@@ -613,9 +469,8 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     throw RuntimeException(getString(R.string.insufficient_permissions))
                 }
-                return bluetoothDevice.getAlias() + " (" + bluetoothDevice.getAddress() + ")"
+                return bluetoothDevice.alias + " (" + bluetoothDevice.address + ")"
             } catch (_: IllegalStateException) {
-                //things are happening outside the context
                 Log.e(TAG, String.format("%s not attached to a context", this@OutputFragment))
             }
 
@@ -652,8 +507,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
         override fun onAppStatusChanged(device: BluetoothDevice?, registered: Boolean) {
             super.onAppStatusChanged(device, registered)
 
-            if (binding == null) return
-
             try {
                 Log.i(
                     TAG,
@@ -682,7 +535,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 checkConnectSelectedDevice()
                 refreshBluetoothControls()
             } catch (_: IllegalStateException) {
-                //things are happening outside the context
                 Log.e(TAG, String.format("%s not attached to a context", this@OutputFragment))
             }
         }
@@ -695,9 +547,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     data
                 )
             )
-
-            //            boolean numLockActive = (data[0] & KeyboardReport.NUM_LOCK) == KeyboardReport.NUM_LOCK;
-//            boolean capsLockActive = (data[0] & KeyboardReport.CAPS_LOCK) == KeyboardReport.CAPS_LOCK;
         }
     }
 
@@ -712,20 +561,18 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
         }
 
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-            if (!isAdded || context == null) return true //https://github.com/stud0709/OneMoreSecret/issues/10
-
+            if (!isAdded || context == null) return true
 
             if (menuItem.itemId == R.id.menuItemOutputCopy) {
                 copyValue!!()
             } else if (menuItem.itemId == R.id.menuItemShare) {
-                if (beforePause != null) beforePause.run()
+                beforePause?.run()
 
                 val sendIntent = Intent()
-                sendIntent.setAction(Intent.ACTION_SEND)
+                sendIntent.action = Intent.ACTION_SEND
                 sendIntent.putExtra(Intent.EXTRA_TEXT, message)
-
                 sendIntent.putExtra(Intent.EXTRA_TITLE, shareTitle)
-                sendIntent.setType("text/plain")
+                sendIntent.type = "text/plain"
 
                 val shareIntent = Intent.createChooser(sendIntent, null)
                 startActivity(shareIntent)
@@ -760,30 +607,23 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
         )
 
     private fun showKeyboardTestTool() {
-        // Inflate the custom layout
         val inflater = LayoutInflater.from(requireContext())
         val dialogView = inflater.inflate(R.layout.layout_keboard_test, null)
-
-        // Initialize the ListView and Button
         val listView = dialogView.findViewById<ListView>(R.id.listViewUsbUsage)
-
         val items: EnumEntries<KeyboardUsage> = KeyboardUsage.entries
 
-        // Set up the ListView with an ArrayAdapter
         val adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_list_item_1,
             items
         )
 
-        listView.setAdapter(adapter)
+        listView.adapter = adapter
 
-        // Set up the AlertDialog
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
             .create()
 
-        // Set item click listener for the ListView
         listView.onItemClickListener =
             OnItemClickListener { _: AdapterView<*>?, _: View?, position: Int, _: Long ->
                 val selectedItem = items[position]
@@ -794,15 +634,13 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 }
 
                 val rArr: Array<KeyboardReport> = arrayOf(
-                    KeyboardReport(selectedItem),  //usage without any modifiers
-                    KeyboardReport(KeyboardUsage.KBD_NONE),  //release
-                    KeyboardReport(KeyboardUsage.KBD_SPACE),  //trigger things like ¨ or ^
+                    KeyboardReport(selectedItem),
+                    KeyboardReport(KeyboardUsage.KBD_NONE),
+                    KeyboardReport(KeyboardUsage.KBD_SPACE),
                     KeyboardReport(KeyboardUsage.KBD_NONE)
                 )
 
-                val bluetoothDevice = (binding!!
-                    .spinnerBluetoothTarget
-                    .getSelectedItem() as SpinnerItemDevice).bluetoothDevice
+                val bluetoothDevice = viewModel.getSelectedBluetoothDevice()?.bluetoothDevice ?: return@OnItemClickListener
                 Arrays.stream(rArr).forEach { r: KeyboardReport? ->
                     try {
                         bluetoothController!!
@@ -812,7 +650,6 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                                 0,
                                 r!!.report
                             )
-                        //Log.d(TAG, "sent: $r")
                     } catch (ex: Exception) {
                         printStackTrace(ex)
                         typing.set(false)
@@ -820,20 +657,15 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 }
             }
 
-        //log the current layout
-        val selectedLayout = binding!!.spinnerKeyboardLayout.getSelectedItem() as KeyboardLayout
-        selectedLayout.logLayout()
-
-        // Show the dialog
+        viewModel.getSelectedKeyboardLayout()?.logLayout()
         dialog.show()
     }
 
     companion object {
-        private val TAG: String = OutputFragment::class.java.getSimpleName()
+        private val TAG: String = OutputFragment::class.java.simpleName
         private const val PROP_BT_DISCOVERABLE_DURATION = "bt_discoverable_duration_s"
         private const val PROP_KEY_STROKE_DELAY_ON = "kbd_stroke_delay_on"
         private const val PROP_KEY_STROKE_DELAY_OFF = "kbd_stroke_delay_off"
-        private const val PROP_LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout"
         private const val PROP_LAST_SELECTED_BT_TARGET = "last_selected_bt_target"
         private const val DEF_DISCOVERABLE_DURATION_S = 60
         private const val DEF_KEY_STROKE_DELAY_ON: Long = 50
