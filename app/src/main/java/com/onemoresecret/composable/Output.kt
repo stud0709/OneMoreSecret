@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -19,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
@@ -33,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.onemoresecret.R
 
@@ -52,13 +51,13 @@ fun OutputScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = stringResource(R.string.bluetooth_target), style = MaterialTheme.typography.labelLarge)
         DropdownField(
             items = state.bluetoothTargets.map { it.address to it.label },
             selectedKey = state.selectedBluetoothAddress,
             enabled = state.bluetoothTargetEnabled,
             contentDescription = stringResource(R.string.bluetooth_targets),
-            onSelected = onBluetoothTargetSelected
+            onSelected = onBluetoothTargetSelected,
+            label = stringResource(R.string.bluetooth_target)
         )
 
         Row(
@@ -66,7 +65,7 @@ fun OutputScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextButton(
+            Button(
                 onClick = onDiscoverableClick,
                 enabled = state.discoverableEnabled
             ) {
@@ -81,25 +80,21 @@ fun OutputScreen(
                 text = state.bluetoothStatusText
             )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Switch(
-                    checked = state.delayedStrokes,
-                    onCheckedChange = onDelayedStrokesChanged,
-                    enabled = state.delayedStrokesEnabled
-                )
-                Text(text = stringResource(R.string.delay))
-            }
+            Switch(
+                checked = state.delayedStrokes,
+                onCheckedChange = onDelayedStrokesChanged,
+                enabled = state.delayedStrokesEnabled
+            )
+            Text(text = stringResource(R.string.delay))
         }
 
-        Text(text = stringResource(R.string.keyboard_layout), style = MaterialTheme.typography.labelLarge)
         DropdownField(
             items = state.keyboardLayouts.map { it.className to it.label },
             selectedKey = state.selectedKeyboardLayoutClassName,
             enabled = state.keyboardLayoutEnabled,
             contentDescription = stringResource(R.string.keyboard_layouts),
-            onSelected = onKeyboardLayoutSelected
+            onSelected = onKeyboardLayoutSelected,
+            label = stringResource(R.string.keyboard_layout)
         )
 
         Row(
@@ -119,7 +114,8 @@ fun OutputScreen(
         Text(
             text = state.typingText,
             modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -131,7 +127,8 @@ private fun DropdownField(
     selectedKey: String?,
     enabled: Boolean,
     contentDescription: String,
-    onSelected: (String) -> Unit
+    onSelected: (String) -> Unit,
+    label: String
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = items.firstOrNull { it.first == selectedKey }?.second ?: ""
@@ -141,6 +138,7 @@ private fun DropdownField(
         onExpandedChange = { if (enabled) expanded = !expanded }
     ) {
         OutlinedTextField(
+            label = { Text(label) },
             value = selectedLabel,
             onValueChange = {},
             modifier = Modifier
