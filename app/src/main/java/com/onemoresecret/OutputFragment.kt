@@ -469,7 +469,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     throw RuntimeException(getString(R.string.insufficient_permissions))
                 }
-                return bluetoothDevice.alias + " (" + bluetoothDevice.address + ")"
+                return bluetoothDevice.alias ?: bluetoothDevice.name ?: bluetoothDevice.address
             } catch (_: IllegalStateException) {
                 Log.e(TAG, String.format("%s not attached to a context", this@OutputFragment))
             }

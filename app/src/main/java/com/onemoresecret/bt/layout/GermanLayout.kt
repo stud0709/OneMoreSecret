@@ -7,6 +7,8 @@ import com.onemoresecret.bt.KeyboardUsage
  * German keyboard layout.
  */
 open class GermanLayout : USLayout() {
+    override val shortName: String = "DE-DE"
+
     init {
         layout['y'] = Stroke()
             .type(KeyboardUsage.KBD_Z)

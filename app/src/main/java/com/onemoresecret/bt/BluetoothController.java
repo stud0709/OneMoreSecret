@@ -149,6 +149,10 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             (byte) 0x95, (byte) 0x08,                         //     Report Count (8)
             (byte) 0x81, (byte) 0x02,                         //     Input (Data, Variable, Absolute)
 
+            (byte) 0x95, (byte) 0x01,                         //     Report Count (1)
+            (byte) 0x75, (byte) 0x08,                         //     Report Size (8)
+            (byte) 0x81, (byte) 0x01,                         //     Input (Constant) reserved byte(1)
+
             (byte) 0x95, (byte) 0x05,                         //     Report Count (5)
             (byte) 0x75, (byte) 0x01,                         //     Report Size (1)
             (byte) 0x05, (byte) 0x08,                         //     Usage Page (Page# for LEDs)
@@ -159,7 +163,7 @@ public class BluetoothController implements BluetoothProfile.ServiceListener {
             (byte) 0x75, (byte) 0x03,                         //     Report Size (3)
             (byte) 0x91, (byte) 0x01,                         //     Output (Data, Variable, Absolute), Led report padding
 
-            (byte) 0x95, (byte) 0x01,                         //     Report Count (1)
+            (byte) 0x95, (byte) 0x06,                         //     Report Count (6)
             (byte) 0x75, (byte) 0x08,                         //     Report Size (8)
             (byte) 0x15, (byte) 0x00,                         //     Logical Minimum (0)
             (byte) 0x25, (byte) 0x65,                         //     Logical Maximum (101)

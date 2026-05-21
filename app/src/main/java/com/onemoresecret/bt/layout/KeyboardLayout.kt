@@ -8,6 +8,7 @@ import java.util.stream.Collectors
 abstract class KeyboardLayout {
     @JvmField
     protected val layout: MutableMap<Char?, Stroke?> = TreeMap<Char?, Stroke?>()
+    abstract val shortName: String
     abstract fun forKey(c: Char): Stroke?
 
     /**

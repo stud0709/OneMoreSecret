@@ -21,7 +21,7 @@ class KeyboardReport {
 
     val report: ByteArray
         /**
-         * Keyboard report. byte[0] = modifiers, byte[1] = keyboard usage (i.e. key which is currently pressed)
+         * Keyboard report. byte[0] = modifiers, byte[1] = reserved (0), byte[2] = keyboard usage, byte[3]..byte[7] = 0
          * @return Keyboard report
          */
         get() {
@@ -29,7 +29,7 @@ class KeyboardReport {
             for (m in modifiers) {
                 mByte = (mByte.toInt() or m.value.toInt()).toByte()
             }
-            return byteArrayOf(mByte, usage.value)
+            return byteArrayOf(mByte, 0, usage.value, 0, 0, 0, 0, 0)
         }
 
     override fun toString(): String {

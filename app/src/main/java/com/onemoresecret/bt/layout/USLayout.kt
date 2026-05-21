@@ -8,6 +8,8 @@ import com.onemoresecret.bt.KeyboardUsage
  * US Keyboard Layout
  */
 open class USLayout : KeyboardLayout() {
+    override val shortName: String = "EN-US"
+
     init {
         layout['a'] = Stroke()
             .type(KeyboardUsage.KBD_A)

@@ -33,7 +33,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
         state = state.copy(
             keyboardLayouts = keyboardLayouts.map {
-                KeyboardLayoutItem(it.javaClass.name, it.toString())
+                KeyboardLayoutItem(it.javaClass.name, it.toString(), it.shortName)
             },
             selectedKeyboardLayoutClassName = selectedLayout?.javaClass?.name
         )
@@ -129,7 +129,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
     )
 
     data class BluetoothTargetItem(val address: String, val label: String, val bluetoothDevice: android.bluetooth.BluetoothDevice? = null)
-    data class KeyboardLayoutItem(val className: String, val label: String)
+    data class KeyboardLayoutItem(val className: String, val label: String, val shortName: String)
 
     companion object {
         private const val PROP_LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout"

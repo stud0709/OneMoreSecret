@@ -15,7 +15,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +36,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.onemoresecret.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,62 +49,28 @@ fun OutputScreen(
     onDiscoverableClick: () -> Unit,
     onTypeClick: () -> Unit
 ) {
+    var showBluetoothDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        DropdownField(
-            items = state.bluetoothTargets.map { it.address to it.label },
-            selectedKey = state.selectedBluetoothAddress,
-            enabled = state.bluetoothTargetEnabled,
-            contentDescription = stringResource(R.string.bluetooth_targets),
-            onSelected = onBluetoothTargetSelected,
-            label = stringResource(R.string.bluetooth_target)
-        )
-
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = onDiscoverableClick,
-                enabled = state.discoverableEnabled
-            ) {
+            OutlinedButton(onClick = { showBluetoothDialog = true }) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_baseline_bluetooth_discovering_24),
-                    contentDescription = stringResource(R.string.make_this_device_discoverable)
+                    painter = painterResource(R.drawable.ic_baseline_bluetooth_24),
+                    contentDescription = stringResource(R.string.bluetooth_target)
                 )
             }
 
-            StatusChip(
-                iconRes = state.bluetoothStatusIcon,
-                text = state.bluetoothStatusText
-            )
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
-            Switch(
-                checked = state.delayedStrokes,
-                onCheckedChange = onDelayedStrokesChanged,
-                enabled = state.delayedStrokesEnabled
-            )
-            Text(text = stringResource(R.string.delay))
-        }
-
-        DropdownField(
-            items = state.keyboardLayouts.map { it.className to it.label },
-            selectedKey = state.selectedKeyboardLayoutClassName,
-            enabled = state.keyboardLayoutEnabled,
-            contentDescription = stringResource(R.string.keyboard_layouts),
-            onSelected = onKeyboardLayoutSelected,
-            label = stringResource(R.string.keyboard_layout)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
             Button(
                 onClick = onTypeClick,
                 enabled = state.typeButtonEnabled
@@ -109,6 +79,15 @@ fun OutputScreen(
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Text(if (state.isTyping) stringResource(R.string.cancel) else stringResource(R.string.type))
             }
+
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+
+            KeyboardLayoutSelector(
+                layouts = state.keyboardLayouts,
+                selectedClassName = state.selectedKeyboardLayoutClassName,
+                enabled = state.keyboardLayoutEnabled,
+                onSelected = onKeyboardLayoutSelected
+            )
         }
 
         Text(
@@ -117,6 +96,108 @@ fun OutputScreen(
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
+    }
+
+    if (showBluetoothDialog) {
+        Dialog(onDismissRequest = { showBluetoothDialog = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    DropdownField(
+                        items = state.bluetoothTargets.map { it.address to it.label },
+                        selectedKey = state.selectedBluetoothAddress,
+                        enabled = state.bluetoothTargetEnabled,
+                        contentDescription = stringResource(R.string.bluetooth_targets),
+                        onSelected = onBluetoothTargetSelected,
+                        label = stringResource(R.string.bluetooth_target)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(
+                            onClick = onDiscoverableClick,
+                            enabled = state.discoverableEnabled
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_baseline_bluetooth_discovering_24),
+                                contentDescription = stringResource(R.string.make_this_device_discoverable)
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(
+                                checked = state.delayedStrokes,
+                                onCheckedChange = onDelayedStrokesChanged,
+                                enabled = state.delayedStrokesEnabled
+                            )
+                            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                            Text(text = stringResource(R.string.delay))
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        StatusChip(
+                            iconRes = state.bluetoothStatusIcon,
+                            text = state.bluetoothStatusText
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun KeyboardLayoutSelector(
+    layouts: List<OutputViewModel.KeyboardLayoutItem>,
+    selectedClassName: String?,
+    enabled: Boolean,
+    onSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLayout = layouts.firstOrNull { it.className == selectedClassName }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) expanded = !expanded }
+    ) {
+        OutlinedButton(
+            onClick = {}, // handled by ExposedDropdownMenuBox
+            enabled = enabled,
+            modifier = Modifier.menuAnchor()
+        ) {
+            Text(selectedLayout?.shortName ?: "")
+            Spacer(modifier = Modifier.padding(horizontal = 2.dp))
+            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+        }
+        
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            layouts.forEach { layout ->
+                DropdownMenuItem(
+                    text = { Text(layout.label) },
+                    onClick = {
+                        expanded = false
+                        onSelected(layout.className)
+                    }
+                )
+            }
+        }
     }
 }
 
