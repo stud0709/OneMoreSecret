@@ -58,13 +58,11 @@
     <fragment
         android:id="@+id/newPrivateKeyFragment"
         android:name="com.onemoresecret.NewPrivateKeyFragment"
-        android:label="@string/new_private_key"
-        tools:layout="@layout/fragment_new_private_key" />
+        android:label="@string/new_private_key" />
     <fragment
         android:id="@+id/keyManagementFragment"
         android:name="com.onemoresecret.KeyManagementFragment"
-        android:label="@string/private_keys"
-        tools:layout="@layout/fragment_key_management">
+        android:label="@string/private_keys">
         <action
             android:id="@+id/action_keyManagementFragment_to_newPrivateKeyFragment"
             app:destination="@id/newPrivateKeyFragment" />
@@ -72,8 +70,7 @@
     <fragment
         android:id="@+id/passwordGeneratorFragment"
         android:name="com.onemoresecret.PasswordGeneratorFragment"
-        android:label="@string/password_generator"
-        tools:layout="@layout/fragment_password_generator" />
+        android:label="@string/password_generator" />
     <fragment
         android:id="@+id/permissionsFragment"
         android:name="com.onemoresecret.PermissionsFragment"
@@ -81,8 +78,7 @@
     <fragment
         android:id="@+id/encryptTextFragment"
         android:name="com.onemoresecret.EncryptTextFragment"
-        android:label="@string/encrypt_text"
-        tools:layout="@layout/fragment_encrypt_text" />
+        android:label="@string/encrypt_text" />
     <fragment
         android:id="@+id/timeOTPFragment"
         android:name="com.onemoresecret.TotpImportFragment"
