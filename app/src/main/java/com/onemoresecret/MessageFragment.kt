@@ -114,7 +114,7 @@ class MessageFragment : Fragment() {
     private fun onUri() {
         val uri = requireArguments().getParcelable<Parcelable?>("URI") as Uri?
 
-        messageFragmentPlugin = MsgPluginEncryptedFile(this, uri)
+        messageFragmentPlugin = MsgPluginEncryptedFile(this, uri!!)
     }
 
     @Throws(Exception::class)
