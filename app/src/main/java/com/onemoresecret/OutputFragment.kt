@@ -237,14 +237,15 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
             .filter { d: BluetoothDevice? -> d!!.address != device.address }
             .forEach { connectedDevice: BluetoothDevice? -> proxy.disconnect(connectedDevice) }
 
-        if (bluetoothController!!.bluetoothHidDevice
-                .getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED
+        val hidDevice = bluetoothController?.bluetoothHidDevice ?: return
+
+        if (hidDevice.getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED
         ) {
             Log.d(
                 TAG, String.format(
                     "Trying to connect %s: %s",
                     device.name,
-                    bluetoothController!!.bluetoothHidDevice.connect(device)
+                    hidDevice.connect(device)
                 )
             )
         }
@@ -269,7 +270,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     try {
                         bluetoothController!!
                             .bluetoothHidDevice
-                            .sendReport(
+                            ?.sendReport(
                                 bluetoothDevice,
                                 0,
                                 r!!.report
@@ -344,7 +345,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     return@Runnable
                 }
 
-                val bluetoothAdapter = bluetoothController!!.adapter
+                val bluetoothAdapter = bluetoothController!!.adapter ?: return@Runnable
                 val bluetoothAdapterEnabled = bluetoothAdapter.isEnabled
 
                 if (requireContext().checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
@@ -354,9 +355,9 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                 val discoverable =
                     bluetoothAdapter.scanMode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE
 
+                val hidDevice = bluetoothController!!.bluetoothHidDevice
                 val connectedDevices =
-                    if (bluetoothController!!.bluetoothHidDevice == null) mutableListOf<BluetoothDevice?>() else bluetoothController!!.bluetoothHidDevice
-                        .connectedDevices
+                    hidDevice?.connectedDevices ?: mutableListOf<BluetoothDevice?>()
 
                 val spinnerItems = bluetoothAdapter.bondedDevices
                     .stream()
@@ -650,7 +651,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     try {
                         bluetoothController!!
                             .bluetoothHidDevice
-                            .sendReport(
+                            ?.sendReport(
                                 bluetoothDevice,
                                 0,
                                 r!!.report
