@@ -42,19 +42,19 @@ class MsgPluginEncryptedFile(
     }
 
     override fun getMessageView(): Fragment {
-        if (messageView == null) {
+        if (msgView == null) {
             val fileInfoFragment = FileInfoFragment()
-            messageView = fileInfoFragment
+            msgView = fileInfoFragment
             fileInfoFragment.fileinfo = fileInfo
         }
-        return messageView!!
+        return msgView!!
     }
 
     override fun getOutputView(): FragmentWithNotificationBeforePause {
-        if (outputView == null) {
-            outputView = FileOutputFragment()
+        if (outView == null) {
+            outView = FileOutputFragment()
         }
-        return outputView!!
+        return outView!!
     }
 
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
@@ -62,13 +62,13 @@ class MsgPluginEncryptedFile(
             val masterRsaCipher = requireNotNull(result.cryptoObject).cipher
             assert(masterRsaCipher != null)
 
-            val keyStoreEntry = CryptographyManager().getByFingerprint(fingerprint, preferences)
+            val keyStoreEntry = CryptographyManager().getByFingerprint(fingerprint!!, preferences)
             assert(keyStoreEntry != null)
 
             val userRsaCipherBox = CryptographyManager().getInitializedUserRsaCipher(
                 masterRsaCipher!!,
                 keyStoreEntry!!,
-                rsaTransformation,
+                rsaTransformation!!,
                 Cipher.DECRYPT_MODE
             )
 
@@ -113,7 +113,7 @@ class MsgPluginEncryptedFile(
                                 Files.delete(fileRecord.path)
                             } else {
                                 updateProgress(fileInfo.fileSize) // 100%
-                                (outputView as FileOutputFragment).uri = fileRecord.uri
+                                (outView as FileOutputFragment).uri = fileRecord.uri
                             }
                         } catch (ex: Exception) {
                             Util.printStackTrace(ex)
@@ -157,7 +157,7 @@ class MsgPluginEncryptedFile(
             }
         }
 
-        (outputView as FileOutputFragment).progressText = s
+        (outView as FileOutputFragment).progressText = s
     }
 
     override fun onDestroyView() {

@@ -45,7 +45,7 @@ class MsgPluginWiFiPairing(messageFragment: MessageFragment, messageData: ByteAr
                     requestId,
                     responseCodeBase58,
                     Runnable {
-                        (getOutputView() as OutputFragment).setMessage(responseCodeBase58 + "\n", "Response Code")
+                        (outView as OutputFragment).setMessage(responseCodeBase58 + "\n", "Response Code")
                         (context as MainActivity).setWiFiComm(
                             MainActivity.WiFiComm(
                                 ipAndPort.ipAddress,
@@ -62,10 +62,10 @@ class MsgPluginWiFiPairing(messageFragment: MessageFragment, messageData: ByteAr
     }
 
     override fun getMessageView(): Fragment {
-        if (messageView == null) {
-            messageView = WiFiPairingFragment()
+        if (msgView == null) {
+            msgView = WiFiPairingFragment()
         }
-        return messageView
+        return msgView!!
     }
 
     override fun showBiometricPromptForDecryption() {

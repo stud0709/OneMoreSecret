@@ -1,33 +1,39 @@
-package com.onemoresecret.msg_fragment_plugins;
+package com.onemoresecret.msg_fragment_plugins
 
+import androidx.fragment.app.Fragment
+import com.onemoresecret.MessageFragment
+import com.onemoresecret.OutputFragment
+import com.onemoresecret.R
+import com.onemoresecret.TotpFragment
+import com.onemoresecret.crypto.OneTimePassword
 
-import androidx.fragment.app.Fragment;
+class MsgPluginTotp(
+    messageFragment: MessageFragment,
+    messageData: ByteArray
+) : MsgPluginEncryptedMessage(messageFragment, messageData) {
 
-import com.onemoresecret.MessageFragment;
-import com.onemoresecret.OutputFragment;
-import com.onemoresecret.R;
-import com.onemoresecret.TotpFragment;
-import com.onemoresecret.crypto.OneTimePassword;
+    init {
+        context.mainExecutor.execute {
+            val message = String(messageData)
+            val totpFragment = msgView as TotpFragment
+            totpFragment.init(OneTimePassword(message), msgView!!) { code ->
+                (outView as OutputFragment).setMessage(code, context.getString(R.string.one_time_password))
+                totpFragment.setTotpText(if (messageFragment.hiddenState.value == true) {
+                    "●".repeat(code.length)
+                } else {
+                    code
+                })
+            }
 
-public class MsgPluginTotp extends MsgPluginEncryptedMessage {
-    public MsgPluginTotp(MessageFragment messageFragment, byte[] messageData) {
-        super(messageFragment, messageData);
-        context.getMainExecutor().execute(() -> {
-            var message = new String(messageData);
-            var totpFragment = ((TotpFragment) messageView);
-            totpFragment.init(new OneTimePassword(message), messageView, code -> {
-                ((OutputFragment) outputView).setMessage(code, context.getString(R.string.one_time_password));
-                totpFragment.setTotpText(Boolean.TRUE.equals(messageFragment.hiddenState.getValue()) ? "●".repeat(code.length()) : code);
-            });
-
-            //observe hidden state
-            messageFragment.hiddenState.observe(messageView, hidden -> totpFragment.refresh());
-        });
+            // observe hidden state
+            messageFragment.hiddenState.observe(msgView!!) {
+                totpFragment.refresh()
+            }
+        }
     }
 
-    @Override
-    public Fragment getMessageView() {
-        if (messageView == null) messageView = new TotpFragment();
-        return messageView;
+    override fun getMessageView(): Fragment {
+        if (msgView == null) msgView = TotpFragment()
+        return msgView!!
     }
 }

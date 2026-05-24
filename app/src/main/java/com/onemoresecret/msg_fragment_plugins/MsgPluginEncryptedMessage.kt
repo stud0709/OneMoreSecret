@@ -16,26 +16,26 @@ open class MsgPluginEncryptedMessage(
         //nothing to decrypt
     }
 
-    override fun getMessageView(): Fragment? {
-        if (messageView == null) {
-            messageView = HiddenTextFragment()
+    override fun getMessageView(): Fragment {
+        if (msgView == null) {
+            msgView = HiddenTextFragment()
             context.mainExecutor.execute(Runnable {
                 val message = String(messageData!!)
-                val hiddenTextFragment = messageView as HiddenTextFragment?
+                val hiddenTextFragment = msgView as HiddenTextFragment?
                 messageFragment.hiddenState.observe(
-                    messageView,
+                    msgView!!,
                     Observer { hidden: Boolean ->
                         hiddenTextFragment?.text = if (hidden) context.getString(
                                 R.string.hidden_text
                             ) else message
                     })
-                (outputView as OutputFragment).setMessage(
+                (outView as OutputFragment).setMessage(
                     message,
                     context.getString(R.string.decrypted_message)
                 )
             })
         }
-        return messageView
+        return msgView!!
     }
 
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {

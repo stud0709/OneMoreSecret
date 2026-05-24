@@ -68,7 +68,7 @@ open class MsgPluginKeyRequest(
                         rsaTransformation = RsaTransformation.entries[dataInputStream.readUnsignedShort()]
                         Log.d(
                             TAG,
-                            "Transformation (file): ${rsaTransformation.ordinal} = ${rsaTransformation.transformation}"
+                            "Transformation (file): ${rsaTransformation!!.ordinal} = ${rsaTransformation!!.transformation}"
                         )
 
                         // (6) transformation index for the key response - the requester specifies the transformation it supports
@@ -96,7 +96,7 @@ open class MsgPluginKeyRequest(
                         rsaTransformation = RsaTransformation.entries[dataInputStream.readUnsignedShort()]
                         Log.d(
                             TAG,
-                            "Transformation (file): ${rsaTransformation.ordinal} = ${rsaTransformation.transformation}"
+                            "Transformation (file): ${rsaTransformation!!.ordinal} = ${rsaTransformation!!.transformation}"
                         )
 
                         // (6) encrypted AES key from the file header
@@ -109,13 +109,13 @@ open class MsgPluginKeyRequest(
     }
 
     override fun getMessageView(): Fragment {
-        if (messageView == null) {
-            messageView = HiddenTextFragment()
+        if (msgView == null) {
+            msgView = HiddenTextFragment()
             context.mainExecutor.execute {
-                (messageView as HiddenTextFragment).text = ""
+                (msgView as HiddenTextFragment).text = ""
             }
         }
-        return messageView!!
+        return msgView!!
     }
 
     override fun getOutputView(): FragmentWithNotificationBeforePause {
@@ -123,13 +123,13 @@ open class MsgPluginKeyRequest(
             return super.getOutputView()
 
         if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
-            outputView = Oms4webUnlock()
+            outView = Oms4webUnlock()
         }
 
-        if (outputView == null) {
-            outputView = KeyRequestPairingFragment()
+        if (outView == null) {
+            outView = KeyRequestPairingFragment()
         }
-        return outputView!!
+        return outView!!
     }
 
     override fun getReference(): String? {
@@ -140,13 +140,13 @@ open class MsgPluginKeyRequest(
         val masterRsaCipher = requireNotNull(result.cryptoObject).cipher
         assert(masterRsaCipher != null)
 
-        val keyStoreEntry = CryptographyManager().getByFingerprint(fingerprint, preferences)
+        val keyStoreEntry = CryptographyManager().getByFingerprint(fingerprint!!, preferences)
         assert(keyStoreEntry != null)
 
         val userRsaCipher = CryptographyManager().getInitializedUserRsaCipher(
             masterRsaCipher!!,
             keyStoreEntry!!,
-            rsaTransformation,
+            rsaTransformation!!,
             Cipher.DECRYPT_MODE
         )
 
@@ -182,15 +182,15 @@ open class MsgPluginKeyRequest(
 
                             val base64Message = Base64.getEncoder().encodeToString(baos.toByteArray())
 
-                            val hiddenTextFragment = messageView as HiddenTextFragment
+                            val hiddenTextFragment = msgView as HiddenTextFragment
 
                             if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
                                 hiddenTextFragment.text = context.getString(R.string.ready_to_unlock_oms4web)
-                                (outputView as Oms4webUnlock).setMessage(base64Message)
+                                (outView as Oms4webUnlock).setMessage(base64Message)
                             } else {
                                 hiddenTextFragment.text = String.format(context.getString(R.string.key_response_is_ready), msgReference)
 
-                                (outputView as OutputFragment).setMessage(
+                                (outView as OutputFragment).setMessage(
                                     base64Message + "\n", /* hit ENTER at the end signalling omsCompanion to resume */
                                     context.getString(R.string.key_response)
                                 )
@@ -201,7 +201,7 @@ open class MsgPluginKeyRequest(
                 }
 
                 MessageComposer.APPLICATION_KEY_REQUEST_PAIRING -> {
-                    val hiddenTextFragment = messageView as HiddenTextFragment
+                    val hiddenTextFragment = msgView as HiddenTextFragment
                     hiddenTextFragment.text = String.format(context.getString(R.string.key_response_is_ready), msgReference)
                     ByteArrayOutputStream().use { baos ->
                         OmsDataOutputStream(baos).use { dataOutputStream ->
