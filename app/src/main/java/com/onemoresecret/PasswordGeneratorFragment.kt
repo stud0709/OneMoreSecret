@@ -1,445 +1,658 @@
-package com.onemoresecret;
+package com.onemoresecret
 
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.InputType;
-import android.text.TextWatcher;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.EditText;
-import android.widget.NumberPicker;
-import android.widget.Toast;
+import android.content.Context
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.text.InputType
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.NumberPicker
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.MenuProvider
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentContainerView
+import androidx.fragment.app.commit
+import androidx.lifecycle.Lifecycle
+import androidx.recyclerview.selection.SelectionTracker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.onemoresecret.composable.OneMoreSecretTheme
+import com.onemoresecret.crypto.*
+import java.nio.charset.StandardCharsets
+import java.security.SecureRandom
+import java.util.Arrays
+import java.util.Objects
+import java.util.stream.Collectors
+import androidx.core.content.edit
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.selection.SelectionTracker;
+class PasswordGeneratorFragment : Fragment() {
+    private val menuProvider = PwdMenuProvider()
+    private lateinit var preferences: SharedPreferences
+    private var keyStoreListFragment: KeyStoreListFragment? = null
+    private var outputFragment: OutputFragment? = null
+    private val cryptographyManager = CryptographyManager()
 
-import com.onemoresecret.crypto.AESUtil;
-import com.onemoresecret.crypto.CryptographyManager;
-import com.onemoresecret.crypto.EncryptedMessage;
-import com.onemoresecret.crypto.MessageComposer;
-import com.onemoresecret.crypto.RSAUtil;
-import com.onemoresecret.databinding.FragmentPasswordGeneratorBinding;
-
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-public class PasswordGeneratorFragment extends Fragment {
-    private FragmentPasswordGeneratorBinding binding;
-    private final PwdMenuProvider menuProvider = new PwdMenuProvider();
-    private SharedPreferences preferences;
-    private KeyStoreListFragment keyStoreListFragment;
-    private OutputFragment outputFragment;
-    private final CryptographyManager cryptographyManager = new CryptographyManager();
-    private static final String
-            PROP_UCASE = "pwgen_ucase",
-            PROP_UCASE_LIST = "pwgen_ucase_list",
-            PROP_LCASE = "pwgen_lcase",
-            PROP_LCASE_LIST = "pwgen_lcase_list",
-            PROP_DIGITS = "pwgen_digits",
-            PROP_DIGITS_LIST = "pwgen_digits_list",
-            PROP_SPECIALS = "pwgen_specials",
-            PROP_SPECIALS_LIST = "pwgen_specials_list",
-            PROP_SIMILAR = "pwgen_similar",
-            PROP_SIMILAR_LIST = "pwgen_similar_LIST",
-            PROP_LAYOUT = "pwgen_layout",
-            PROP_PWD_LENGTH = "pwgen_length",
-            PROP_OCCURS = "pwgen_occurrs",
-            DEFAULT_DIGITS = "0123456789",
-            DEFAULT_LCASE = "abcdefghijklmnopqrstuvwxyz",
-            DEFAULT_SPECIALS = "!#$%&'*+,-.:;<=>?@_~",
-            DEFAULT_SIMILAR = "01IOl|";
-    private static final int PWD_LEN_DEFAULT = 10,
-            PWD_LEN_MIN = 5,
-            PWD_LEN_MAX = 50,
-            OCCURS_DEFAULT = 1,
-            OCCURS_MIN = 1,
-            OCCURS_MAX = 10;
-
-    private SharedPreferences.OnSharedPreferenceChangeListener onSharedPreferenceChangeListener;
-
-    private Consumer<String> encryptPwd;
-    private Runnable setPwd;
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        binding = FragmentPasswordGeneratorBinding.inflate(inflater, container, false);
-        return binding.getRoot();
+    companion object {
+        const val PROP_UCASE = "pwgen_ucase"
+        const val PROP_UCASE_LIST = "pwgen_ucase_list"
+        const val PROP_LCASE = "pwgen_lcase"
+        const val PROP_LCASE_LIST = "pwgen_lcase_list"
+        const val PROP_DIGITS = "pwgen_digits"
+        const val PROP_DIGITS_LIST = "pwgen_digits_list"
+        const val PROP_SPECIALS = "pwgen_specials"
+        const val PROP_SPECIALS_LIST = "pwgen_specials_list"
+        const val PROP_SIMILAR = "pwgen_similar"
+        const val PROP_SIMILAR_LIST = "pwgen_similar_LIST"
+        const val PROP_LAYOUT = "pwgen_layout"
+        const val PROP_PWD_LENGTH = "pwgen_length"
+        const val PROP_OCCURS = "pwgen_occurrs"
+        const val DEFAULT_DIGITS = "0123456789"
+        const val DEFAULT_LCASE = "abcdefghijklmnopqrstuvwxyz"
+        const val DEFAULT_SPECIALS = "!#$%&'*+,-.:;<=>?@_~"
+        const val DEFAULT_SIMILAR = "01IOl|"
+        const val PWD_LEN_DEFAULT = 10
+        const val PWD_LEN_MIN = 5
+        const val PWD_LEN_MAX = 50
+        const val OCCURS_DEFAULT = 1
+        const val OCCURS_MIN = 1
+        const val OCCURS_MAX = 10
     }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        requireActivity().addMenuProvider(menuProvider);
+    private var pwdLength by mutableIntStateOf(PWD_LEN_DEFAULT)
+    private var occurs by mutableIntStateOf(OCCURS_DEFAULT)
+    private var uCase by mutableStateOf(true)
+    private var lCase by mutableStateOf(true)
+    private var digits by mutableStateOf(true)
+    private var specials by mutableStateOf(true)
+    private var similar by mutableStateOf(true)
+    private var layout by mutableStateOf(true)
 
-        keyStoreListFragment = binding.fragmentContainerView.getFragment();
-        outputFragment = binding.fragmentContainerView4.getFragment();
+    private var passwordText by mutableStateOf("")
+    private var isControlsEnabled by mutableStateOf(true)
 
-        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE);
+    private var showPwdLenDialog by mutableStateOf(false)
+    private var showOccursDialog by mutableStateOf(false)
+    private var showCharListDialogFor by mutableStateOf<String?>(null)
 
-        binding.chipUpperCase.setChecked(preferences.getBoolean(PROP_UCASE, true));
-        binding.chipUpperCase.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_UCASE, b));
-
-        binding.chipLowerCase.setChecked(preferences.getBoolean(PROP_LCASE, true));
-        binding.chipLowerCase.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_LCASE, b));
-
-        binding.chipDigits.setChecked(preferences.getBoolean(PROP_DIGITS, true));
-        binding.chipDigits.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_DIGITS, b));
-
-        binding.chipSpecials.setChecked(preferences.getBoolean(PROP_SPECIALS, true));
-        binding.chipSpecials.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_SPECIALS, b));
-
-        binding.chipSimilar.setChecked(preferences.getBoolean(PROP_SIMILAR, true));
-        binding.chipSimilar.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_SIMILAR, b));
-
-        binding.chipLayout.setChecked(preferences.getBoolean(PROP_LAYOUT, true));
-        binding.chipLayout.setOnCheckedChangeListener((e, b) -> onPropertyChange(PROP_LAYOUT, b));
-
-        binding.chipPwdLength.setText(Integer.toString(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)));
-        binding.chipPwdLength.setOnClickListener(e -> changePwdLen());
-
-        binding.chipOccurs.setText(Integer.toString(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT)));
-        binding.chipOccurs.setOnClickListener(e -> changeOccurs());
-
-        onSharedPreferenceChangeListener = (sharedPreferences, key) -> {
-            if (PROP_PWD_LENGTH.equals(key)) {
-                requireActivity()
-                        .getMainExecutor()
-                        .execute(() -> binding.chipPwdLength
-                                .setText(Integer.toString(preferences.getInt(key, PWD_LEN_DEFAULT))));
-            } else if (PROP_OCCURS.equals(key)) {
-                requireActivity()
-                        .getMainExecutor()
-                        .execute(() -> binding.chipOccurs
-                                .setText(Integer.toString(preferences.getInt(key, OCCURS_DEFAULT))));
+    private val onSharedPreferenceChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (PROP_PWD_LENGTH == key) {
+                pwdLength = preferences.getInt(key, PWD_LEN_DEFAULT)
+            } else if (PROP_OCCURS == key) {
+                occurs = preferences.getInt(key, OCCURS_DEFAULT)
             }
-        };
+        }
 
-        preferences.registerOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        preferences = requireActivity().getPreferences(Context.MODE_PRIVATE)
 
-        keyStoreListFragment.setRunOnStart(
-                fragmentKeyStoreListBinding -> keyStoreListFragment
-                        .getSelectionTracker()
-                        .addObserver(new SelectionTracker.SelectionObserver<>() {
-                            @Override
-                            public void onSelectionChanged() {
-                                super.onSelectionChanged();
-                                if (keyStoreListFragment.getSelectionTracker().hasSelection()) {
-                                    var selectedAlias = keyStoreListFragment
-                                            .getSelectionTracker()
-                                            .getSelection()
-                                            .iterator()
-                                            .next();
-                                    encryptPwd.accept(selectedAlias);
-                                } else {
-                                    setPwd.run();
+        pwdLength = preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)
+        occurs = preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT)
+        uCase = preferences.getBoolean(PROP_UCASE, true)
+        lCase = preferences.getBoolean(PROP_LCASE, true)
+        digits = preferences.getBoolean(PROP_DIGITS, true)
+        specials = preferences.getBoolean(PROP_SPECIALS, true)
+        similar = preferences.getBoolean(PROP_SIMILAR, true)
+        layout = preferences.getBoolean(PROP_LAYOUT, true)
+
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                OneMoreSecretTheme {
+                    Surface(color = MaterialTheme.colorScheme.background) {
+                        PasswordGeneratorScreen()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        preferences.registerOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener)
+
+        setupChildFragments()
+
+        requireActivity().mainExecutor.execute { newPassword() }
+    }
+
+    private var isObserverAdded = false
+
+    private fun setupChildFragments() {
+        keyStoreListFragment = childFragmentManager.findFragmentByTag("keyStoreListFragment") as? KeyStoreListFragment
+            ?: KeyStoreListFragment()
+
+        outputFragment = childFragmentManager.findFragmentByTag("outputFragment") as? OutputFragment
+            ?: OutputFragment()
+    }
+
+    private fun setupKeyStoreObserver() {
+        if (isObserverAdded) return
+        keyStoreListFragment?.setRunOnStart { tracker ->
+            tracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
+                override fun onSelectionChanged() {
+                    super.onSelectionChanged()
+                    if (tracker.hasSelection()) {
+                        val selectedAlias = tracker.selection.firstOrNull()
+                        if (selectedAlias != null) encryptPwd(selectedAlias, passwordText)
+                    } else {
+                        setPwd(passwordText)
+                    }
+                }
+            })
+        }
+        isObserverAdded = true
+    }
+
+    @OptIn(ExperimentalLayoutApi::class)
+    @Composable
+    private fun PasswordGeneratorScreen() {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CustomFilterChip(
+                    label = getString(R.string.chip_upper_case),
+                    selected = uCase,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_UCASE, it) }
+                )
+                CustomFilterChip(
+                    label = getString(R.string.chip_lower_case),
+                    selected = lCase,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_LCASE, it) }
+                )
+                CustomFilterChip(
+                    label = getString(R.string.chip_numbers),
+                    selected = digits,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_DIGITS, it) }
+                )
+                CustomFilterChip(
+                    label = getString(R.string.chip_specials),
+                    selected = specials,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_SPECIALS, it) }
+                )
+                CustomFilterChip(
+                    label = getString(R.string.chip_similar),
+                    selected = similar,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_SIMILAR, it) }
+                )
+                CustomFilterChip(
+                    label = getString(R.string.chip_layout),
+                    selected = layout,
+                    enabled = isControlsEnabled,
+                    onCheckedChange = { onPropertyChange(PROP_LAYOUT, it) }
+                )
+                
+                AssistChip(
+                    onClick = { showPwdLenDialog = true },
+                    label = { Text(pwdLength.toString()) },
+                    leadingIcon = { Icon(Icons.Filled.Password, contentDescription = null) },
+                    enabled = isControlsEnabled,
+                    shape = RoundedCornerShape(50)
+                )
+
+                AssistChip(
+                    onClick = { showOccursDialog = true },
+                    label = { Text(occurs.toString()) },
+                    leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+                    enabled = isControlsEnabled,
+                    shape = RoundedCornerShape(50)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = passwordText,
+                onValueChange = { 
+                    passwordText = it
+                    setPwd(it)
+                    if (keyStoreListFragment?.getSelectionTracker()?.hasSelection() == true) {
+                        val selectedAlias = keyStoreListFragment?.getSelectionTracker()?.selection?.firstOrNull()
+                        if (selectedAlias != null) encryptPwd(selectedAlias, it)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(getString(R.string.password)) },
+                enabled = isControlsEnabled,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = getString(R.string.encrypt_with),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                AndroidView(
+                    factory = { context ->
+                        FragmentContainerView(context).apply {
+                            id = R.id.keyStoreListContainer
+                        }
+                    },
+                    update = { _ ->
+                        if (childFragmentManager.findFragmentById(R.id.keyStoreListContainer) == null) {
+                            childFragmentManager.commit {
+                                replace(R.id.keyStoreListContainer, keyStoreListFragment!!, "keyStoreListFragment")
+                            }
+                        }
+                        setupKeyStoreObserver()
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(modifier = Modifier.wrapContentHeight()) {
+                AndroidView(
+                    factory = { context ->
+                        FragmentContainerView(context).apply {
+                            id = R.id.outputContainer
+                        }
+                    },
+                    update = { _ ->
+                        if (childFragmentManager.findFragmentById(R.id.outputContainer) == null) {
+                            childFragmentManager.commit {
+                                replace(R.id.outputContainer, outputFragment!!, "outputFragment")
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            
+            Dialogs()
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    private fun CustomFilterChip(
+        label: String,
+        selected: Boolean,
+        enabled: Boolean,
+        onCheckedChange: (Boolean) -> Unit
+    ) {
+        FilterChip(
+            selected = selected,
+            onClick = { onCheckedChange(!selected) },
+            label = { Text(label) },
+            enabled = enabled,
+            shape = RoundedCornerShape(50)
+        )
+    }
+
+    @Composable
+    private fun Dialogs() {
+        if (showPwdLenDialog) {
+            var tempLen by remember { mutableStateOf(pwdLength) }
+            AlertDialog(
+                onDismissRequest = { showPwdLenDialog = false },
+                title = { Text("Password length") },
+                text = {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        AndroidView(
+                            factory = { context ->
+                                NumberPicker(context).apply {
+                                    minValue = PWD_LEN_MIN
+                                    maxValue = PWD_LEN_MAX
+                                    value = pwdLength
+                                    setOnValueChangedListener { _, _, newVal ->
+                                        tempLen = newVal
+                                    }
                                 }
                             }
-                        }));
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        preferences.edit { putInt(PROP_PWD_LENGTH, tempLen) }
+                        pwdLength = tempLen
+                        newPassword()
+                        showPwdLenDialog = false
+                    }) {
+                        Text(getString(android.R.string.ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPwdLenDialog = false }) {
+                        Text(getString(android.R.string.cancel))
+                    }
+                }
+            )
+        }
 
-        binding.editTextPassword.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        if (showOccursDialog) {
+            var tempOccurs by remember { mutableStateOf(occurs) }
+            AlertDialog(
+                onDismissRequest = { showOccursDialog = false },
+                title = { Text("Occurrence") },
+                text = {
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("…of every character class (at least)")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        AndroidView(
+                            factory = { context ->
+                                NumberPicker(context).apply {
+                                    minValue = OCCURS_MIN
+                                    maxValue = OCCURS_MAX
+                                    value = occurs
+                                    setOnValueChangedListener { _, _, newVal ->
+                                        tempOccurs = newVal
+                                    }
+                                }
+                            }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        preferences.edit { putInt(PROP_OCCURS, tempOccurs) }
+                        occurs = tempOccurs
+                        newPassword()
+                        showOccursDialog = false
+                    }) {
+                        Text(getString(android.R.string.ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showOccursDialog = false }) {
+                        Text(getString(android.R.string.cancel))
+                    }
+                }
+            )
+        }
 
+        showCharListDialogFor?.let { propertyName ->
+            val defaultList: String
+            val title: String
+            when (propertyName) {
+                PROP_DIGITS_LIST -> {
+                    defaultList = DEFAULT_DIGITS
+                    title = getString(R.string.digits)
+                }
+                PROP_LCASE_LIST -> {
+                    defaultList = DEFAULT_LCASE
+                    title = getString(R.string.lower_case)
+                }
+                PROP_SIMILAR_LIST -> {
+                    defaultList = DEFAULT_SIMILAR
+                    title = getString(R.string.similar)
+                }
+                PROP_SPECIALS_LIST -> {
+                    defaultList = DEFAULT_SPECIALS
+                    title = getString(R.string.specials)
+                }
+                PROP_UCASE_LIST -> {
+                    defaultList = DEFAULT_LCASE.uppercase()
+                    title = getString(R.string.upper_case)
+                }
+                else -> throw IllegalArgumentException()
             }
+            
+            var textValue by remember { mutableStateOf(preferences.getString(propertyName, defaultList) ?: defaultList) }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                setPwd = getSetPwd(s.toString());
-                setPwd.run();
-                encryptPwd = getEncryptPwd(s.toString());
-            }
-        });
-
-        requireActivity().getMainExecutor().execute(this::newPassword);
+            AlertDialog(
+                onDismissRequest = { showCharListDialogFor = null },
+                title = { Text(title) },
+                text = {
+                    OutlinedTextField(
+                        value = textValue,
+                        onValueChange = { textValue = it }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        preferences.edit { putString(propertyName, textValue) }
+                        newPassword()
+                        showCharListDialogFor = null
+                    }) {
+                        Text(getString(android.R.string.ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCharListDialogFor = null }) {
+                        Text(getString(android.R.string.cancel))
+                    }
+                }
+            )
+        }
     }
 
-    private void changePwdLen() {
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Password length");
-        var numberPicker = new NumberPicker(requireContext());
-        numberPicker.setMinValue(PWD_LEN_MIN);
-        numberPicker.setMaxValue(PWD_LEN_MAX);
-        numberPicker.setValue(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT));
-        builder.setView(numberPicker);
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            preferences.edit().putInt(PROP_PWD_LENGTH, numberPicker.getValue()).apply();
-            newPassword();
-        });
-        builder.setNegativeButton(android.R.string.cancel, ((dialog, which) -> dialog.cancel()));
-        builder.show();
-    }
-
-    private void changeOccurs() {
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Occurrence");
-        builder.setMessage("…of every character class (at least)");
-        var numberPicker = new NumberPicker(requireContext());
-        numberPicker.setMinValue(OCCURS_MIN);
-        numberPicker.setMaxValue(OCCURS_MAX);
-        numberPicker.setValue(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT));
-        builder.setView(numberPicker);
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            preferences.edit().putInt(PROP_OCCURS, numberPicker.getValue()).apply();
-            newPassword();
-        });
-        builder.setNegativeButton(android.R.string.cancel, ((dialog, which) -> dialog.cancel()));
-        builder.show();
-    }
-
-    private void changeCharList(String propertyName) {
-        String defaultList, title;
-        switch (propertyName) {
-            case PROP_DIGITS_LIST -> {
-                defaultList = DEFAULT_DIGITS;
-                title = getString(R.string.digits);
-            }
-            case PROP_LCASE_LIST -> {
-                defaultList = DEFAULT_LCASE;
-                title = getString(R.string.lower_case);
-            }
-            case PROP_SIMILAR_LIST -> {
-                defaultList = DEFAULT_SIMILAR;
-                title = getString(R.string.similar);
-            }
-            case PROP_SPECIALS_LIST -> {
-                defaultList = DEFAULT_SPECIALS;
-                title = getString(R.string.specials);
-            }
-            case PROP_UCASE_LIST -> {
-                defaultList = DEFAULT_LCASE.toUpperCase();
-                title = getString(R.string.upper_case);
-            }
-            default -> throw new IllegalArgumentException();
-        }
-        var builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle(title);
-        var editText = new EditText(requireContext());
-        editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        editText.setText(preferences.getString(propertyName, defaultList));
-        builder.setView(editText);
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            preferences.edit().putString(propertyName, editText.getText().toString()).apply();
-            newPassword();
-        });
-        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-
-    private void newPassword() {
-        if (keyStoreListFragment.getSelectionTracker().hasSelection())
-            throw new IllegalStateException("Generating new encrypted password");
-
-        List<String> charClasses = new ArrayList<>();
-
-        var length = preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT);
-
-        if (binding.chipUpperCase.isChecked()) {
-            charClasses.add(preferences.getString(PROP_UCASE_LIST, DEFAULT_LCASE.toUpperCase()));
-        }
-        if (binding.chipLowerCase.isChecked()) {
-            charClasses.add(preferences.getString(PROP_LCASE_LIST, DEFAULT_LCASE));
-        }
-        if (binding.chipDigits.isChecked()) {
-            charClasses.add(preferences.getString(PROP_DIGITS_LIST, DEFAULT_DIGITS));
-        }
-        if (binding.chipSpecials.isChecked()) {
-            charClasses.add(preferences.getString(PROP_SPECIALS_LIST, DEFAULT_SPECIALS));
+    private fun newPassword() {
+        if (keyStoreListFragment?.getSelectionTracker()?.hasSelection() == true) {
+            throw IllegalStateException("Generating new encrypted password")
         }
 
-        var size = charClasses.size();
+        var charClasses = mutableListOf<String>()
 
-        if (!binding.chipSimilar.isChecked()) {
-            var blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR).toCharArray();
-            Arrays.sort(blacklist);
+        if (uCase) {
+            charClasses.add(preferences.getString(PROP_UCASE_LIST, DEFAULT_LCASE.uppercase())!!)
+        }
+        if (lCase) {
+            charClasses.add(preferences.getString(PROP_LCASE_LIST, DEFAULT_LCASE)!!)
+        }
+        if (digits) {
+            charClasses.add(preferences.getString(PROP_DIGITS_LIST, DEFAULT_DIGITS)!!)
+        }
+        if (specials) {
+            charClasses.add(preferences.getString(PROP_SPECIALS_LIST, DEFAULT_SPECIALS)!!)
+        }
 
-            for (int i = 0; i < size; i++) {
-                //deactivating "similar" will remove all similar characters
-                var sb = new StringBuilder();
-                var cArr = charClasses.remove(0).toCharArray();
-                for (var c : cArr) {
+        val size = charClasses.size
+
+        if (!similar) {
+            val blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR)!!.toCharArray()
+            Arrays.sort(blacklist)
+
+            for (i in 0 until size) {
+                val sb = java.lang.StringBuilder()
+                val cArr = charClasses.removeAt(0).toCharArray()
+                for (c in cArr) {
                     if (Arrays.binarySearch(blacklist, c) < 0) {
-                        sb.append(c);
+                        sb.append(c)
                     }
                 }
-                charClasses.add(sb.toString());
+                charClasses.add(sb.toString())
             }
         }
 
-        if (binding.chipLayout.isChecked()) {
-            //make sure password can be printed with the selected layout
-            var keyboardLayout = outputFragment.getSelectedLayout();
-
+        if (layout) {
+            val keyboardLayout = outputFragment?.selectedLayout
             if (keyboardLayout == null) {
-                Toast.makeText(requireContext(), R.string.cannot_apply_layout_filter, Toast.LENGTH_LONG).show();
-                return;
+                Toast.makeText(requireContext(), R.string.cannot_apply_layout_filter, Toast.LENGTH_LONG).show()
+                return
             }
 
-            for (var i = 0; i < size; i++) {
-
-                var sb = new StringBuilder();
-                var cArr = charClasses.remove(0).toCharArray();
-                for (var c : cArr) {
+            for (i in 0 until size) {
+                val sb = java.lang.StringBuilder()
+                val cArr = charClasses.removeAt(0).toCharArray()
+                for (c in cArr) {
                     if (keyboardLayout.forKey(c) != null) {
-                        //can type this character with this keyboard layout
-                        sb.append(c);
+                        sb.append(c)
                     }
                 }
-
-                charClasses.add(sb.toString());
+                charClasses.add(sb.toString())
             }
         }
 
-        //remove duplicates
-        for (var i = 0; i < size; i++) {
-            var s = charClasses.remove(0);
-            charClasses.add(s.replaceAll("(.)\\1+", "$1"));
+        // Remove duplicates
+        for (i in 0 until size) {
+            val s = charClasses.removeAt(0)
+            charClasses.add(s.replace(Regex("(.)\\1+"), "$1"))
         }
 
-        //remove empty classes
-        charClasses = charClasses.stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        // Remove empty classes
+        charClasses = charClasses.filter { it.isNotEmpty() }.toMutableList()
 
         if (charClasses.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.no_symbols_available, Toast.LENGTH_LONG).show();
-            return;
+            Toast.makeText(requireContext(), R.string.no_symbols_available, Toast.LENGTH_LONG).show()
+            return
         }
 
-        //ensure minimal occurrence
-        var list = new ArrayList<String>();
-        for (var i = 0; i < preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT); i++) {
-            list.addAll(charClasses);
+        val list = mutableListOf<String>()
+        for (i in 0 until occurs) {
+            list.addAll(charClasses)
         }
 
-        var rnd = new SecureRandom();
+        val rnd = SecureRandom()
 
-        while (list.size() < length) {
-            list.add(charClasses.get(rnd.nextInt(charClasses.size())));
+        while (list.size < pwdLength) {
+            list.add(charClasses[rnd.nextInt(charClasses.size)])
         }
 
-        var sb = new StringBuilder();
-
-        for (var i = 0; i < length; i++) {
-            var s = list.remove(rnd.nextInt(list.size()));
-            var cArr = s.toCharArray();
-            sb.append(cArr[rnd.nextInt(cArr.length)]);
+        val sb = java.lang.StringBuilder()
+        for (i in 0 until pwdLength) {
+            val s = list.removeAt(rnd.nextInt(list.size))
+            val cArr = s.toCharArray()
+            sb.append(cArr[rnd.nextInt(cArr.size)])
         }
 
-        var pwd = sb.toString();
-
-        binding.editTextPassword.setText(pwd);
+        passwordText = sb.toString()
+        setPwd(passwordText)
     }
 
-    private Runnable getSetPwd(String pwd) {
-        return () -> {
-            binding.editTextPassword.setEnabled(true);
-            outputFragment.setMessage(pwd, getString(R.string.unprotected_password));
-            switchControls(true);
-        };
+    private fun setPwd(pwd: String) {
+        isControlsEnabled = true
+        outputFragment?.setMessage(pwd, getString(R.string.unprotected_password))
+        requireActivity().invalidateOptionsMenu()
     }
 
-    private Consumer<String> getEncryptPwd(String pwd) {
-        return alias -> {
-            try {
-                var encrypted = MessageComposer.encodeAsOmsText(
-                        new EncryptedMessage(pwd.getBytes(StandardCharsets.UTF_8),
-                                Objects.requireNonNull(cryptographyManager.getByAlias(alias, preferences)).getPublic(),
-                                RSAUtil.getRsaTransformation(preferences),
-                                AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformation(preferences)).message);
+    private fun encryptPwd(alias: String, pwd: String) {
+        try {
+            val keyStoreEntry = cryptographyManager.getByAlias(alias, preferences)
+            val encryptedMessage = EncryptedMessage(
+                pwd.toByteArray(StandardCharsets.UTF_8),
+                Objects.requireNonNull(keyStoreEntry)?.public!!,
+                RSAUtil.getRsaTransformation(preferences),
+                AESUtil.getKeyLength(preferences),
+                AESUtil.getAesTransformation(preferences)
+            ).message
+            
+            val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
 
-                binding.editTextPassword.setEnabled(false);
-                outputFragment.setMessage(encrypted, getString(R.string.encrypted_password));
+            isControlsEnabled = false
+            outputFragment?.setMessage(encrypted, getString(R.string.encrypted_password))
+            requireActivity().invalidateOptionsMenu()
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+    }
 
-                //disable controls that can trigger password generator. Otherwise, the user can accidentally
-                //trigger password change.
-                switchControls(false);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+    private fun onPropertyChange(propertyName: String, value: Boolean) {
+        preferences.edit { putBoolean(propertyName, value) }
+        when (propertyName) {
+            PROP_UCASE -> uCase = value
+            PROP_LCASE -> lCase = value
+            PROP_DIGITS -> digits = value
+            PROP_SPECIALS -> specials = value
+            PROP_SIMILAR -> similar = value
+            PROP_LAYOUT -> layout = value
+        }
+        newPassword()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        preferences.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener)
+        
+        val ksf = childFragmentManager.findFragmentById(R.id.keyStoreListContainer)
+        val of = childFragmentManager.findFragmentById(R.id.outputContainer)
+        
+        if (ksf != null || of != null) {
+            val tx = childFragmentManager.beginTransaction()
+            if (ksf != null) tx.remove(ksf)
+            if (of != null) tx.remove(of)
+            tx.commitNowAllowingStateLoss()
+        }
+    }
+
+    private inner class PwdMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menuInflater.inflate(R.menu.menu_pwd_generator, menu)
+        }
+
+        override fun onPrepareMenu(menu: Menu) {
+            super.onPrepareMenu(menu)
+            val hasSelection = keyStoreListFragment?.getSelectionTracker()?.hasSelection() == true
+            menu.findItem(R.id.menuItemGenPwd)?.isVisible = !hasSelection
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.menuItemGenPwd -> {
+                    newPassword()
+                    true
+                }
+                R.id.menuItemUcase -> {
+                    showCharListDialogFor = PROP_UCASE_LIST
+                    true
+                }
+                R.id.menuItemLcase -> {
+                    showCharListDialogFor = PROP_LCASE_LIST
+                    true
+                }
+                R.id.menuItemDigits -> {
+                    showCharListDialogFor = PROP_DIGITS_LIST
+                    true
+                }
+                R.id.menuItemSpecials -> {
+                    showCharListDialogFor = PROP_SPECIALS_LIST
+                    true
+                }
+                R.id.menuItemSimilar -> {
+                    showCharListDialogFor = PROP_SIMILAR_LIST
+                    true
+                }
+                R.id.menuItemPwGenHelp -> {
+                    Util.openUrl(R.string.pwd_generator_md_url, requireContext())
+                    true
+                }
+                else -> false
             }
-        };
-    }
-
-    private void switchControls(boolean enabled) {
-        binding.chipPwdLength.setEnabled(enabled);
-        binding.chipLayout.setEnabled(enabled);
-        binding.chipSimilar.setEnabled(enabled);
-        binding.chipDigits.setEnabled(enabled);
-        binding.chipSpecials.setEnabled(enabled);
-        binding.chipUpperCase.setEnabled(enabled);
-        binding.chipLowerCase.setEnabled(enabled);
-        binding.chipOccurs.setEnabled(enabled);
-
-        requireActivity().invalidateOptionsMenu();
-    }
-
-    private void onPropertyChange(String propertyName, boolean value) {
-        preferences.edit().putBoolean(propertyName, value).apply();
-        newPassword();
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        requireActivity().removeMenuProvider(menuProvider);
-        preferences.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
-        binding = null;
-    }
-
-    private class PwdMenuProvider implements MenuProvider {
-
-        @Override
-        public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-            menuInflater.inflate(R.menu.menu_pwd_generator, menu);
-        }
-
-        @Override
-        public void onPrepareMenu(@NonNull Menu menu) {
-            MenuProvider.super.onPrepareMenu(menu);
-            menu.findItem(R.id.menuItemGenPwd).setVisible(!keyStoreListFragment.getSelectionTracker().hasSelection());
-        }
-
-        @Override
-        public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-            if (menuItem.getItemId() == R.id.menuItemGenPwd) {
-                newPassword();
-            } else if (menuItem.getItemId() == R.id.menuItemUcase) {
-                changeCharList(PROP_UCASE_LIST);
-            } else if (menuItem.getItemId() == R.id.menuItemLcase) {
-                changeCharList(PROP_LCASE_LIST);
-            } else if (menuItem.getItemId() == R.id.menuItemDigits) {
-                changeCharList(PROP_DIGITS_LIST);
-            } else if (menuItem.getItemId() == R.id.menuItemSpecials) {
-                changeCharList(PROP_SPECIALS_LIST);
-            } else if (menuItem.getItemId() == R.id.menuItemSimilar) {
-                changeCharList(PROP_SIMILAR_LIST);
-            } else if (menuItem.getItemId() == R.id.menuItemPwGenHelp) {
-                Util.openUrl(R.string.pwd_generator_md_url, requireContext());
-            } else {
-                return false;
-            }
-
-            return true;
         }
     }
 }

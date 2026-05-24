@@ -373,7 +373,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     }
                     .collect(Collectors.toList())
 
-                requireContext().mainExecutor.execute(Runnable {
+                requireContext().mainExecutor.execute {
                     refreshingBtControls.set(true)
                     try {
                         val isTyping = typing.get()
@@ -388,7 +388,11 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                         val restoredAddress = viewModel.state.selectedBluetoothAddress
                             ?: preferences!!.getString(PROP_LAST_SELECTED_BT_TARGET, null)
                         val targetItems = spinnerItems.map {
-                            OutputViewModel.BluetoothTargetItem(it.bluetoothDevice.address, it.toString(), it.bluetoothDevice)
+                            OutputViewModel.BluetoothTargetItem(
+                                it.bluetoothDevice.address,
+                                it.toString(),
+                                it.bluetoothDevice
+                            )
                         }
                         if (viewModel.state.selectedBluetoothAddress == null && restoredAddress != null) {
                             viewModel.onBluetoothTargetSelected(restoredAddress)
@@ -431,7 +435,7 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     } finally {
                         refreshingBtControls.set(false)
                     }
-                })
+                }
             } catch (_: IllegalStateException) {
                 Log.e(TAG, String.format("%s not attached to a context", this@OutputFragment))
             }
@@ -521,8 +525,9 @@ open class OutputFragment : FragmentWithNotificationBeforePause() {
                     return
                 }
 
-                val compatibleDevices = bluetoothController!!.bluetoothHidDevice
-                    .getDevicesMatchingConnectionStates(
+                val proxy = bluetoothController?.bluetoothHidDevice ?: return
+
+                val compatibleDevices = proxy.getDevicesMatchingConnectionStates(
                         intArrayOf(
                             BluetoothProfile.STATE_CONNECTING,
                             BluetoothProfile.STATE_CONNECTED,
