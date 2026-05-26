@@ -2,6 +2,7 @@ package com.onemoresecret
 
 import android.content.SharedPreferences
 import java.util.concurrent.TimeUnit
+import androidx.core.content.edit
 
 object QrRecentManager {
     const val PROP_RECENT_ENTRIES = "recent_entries"
@@ -38,9 +39,9 @@ object QrRecentManager {
                 recentEntries.removeAt(recentEntries.size - 1)
             }
 
-            preferences.edit()
-                .putString(PROP_RECENT_ENTRIES, OmsJson.encodeRecentEntries(recentEntries))
-                .apply()
+            preferences.edit {
+                putString(PROP_RECENT_ENTRIES, OmsJson.encodeRecentEntries(recentEntries))
+            }
         } catch (ex: Exception) {
             Util.printStackTrace(ex)
         }

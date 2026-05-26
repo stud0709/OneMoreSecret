@@ -11,7 +11,7 @@ import com.onemoresecret.navigation.*
 fun OmsApp() {
     val navController = rememberNavController()
 
-    NavHost(
+    androidx.navigation.compose.NavHost(
         navController = navController,
         startDestination = QrRoute
     ) {

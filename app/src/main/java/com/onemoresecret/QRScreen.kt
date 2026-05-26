@@ -37,6 +37,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -71,6 +72,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Collectors
 import java.util.stream.IntStream
+import androidx.core.net.toUri
 
 object QRScreen {
     const val PROP_USE_ZXING = "use_zxing"
@@ -90,6 +92,11 @@ object QRScreen {
 @Composable
 fun QRScreen(navController: NavController) {
     val context = LocalContext.current
+    val errorStartingCameraMsg = stringResource(id = R.string.error_starting_camera)
+    val contactEmailMsg = stringResource(id = R.string.contact_email)
+    val feedbackPromptMsg = stringResource(id = R.string.feedback_prompt)
+
+
     val activity = context as MainActivity
     val preferences = activity.getPreferences(Context.MODE_PRIVATE)
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -212,7 +219,7 @@ fun QRScreen(navController: NavController) {
                 provider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
             } catch (e: Exception) {
                 Util.printStackTrace(e)
-                Toast.makeText(context, String.format(context.getString(R.string.error_starting_camera), e.message), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, String.format(errorStartingCameraMsg, e.message), Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -380,133 +387,7 @@ fun QRScreen(navController: NavController) {
         }
     }
     
-    val menuProvider = remember {
-        object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.menu_qr, menu)
-            }
-
-            override fun onPrepareMenu(menu: Menu) {
-                menu.findItem(R.id.menuItemVersion).title = "${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})"
-                menu.findItem(R.id.menuItemClearWiFiComm).isVisible = activity.isWiFiCommSet
-                if (BuildConfig.FLAVOR == Util.FLAVOR_FOSS) {
-                    menu.findItem(R.id.menuItemZxing).isVisible = false
-                } else {
-                    menu.findItem(R.id.menuItemZxing).isChecked = isZxingEnabled
-                }
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                when (menuItem.itemId) {
-                    R.id.menuItemQrPrivateKeys -> navController.navigate(KeyManagementRoute)
-                    R.id.menuItemHelp -> Util.openUrl(R.string.qr_scanner_md_url, context)
-                    R.id.menuItemPwdGenerator -> navController.navigate(PasswordGeneratorRoute)
-                    R.id.menuItemHomePage -> Util.openUrl(R.string.readme_url, context)
-                    R.id.menuItemPaste -> processClipboard()
-                    R.id.menuItemFeedbackEmail -> {
-                        val crashReportData = CrashReportData(null)
-                        val sendEmail: (Boolean) -> Unit = { includeLogcat ->
-                            try {
-                                val intentSendTo = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf(context.getString(R.string.contact_email)))
-                                    putExtra(Intent.EXTRA_TEXT, context.getString(R.string.feedback_prompt) + "\n\n" + crashReportData.toString(includeLogcat))
-                                }
-                                context.startActivity(intentSendTo)
-                            } catch (ex: ActivityNotFoundException) {
-                                activity.mainExecutor.execute {
-                                    Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
-                        
-                        AlertDialog.Builder(context)
-                            .setTitle("Include logcat into feedback?")
-                            .setPositiveButton("Yes") { _, _ -> sendEmail(true) }
-                            .setNegativeButton("No") { dialog, _ ->
-                                sendEmail(false)
-                                dialog.dismiss()
-                            }
-                            .show()
-                    }
-                    R.id.menuItemFeedbackDiscord -> Util.openUrl(R.string.discord_url, context)
-                    R.id.menuItemEncryptText -> navController.navigate(EncryptTextRoute())
-                    R.id.menuItemTotp -> navController.navigate(TotpManualEntryRoute)
-                    R.id.menuItemPinSetup -> {
-                        callbacks.runPinProtected({ navController.navigate(PinSetupRoute) }, null, false)
-                    }
-                    R.id.menuItemLogcat -> {
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, CrashReportData(null).toString(true))
-                            putExtra(Intent.EXTRA_TITLE, "Diagnose Data")
-                            type = "text/plain"
-                        }
-                        context.startActivity(Intent.createChooser(sendIntent, null))
-                    }
-                    R.id.menuItemPanic -> {
-                        if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
-                            nextPinRequestTimestampOuter = 0
-                            Thread {
-                                OmsFileProvider.purgeTmp(context)
-                                preferences.edit().remove(QRScreen.PROP_RECENT_ENTRIES).commit()
-                                activity.mainExecutor.execute {
-                                    recentEntries = emptyList()
-                                }
-                            }.start()
-                            activity.mainExecutor.execute {
-                                Toast.makeText(context, R.string.locked, Toast.LENGTH_LONG).show()
-                            }
-                        } else {
-                            activity.mainExecutor.execute {
-                                Toast.makeText(context, R.string.enable_pin_first, Toast.LENGTH_LONG).show()
-                            }
-                            navController.navigate(PinSetupRoute)
-                        }
-                    }
-                    R.id.menuItemCryptoAdrGen -> navController.navigate(CryptoCurrencyAddressRoute)
-                    R.id.menuItemScreenshot -> {
-                        menuItem.isChecked = !menuItem.isChecked
-                        if (menuItem.isChecked) {
-                            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                        } else {
-                            activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                        }
-                        activity.mainExecutor.execute {
-                            Toast.makeText(
-                                context,
-                                "Screenshots ${if (menuItem.isChecked) "enabled" else "disabled"}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                    R.id.menuItemClearWiFiComm -> {
-                        activity.setWiFiComm(null, null)
-                        activity.mainExecutor.execute {
-                            Toast.makeText(context, "WiFi Pairing cleared", Toast.LENGTH_LONG).show()
-                        }
-                        showPairingIndicator = activity.isWiFiCommSet
-                    }
-                    R.id.menuItemZxing -> {
-                        val newZxing = !isZxingEnabled
-                        preferences.edit().putBoolean(QRScreen.PROP_USE_ZXING, newZxing).apply()
-                        isZxingEnabled = newZxing
-                        activity.invalidateOptionsMenu()
-                    }
-                    else -> return false
-                }
-                return true
-            }
-        }
-    }
-    
-    DisposableEffect(activity) {
-        activity.addMenuProvider(menuProvider)
-        onDispose { activity.removeMenuProvider(menuProvider) }
-    }
-    
-    if (showPinEntry) {
+if (showPinEntry) {
         Dialog(
             onDismissRequest = {
                 showPinEntry = false
@@ -582,7 +463,7 @@ fun QRScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { androidx.compose.material3.Text(stringResource(id = R.string.app_name)) },
+                title = { Text(stringResource(id = R.string.app_name)) },
                 actions = {
                     IconButton(onClick = { processClipboard() }) {
                         Icon(painterResource(id = R.drawable.baseline_content_paste_24), contentDescription = "Paste")
@@ -592,7 +473,7 @@ fun QRScreen(navController: NavController) {
                             nextPinRequestTimestampOuter = 0
                             Thread {
                                 OmsFileProvider.purgeTmp(context)
-                                preferences.edit().remove(QRScreen.PROP_RECENT_ENTRIES).commit()
+                                preferences.edit(commit = true) { remove(QRScreen.PROP_RECENT_ENTRIES) }
                                 activity.mainExecutor.execute { recentEntries = emptyList() }
                             }.start()
                             activity.mainExecutor.execute {
@@ -649,20 +530,76 @@ fun QRScreen(navController: NavController) {
                             }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.action_private_keys)) },
+                            text = { Text(stringResource(R.string.action_private_keys)) },
                             onClick = { expanded = false; navController.navigate(KeyManagementRoute) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(if (isZxingEnabled) "ZXing Enabled (On)" else "ZXing Enabled (Off)") },
+                            text = { Text(if (isZxingEnabled) "ZXing Enabled (On)" else "ZXing Enabled (Off)") },
                             onClick = {
                                 expanded = false
                                 val newZxing = !isZxingEnabled
-                                preferences.edit().putBoolean(QRScreen.PROP_USE_ZXING, newZxing).apply()
+                                preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
                                 isZxingEnabled = newZxing
                             }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.logcat)) },
+                            text = { Text("Feedback Email") },
+                            onClick = {
+                                expanded = false
+                                val crashReportData = CrashReportData(null)
+                                val sendEmail: (Boolean) -> Unit = { includeLogcat ->
+                                    try {
+                                        val intentSendTo = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = "mailto:".toUri()
+                                            putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback")
+                                            putExtra(Intent.EXTRA_EMAIL, arrayOf(contactEmailMsg))
+                                            putExtra(Intent.EXTRA_TEXT, feedbackPromptMsg + "\n\n" + crashReportData.toString(includeLogcat))
+                                        }
+                                        context.startActivity(intentSendTo)
+                                    } catch (ex: ActivityNotFoundException) {
+                                        activity.mainExecutor.execute {
+                                            Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                                
+                                AlertDialog.Builder(context)
+                                    .setTitle("Include logcat into feedback?")
+                                    .setPositiveButton("Yes") { _, _ -> sendEmail(true) }
+                                    .setNegativeButton("No") { dialog, _ ->
+                                        sendEmail(false)
+                                        dialog.dismiss()
+                                    }
+                                    .show()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Feedback Discord") },
+                            onClick = { expanded = false; Util.openUrl(R.string.discord_url, context) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Toggle Screenshot") },
+                            onClick = {
+                                expanded = false
+                                // we don't have menuItem.isChecked, so we just toggle
+                                val flags = activity.window.attributes.flags
+                                val isSecure = (flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+                                if (isSecure) {
+                                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                                } else {
+                                    activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                                }
+                                activity.mainExecutor.execute {
+                                    Toast.makeText(
+                                        context,
+                                        "Screenshots ",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.logcat)) },
                             onClick = {
                                 expanded = false
                                 val sendIntent = Intent().apply {
@@ -675,15 +612,15 @@ fun QRScreen(navController: NavController) {
                             }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.project_home_page)) },
+                            text = { Text(stringResource(R.string.project_home_page)) },
                             onClick = { expanded = false; Util.openUrl(R.string.readme_url, context) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.help)) },
+                            text = { Text(stringResource(R.string.help)) },
                             onClick = { expanded = false; Util.openUrl(R.string.qr_scanner_md_url, context) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(" ()") },
+                            text = { Text(" ()") },
                             onClick = { expanded = false }
                         )
                     }
@@ -698,6 +635,7 @@ fun QRScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .clipToBounds()
         ) {
             AndroidView(
                 factory = { ctx ->
@@ -760,7 +698,7 @@ fun QRScreen(navController: NavController) {
                         androidx.compose.material3.OutlinedButton(
                             onClick = { messageHandler.onMessage(entry.message, false) }
                         ) {
-                            androidx.compose.material3.Icon(
+                            Icon(
                                 painter = painterResource(id = entry.drawableId),
                                 contentDescription = "Recent Message"
                             )
@@ -768,16 +706,6 @@ fun QRScreen(navController: NavController) {
                     }
                 }
             }
-
-            AndroidView(
-                factory = { ctx ->
-                    TextView(ctx).apply {
-                        text = ctx.getText(R.string.qr_banner)
-                        movementMethod = LinkMovementMethod.getInstance()
-                    }
-                },
-                modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
-            )
 
             AndroidView(
                 factory = { ctx ->
