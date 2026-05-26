@@ -84,22 +84,3 @@ fun PrivateKeyListItem(
         }
     }
 }
-
-fun createPrivateKeyListItemComposeView(parent: ViewGroup): ComposeView {
-    return ComposeView(parent.context).apply {
-        layoutParams = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        setBackgroundResource(R.drawable.list_selector)
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
-    }
-}
-
-fun bindPrivateKeyListItem(composeView: ComposeView, alias: String, fingerprint: String, selected: Boolean) {
-    composeView.setContent {
-        OneMoreSecretTheme {
-            PrivateKeyListItem(alias = alias, fingerprint = "…%s".format(fingerprint.takeLast(10)), selected)
-        }
-    }
-}

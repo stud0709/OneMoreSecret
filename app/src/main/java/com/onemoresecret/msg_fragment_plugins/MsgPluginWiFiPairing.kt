@@ -49,8 +49,7 @@ class MsgPluginWiFiPairing(
             context.mainExecutor.execute {
                 responseCode = Base58.encode(ipAndPort.responseCode)
                 onStartClick = {
-                    outputViewModel.setShareTitle("Response Code")
-                    // Would set message to outputViewModel...
+                    outputViewModel.setMessage(responseCode, "Response Code")
                     (context as MainActivity).setWiFiComm(
                         MainActivity.WiFiComm(
                             ipAndPort.ipAddress,
@@ -76,14 +75,7 @@ class MsgPluginWiFiPairing(
 
     @Composable
     override fun OutputView() {
-        OutputScreen(
-            state = outputViewModel.state,
-            onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
-            onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
-            onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
-            onDiscoverableClick = {},
-            onTypeClick = {}
-        )
+        OutputScreen(outputViewModel = outputViewModel)
     }
 
     override fun showBiometricPromptForDecryption() {

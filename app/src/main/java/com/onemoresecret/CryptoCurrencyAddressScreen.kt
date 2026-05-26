@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -77,7 +77,7 @@ fun CryptoCurrencyAddressScreen() {
                     ).message
                     
                     val encoded = MessageComposer.encodeAsOmsText(encryptedMessage)
-                    outputViewModel.setShareTitle(context.getString(R.string.wif_encrypted))
+                    outputViewModel.setMessage(encoded, context.getString(R.string.wif_encrypted))
                     
                     // Generate backup HTML
                     val stringBuilder = java.lang.StringBuilder()
@@ -146,7 +146,7 @@ fun CryptoCurrencyAddressScreen() {
             }
         } else {
             backupHtml = null
-            outputViewModel.setShareTitle(context.getString(R.string.public_address))
+            outputViewModel.setMessage(address, context.getString(R.string.public_address))
         }
     }
 
@@ -156,7 +156,7 @@ fun CryptoCurrencyAddressScreen() {
                 title = { Text(stringResource(R.string.crypto_address_generator)) },
                 actions = {
                     IconButton(onClick = { newBitcoinAddress() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "New Address")
+                        Icon(Icons.Filled.AutoFixHigh, contentDescription = "New Address")
                     }
                     IconButton(onClick = {
                         Util.openUrl(R.string.crypto_address_generator_url, context)
@@ -230,14 +230,7 @@ fun CryptoCurrencyAddressScreen() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Box(modifier = Modifier.wrapContentHeight().fillMaxWidth()) {
-                OutputScreen(
-                    state = outputViewModel.state,
-                    onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
-                    onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
-                    onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
-                    onDiscoverableClick = {}, // TODO: handle bluetooth discoverable
-                    onTypeClick = {} // TODO: handle type click
-                )
+                OutputScreen(outputViewModel = outputViewModel)
             }
         }
     }

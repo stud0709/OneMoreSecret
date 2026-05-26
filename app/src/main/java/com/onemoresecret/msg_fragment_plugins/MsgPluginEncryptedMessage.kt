@@ -20,7 +20,7 @@ open class MsgPluginEncryptedMessage(
     private val outputViewModel = OutputViewModel(preferences)
 
     init {
-        outputViewModel.setShareTitle(context.getString(R.string.decrypted_message))
+        outputViewModel.setMessage(message, context.getString(R.string.decrypted_message))
     }
 
     override fun showBiometricPromptForDecryption() {
@@ -34,14 +34,7 @@ open class MsgPluginEncryptedMessage(
 
     @Composable
     override fun OutputView() {
-        OutputScreen(
-            state = outputViewModel.state,
-            onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
-            onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
-            onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
-            onDiscoverableClick = {}, // TODO: handle bluetooth typing
-            onTypeClick = {} // TODO: handle type click
-        )
+        OutputScreen(outputViewModel = outputViewModel)
     }
 
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {

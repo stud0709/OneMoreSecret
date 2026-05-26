@@ -3,8 +3,6 @@ package com.onemoresecret
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,8 +84,8 @@ fun TotpManualEntryScreen() {
 
                 if (lastState != otpState.current) {
                     if (selectedAlias == null) {
-                        outputViewModel.setShareTitle("One-Time-Password")
                         outputMessage = code
+                        outputViewModel.setMessage(outputMessage, "One-Time-Password")
                     } else {
                         val keyStoreEntry = cryptographyManager.getByAlias(selectedAlias!!, preferences)
                         if (keyStoreEntry != null) {
@@ -100,8 +98,8 @@ fun TotpManualEntryScreen() {
                                     AESUtil.getAesTransformation(preferences)
                                 ).message
                             )
-                            outputViewModel.setShareTitle("TOTP Configuration (encrypted)")
                             outputMessage = result
+                            outputViewModel.setMessage(outputMessage, "TOTP Configuration (encrypted)")
                         }
                     }
                     lastState = otpState.current
@@ -149,8 +147,7 @@ fun TotpManualEntryScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
@@ -275,7 +272,7 @@ fun TotpManualEntryScreen() {
 
         Box(modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)) {
+            .weight(1f)) {
             KeyStoreListScreen(
                 onSelectionChanged = { alias ->
                     selectedAlias = alias
@@ -286,14 +283,7 @@ fun TotpManualEntryScreen() {
         Box(modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()) {
-            OutputScreen(
-                state = outputViewModel.state,
-                onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
-                onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
-                onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
-                onDiscoverableClick = { },
-                onTypeClick = { }
-            )
+            OutputScreen(outputViewModel = outputViewModel)
         }
         }
     }

@@ -1,22 +1,45 @@
 package com.onemoresecret.composable
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothHidDevice
+import android.bluetooth.BluetoothProfile
+import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.onemoresecret.R
+import com.onemoresecret.Util.byteArrayToHex
+import com.onemoresecret.Util.printStackTrace
+import com.onemoresecret.bt.BluetoothController
+import com.onemoresecret.bt.KeyboardReport
 import com.onemoresecret.bt.layout.KeyboardLayout
+import com.onemoresecret.bt.layout.Stroke
 import java.util.Arrays
 import java.util.Comparator
 import java.util.Objects
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.stream.Collectors
 
 class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
     var state by mutableStateOf(State())
         private set
 
     private var keyboardLayouts: List<KeyboardLayout> = emptyList()
+    var bluetoothController: BluetoothController? = null
+    var context: Context? = null
+
+    val typing = AtomicBoolean(false)
+    val refreshingBtControls = AtomicBoolean(false)
 
     fun initializeKeyboardLayouts() {
         if (keyboardLayouts.isNotEmpty()) return
@@ -39,18 +62,25 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         )
     }
 
-    fun setShareTitle(shareTitle: String) {
-        state = state.copy(typingText = if (state.isTyping) state.typingText else shareTitle)
+    var message: String? = null
+        private set
+
+    fun setMessage(message: String?, shareTitle: String) {
+        this.message = message
+        state = state.copy(typingText = if (typing.get()) state.typingText else shareTitle)
     }
 
     fun onBluetoothTargetSelected(address: String) {
         prefs.edit { putString(PROP_LAST_SELECTED_BT_TARGET, address) }
         state = state.copy(selectedBluetoothAddress = address)
+        checkConnectSelectedDevice()
+        refreshBluetoothControls()
     }
 
     fun onKeyboardLayoutSelected(className: String) {
         prefs.edit { putString(PROP_LAST_SELECTED_KEYBOARD_LAYOUT, className) }
         state = state.copy(selectedKeyboardLayoutClassName = className)
+        refreshBluetoothControls()
     }
 
     fun onDelayedStrokesChanged(enabled: Boolean) {
@@ -100,6 +130,271 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         )
     }
 
+    fun refreshBluetoothControls() {
+        if (refreshingBtControls.get()) return
+        val ctx = context ?: return
+
+        Thread {
+            try {
+                if (bluetoothController == null || !bluetoothController!!.isBluetoothAvailable ||
+                    ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
+                    ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    ctx.mainExecutor.execute {
+                        refreshingBtControls.set(true)
+                        try {
+                            updateUiState(
+                                bluetoothAvailable = false,
+                                bluetoothTargets = emptyList(),
+                                bluetoothStatusText = ctx.getString(R.string.bt_not_available),
+                                bluetoothStatusIcon = R.drawable.ic_baseline_bluetooth_disabled_24,
+                                discoverableEnabled = false,
+                                keyboardLayoutEnabled = false,
+                                bluetoothTargetEnabled = false,
+                                typeButtonEnabled = false,
+                                delayedStrokesEnabled = false,
+                                typingText = state.typingText,
+                                isTyping = false
+                            )
+                        } catch (ex: IllegalStateException) {
+                            Log.e(TAG, "Context invalid", ex)
+                        } finally {
+                            refreshingBtControls.set(false)
+                        }
+                    }
+                    return@Thread
+                }
+
+                val bluetoothAdapter = bluetoothController!!.adapter ?: return@Thread
+                val bluetoothAdapterEnabled = bluetoothAdapter.isEnabled
+
+                if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                    // Just proceed without checking scan mode if no permission
+                }
+
+                val discoverable =
+                    bluetoothAdapter.scanMode == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE
+
+                val hidDevice = bluetoothController!!.bluetoothHidDevice
+                val connectedDevices =
+                    hidDevice?.connectedDevices ?: mutableListOf<BluetoothDevice?>()
+
+                val spinnerItems = bluetoothAdapter.bondedDevices
+                    .stream()
+                    .filter { d: BluetoothDevice? ->
+                        d?.bluetoothClass?.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER
+                    }
+                    .map { bluetoothDevice -> SpinnerItemDevice(ctx, bluetoothDevice) }
+                    .sorted { s1: SpinnerItemDevice, s2: SpinnerItemDevice ->
+                        val i1 = if (connectedDevices.contains(s1.bluetoothDevice)) 0 else 1
+                        val i2 = if (connectedDevices.contains(s2.bluetoothDevice)) 0 else 1
+                        if (i1 != i2) return@sorted i1.compareTo(i2)
+                        s1.toString().compareTo(s2.toString())
+                    }
+                    .collect(Collectors.toList())
+
+                ctx.mainExecutor.execute {
+                    refreshingBtControls.set(true)
+                    try {
+                        val isTyping = typing.get()
+                        var status = ctx.getString(R.string.bt_off)
+                        var icon = R.drawable.ic_baseline_bluetooth_disabled_24
+
+                        if (bluetoothAdapterEnabled) {
+                            status = ctx.getString(R.string.bt_disconnected)
+                            icon = R.drawable.ic_baseline_bluetooth_24
+                        }
+
+                        val restoredAddress = state.selectedBluetoothAddress
+                            ?: prefs.getString(PROP_LAST_SELECTED_BT_TARGET, null)
+                        val targetItems = spinnerItems.map {
+                            BluetoothTargetItem(
+                                it.bluetoothDevice.address,
+                                it.toString(),
+                                it.bluetoothDevice
+                            )
+                        }
+                        if (state.selectedBluetoothAddress == null && restoredAddress != null) {
+                            onBluetoothTargetSelected(restoredAddress)
+                        }
+
+                        if (hidDevice != null && spinnerItems.isNotEmpty()) {
+                            val selectedAddress = state.selectedBluetoothAddress ?: restoredAddress
+                            val device = spinnerItems.firstOrNull { it.bluetoothDevice.address == selectedAddress }?.bluetoothDevice
+                                ?: spinnerItems[0].bluetoothDevice
+
+                            if (connectedDevices.contains(device)) {
+                                status = ctx.getString(R.string.bt_connected)
+                                icon = R.drawable.ic_baseline_bluetooth_connected_24
+                            }
+                        }
+
+                        updateUiState(
+                            bluetoothAvailable = true,
+                            bluetoothTargets = targetItems,
+                            bluetoothStatusText = status,
+                            bluetoothStatusIcon = icon,
+                            discoverableEnabled = !discoverable && !isTyping,
+                            keyboardLayoutEnabled = !isTyping,
+                            bluetoothTargetEnabled = !isTyping,
+                            typeButtonEnabled = targetItems.isNotEmpty(),
+                            delayedStrokesEnabled = !isTyping,
+                            typingText = state.typingText,
+                            isTyping = isTyping
+                        )
+                    } catch (ex: IllegalStateException) {
+                        Log.e(TAG, "Context invalid", ex)
+                    } finally {
+                        refreshingBtControls.set(false)
+                    }
+                }
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
+        }.start()
+    }
+
+    private fun checkConnectSelectedDevice() {
+        val ctx = context ?: return
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        val device = getSelectedBluetoothDevice()?.bluetoothDevice ?: return
+        Log.d(TAG, String.format("Selected device: %s", device.name))
+
+        val proxy = bluetoothController?.bluetoothHidDevice ?: return
+
+        proxy.connectedDevices.stream()
+            .filter { d: BluetoothDevice? -> d?.address != device.address }
+            .forEach { connectedDevice: BluetoothDevice? -> proxy.disconnect(connectedDevice) }
+
+        val hidDevice = bluetoothController?.bluetoothHidDevice ?: return
+
+        if (hidDevice.getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
+            Log.d(
+                TAG, String.format(
+                    "Trying to connect %s: %s",
+                    device.name,
+                    hidDevice.connect(device)
+                )
+            )
+        }
+    }
+
+    fun type(strokes: MutableList<Stroke?>) {
+        val ctx = context ?: return
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        if (typing.get()) {
+            typing.set(false)
+            refreshBluetoothControls()
+            return
+        }
+
+        Log.d(TAG, "sending message (size: " + strokes.size + ")")
+
+        typing.set(true)
+        refreshBluetoothControls()
+
+        Thread {
+            val bluetoothDevice = getSelectedBluetoothDevice()?.bluetoothDevice ?: return@Thread
+            strokes.stream()
+                .filter { _: Stroke? -> typing.get() }
+                .flatMap<KeyboardReport?> { s: Stroke? -> s!!.get().stream() }
+                .forEach { r: KeyboardReport? ->
+                    try {
+                        bluetoothController!!
+                            .bluetoothHidDevice
+                            ?.sendReport(
+                                bluetoothDevice,
+                                0,
+                                r!!.report
+                            )
+                    } catch (ex: Exception) {
+                        printStackTrace(ex)
+                        typing.set(false)
+                        return@forEach
+                    }
+                    try {
+                        val delayOn = prefs.getLong("kbd_stroke_delay_on", 50)
+                        val delayOff = prefs.getLong("kbd_stroke_delay_off", 10)
+                        Thread.sleep(if (state.delayedStrokes) delayOn else delayOff)
+                    } catch (e: InterruptedException) {
+                        printStackTrace(e)
+                    }
+                }
+
+            typing.set(false)
+            refreshBluetoothControls()
+        }.start()
+    }
+
+    inner class SpinnerItemDevice internal constructor(val ctx: Context, val bluetoothDevice: BluetoothDevice) {
+        override fun toString(): String {
+            try {
+                if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    throw RuntimeException(ctx.getString(R.string.insufficient_permissions))
+                }
+                return bluetoothDevice.alias ?: bluetoothDevice.name ?: bluetoothDevice.address
+            } catch (_: IllegalStateException) {
+                Log.e(TAG, "Context invalid")
+            }
+            return super.toString()
+        }
+    }
+
+    val hidDeviceCallback = object : BluetoothHidDevice.Callback() {
+        override fun onConnectionStateChanged(device: BluetoothDevice?, btState: Int) {
+            super.onConnectionStateChanged(device, btState)
+            Log.i(TAG, "onConnectionStateChanged -  device: $device, state: $btState")
+            refreshBluetoothControls()
+        }
+
+        override fun onSetReport(device: BluetoothDevice, type: Byte, id: Byte, data: ByteArray) {
+            super.onSetReport(device, type, id, data)
+            Log.i(TAG, "onSetReport - device: $device, type: $type, id: $id, data: " + byteArrayToHex(data))
+        }
+
+        override fun onGetReport(device: BluetoothDevice?, type: Byte, id: Byte, bufferSize: Int) {
+            super.onGetReport(device, type, id, bufferSize)
+            Log.i(TAG, "onGetReport - device: $device, type: $type id: $id, bufferSize: $bufferSize")
+        }
+
+        override fun onAppStatusChanged(device: BluetoothDevice?, registered: Boolean) {
+            super.onAppStatusChanged(device, registered)
+            try {
+                Log.i(TAG, "onAppStatusChanged -  device: $device, registered: $registered")
+                val proxy = bluetoothController?.bluetoothHidDevice ?: return
+                
+                val ctx = context ?: return
+                if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return
+                
+                val compatibleDevices = proxy.getDevicesMatchingConnectionStates(
+                    intArrayOf(
+                        BluetoothProfile.STATE_CONNECTING,
+                        BluetoothProfile.STATE_CONNECTED,
+                        BluetoothProfile.STATE_DISCONNECTED,
+                        BluetoothProfile.STATE_DISCONNECTING
+                    )
+                )
+                Log.d(TAG, "compatible devices: $compatibleDevices")
+
+                checkConnectSelectedDevice()
+                refreshBluetoothControls()
+            } catch (_: IllegalStateException) {
+                Log.e(TAG, "Context invalid")
+            }
+        }
+
+        override fun onInterruptData(device: BluetoothDevice?, reportId: Byte, data: ByteArray) {
+            super.onInterruptData(device, reportId, data)
+            Log.d(TAG, "onInterruptData -  device: $device, reportId: $reportId, data: " + byteArrayToHex(data))
+        }
+    }
+
     class Factory(private val prefs: SharedPreferences) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(OutputViewModel::class.java)) {
@@ -134,5 +429,6 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
     companion object {
         private const val PROP_LAST_SELECTED_KEYBOARD_LAYOUT = "last_selected_kbd_layout"
         private const val PROP_LAST_SELECTED_BT_TARGET = "last_selected_bt_target"
+        private val TAG = OutputViewModel::class.java.simpleName
     }
 }

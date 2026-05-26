@@ -69,6 +69,7 @@ class CrashReportData(private val throwable: Throwable?) : Serializable {
                         PrintWriter(sw).use { pw ->
                             var line: String?
                             while ((bais.readLine().also { line = it }) != null) {
+                                if (line?.contains("setRequestedFrameRate") == true) continue //noise from CameraX
                                 pw.println(line)
                             }
                             Log.d(

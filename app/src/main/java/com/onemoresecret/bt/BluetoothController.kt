@@ -15,11 +15,9 @@ import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
-
 class BluetoothController(
-    private val fragment: Fragment,
-    onActivityResult: ActivityResultCallback<ActivityResult>,
+    private val context: Context,
+    private val activityResultLauncher: ActivityResultLauncher<Intent>?,
     private val callback: BluetoothHidDevice.Callback
 ) : BluetoothProfile.ServiceListener {
 
@@ -32,9 +30,7 @@ class BluetoothController(
     )
 
     private val bluetoothManager: BluetoothManager? =
-        fragment.requireContext().getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
-
-    private val activityResultLauncher: ActivityResultLauncher<Intent>?
+        context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
 
     var bluetoothHidDevice: BluetoothHidDevice? = null
         private set
@@ -42,16 +38,9 @@ class BluetoothController(
     init {
         if (bluetoothManager == null) {
             Log.i(TAG, "No bluetooth Manager found")
-            activityResultLauncher = null
         } else {
-            val b = adapter?.getProfileProxy(fragment.context, this, BluetoothProfile.HID_DEVICE)
+            val b = adapter?.getProfileProxy(context, this, BluetoothProfile.HID_DEVICE)
             Log.i(TAG, "getProfileProxy: $b")
-
-            //prepare intent "request discoverable"
-            activityResultLauncher = fragment.registerForActivityResult(
-                ActivityResultContracts.StartActivityForResult(),
-                onActivityResult
-            )
         }
     }
 
@@ -71,7 +60,7 @@ class BluetoothController(
     fun destroy() {
         try {
             if (ActivityCompat.checkSelfPermission(
-                    fragment.requireContext(),
+                    context,
                     Manifest.permission.BLUETOOTH_CONNECT
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
@@ -87,7 +76,7 @@ class BluetoothController(
             }
         } catch (_: IllegalStateException) {
             //things are happening outside the context
-            Log.e(TAG, "$fragment not attached to a context")
+            Log.e(TAG, "Not attached to a context")
         }
     }
 
@@ -101,7 +90,7 @@ class BluetoothController(
         try {
             bluetoothHidDevice = proxy as BluetoothHidDevice
             if (ActivityCompat.checkSelfPermission(
-                    fragment.requireContext(),
+                    context,
                     Manifest.permission.BLUETOOTH_CONNECT
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
@@ -117,14 +106,14 @@ class BluetoothController(
                         sdpRecord,
                         null,
                         null,
-                        fragment.requireContext().mainExecutor,
+                        context.mainExecutor,
                         callback
                     )
                 )
             )
         } catch (_: IllegalStateException) {
             //things are happening outside the context
-            Log.e(TAG, "$fragment not attached to a context")
+            Log.e(TAG, "Not attached to a context")
         }
     }
 

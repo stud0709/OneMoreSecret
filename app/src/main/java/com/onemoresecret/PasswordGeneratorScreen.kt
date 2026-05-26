@@ -4,11 +4,15 @@ import android.content.Context
 import android.widget.NumberPicker
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.edit
 import com.onemoresecret.crypto.*
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.util.Arrays
@@ -52,6 +59,15 @@ fun PasswordGeneratorScreen() {
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
 
+    val outputViewModel: OutputViewModel = viewModel(
+        factory = OutputViewModel.Factory(preferences)
+    )
+    
+    // Initialize keyboard layouts
+    LaunchedEffect(Unit) {
+        outputViewModel.initializeKeyboardLayouts()
+    }
+
     var pwdLength by remember { mutableIntStateOf(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)) }
     var occurs by remember { mutableIntStateOf(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT)) }
     var uCase by remember { mutableStateOf(preferences.getBoolean(PROP_UCASE, true)) }
@@ -67,11 +83,12 @@ fun PasswordGeneratorScreen() {
     var showPwdLenDialog by remember { mutableStateOf(false) }
     var showOccursDialog by remember { mutableStateOf(false) }
     var showCharListDialogFor by remember { mutableStateOf<String?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
     
     var selectedAlias by remember { mutableStateOf<String?>(null) }
     val cryptographyManager = remember { CryptographyManager() }
 
-    val newPassword = {
+    val newPassword = newPassword@{
         if (selectedAlias != null) {
             // Cannot generate new password when a key is selected
         } else {
@@ -99,8 +116,22 @@ fun PasswordGeneratorScreen() {
             }
 
             if (layout) {
-                // TODO: we need to check if selectedLayout is available from OutputScreen
-                // For now, let's just use the characters
+                val keyboardLayout = outputViewModel.getSelectedKeyboardLayout()
+                if (keyboardLayout == null) {
+                    Toast.makeText(context, R.string.cannot_apply_layout_filter, Toast.LENGTH_LONG).show()
+                    return@newPassword
+                }
+
+                for (i in 0 until size) {
+                    val sb = java.lang.StringBuilder()
+                    val cArr = charClasses.removeAt(0).toCharArray()
+                    for (c in cArr) {
+                        if (keyboardLayout.forKey(c) != null) {
+                            sb.append(c)
+                        }
+                    }
+                    charClasses.add(sb.toString())
+                }
             }
 
             for (i in 0 until size) {
@@ -137,6 +168,30 @@ fun PasswordGeneratorScreen() {
         }
     }
     
+    LaunchedEffect(passwordText, selectedAlias) {
+        if (passwordText.isEmpty()) return@LaunchedEffect
+        if (selectedAlias != null) {
+            try {
+                val keyStoreEntry = cryptographyManager.getByAlias(selectedAlias!!, preferences)
+                val encryptedMessage = EncryptedMessage(
+                    passwordText.toByteArray(StandardCharsets.UTF_8),
+                    java.util.Objects.requireNonNull(keyStoreEntry)?.public!!,
+                    RSAUtil.getRsaTransformation(preferences),
+                    AESUtil.getKeyLength(preferences),
+                    AESUtil.getAesTransformation(preferences)
+                ).message
+                val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
+                isControlsEnabled = false
+                outputViewModel.setMessage(encrypted, context.getString(R.string.encrypted_password))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            isControlsEnabled = true
+            outputViewModel.setMessage(passwordText, context.getString(R.string.unprotected_password))
+        }
+    }
+
     LaunchedEffect(Unit) {
         newPassword()
     }
@@ -148,10 +203,52 @@ fun PasswordGeneratorScreen() {
                 actions = {
                     if (selectedAlias == null) {
                         IconButton(onClick = { newPassword() }) {
-                            Icon(Icons.Filled.Password, contentDescription = "Generate")
+                            Icon(Icons.Filled.AutoFixHigh, contentDescription = "Generate")
                         }
                     }
-                    // Add other menu items (Ucase, Lcase etc) as DropdownMenuItem if desired
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            if (selectedAlias == null) {
+                                DropdownMenuItem(
+                                    text = { Text(context.getString(R.string.password_generator)) },
+                                    onClick = { showMenu = false; newPassword() }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.chip_upper_case)) },
+                                onClick = { showMenu = false; showCharListDialogFor = PROP_UCASE_LIST }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.chip_lower_case)) },
+                                onClick = { showMenu = false; showCharListDialogFor = PROP_LCASE_LIST }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.chip_numbers)) },
+                                onClick = { showMenu = false; showCharListDialogFor = PROP_DIGITS_LIST }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.chip_specials)) },
+                                onClick = { showMenu = false; showCharListDialogFor = PROP_SPECIALS_LIST }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(context.getString(R.string.chip_similar)) },
+                                onClick = { showMenu = false; showCharListDialogFor = PROP_SIMILAR_LIST }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Help") },
+                                onClick = { 
+                                    showMenu = false
+                                    Util.openUrl(R.string.pwd_generator_md_url, context)
+                                }
+                            )
+                        }
+                    }
                 }
             )
         }
@@ -161,6 +258,7 @@ fun PasswordGeneratorScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -243,27 +341,7 @@ fun PasswordGeneratorScreen() {
 
             OutlinedTextField(
                 value = passwordText,
-                onValueChange = { 
-                    passwordText = it
-                    if (selectedAlias != null) {
-                        try {
-                            val keyStoreEntry = cryptographyManager.getByAlias(selectedAlias!!, preferences)
-                            val encryptedMessage = EncryptedMessage(
-                                it.toByteArray(StandardCharsets.UTF_8),
-                                java.util.Objects.requireNonNull(keyStoreEntry)?.public!!,
-                                RSAUtil.getRsaTransformation(preferences),
-                                AESUtil.getKeyLength(preferences),
-                                AESUtil.getAesTransformation(preferences)
-                            ).message
-                            val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
-                            isControlsEnabled = false
-                        } catch (e: Exception) {
-                            throw RuntimeException(e)
-                        }
-                    } else {
-                        isControlsEnabled = true
-                    }
-                },
+                onValueChange = { passwordText = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(context.getString(R.string.password)) },
                 enabled = isControlsEnabled,
@@ -280,7 +358,7 @@ fun PasswordGeneratorScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.height(250.dp).fillMaxWidth()) {
                 KeyStoreListScreen(onSelectionChanged = { alias -> 
                     selectedAlias = alias
                     if (alias != null) {
@@ -291,8 +369,136 @@ fun PasswordGeneratorScreen() {
                     }
                 })
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Box(modifier = Modifier.wrapContentHeight().fillMaxWidth()) {
+                OutputScreen(outputViewModel = outputViewModel)
+            }
         }
     }
+
+    if (showPwdLenDialog) {
+        NumberPickerDialog(
+            title = "Password Length",
+            currentValue = pwdLength,
+            minValue = PWD_LEN_MIN,
+            maxValue = PWD_LEN_MAX,
+            onDismiss = { showPwdLenDialog = false },
+            onConfirm = { 
+                preferences.edit { putInt(PROP_PWD_LENGTH, it) }
+                pwdLength = it
+                newPassword()
+                showPwdLenDialog = false
+            }
+        )
+    }
+
+    if (showOccursDialog) {
+        NumberPickerDialog(
+            title = "Minimum Occurrences",
+            currentValue = occurs,
+            minValue = OCCURS_MIN,
+            maxValue = OCCURS_MAX,
+            onDismiss = { showOccursDialog = false },
+            onConfirm = { 
+                preferences.edit { putInt(PROP_OCCURS, it) }
+                occurs = it
+                newPassword()
+                showOccursDialog = false
+            }
+        )
+    }
+
+    showCharListDialogFor?.let { propName ->
+        val titleId = when (propName) {
+            PROP_UCASE_LIST -> R.string.chip_upper_case
+            PROP_LCASE_LIST -> R.string.chip_lower_case
+            PROP_DIGITS_LIST -> R.string.chip_numbers
+            PROP_SPECIALS_LIST -> R.string.chip_specials
+            PROP_SIMILAR_LIST -> R.string.chip_similar
+            else -> R.string.app_name
+        }
+        val defaultVal = when (propName) {
+            PROP_UCASE_LIST -> DEFAULT_LCASE.uppercase()
+            PROP_LCASE_LIST -> DEFAULT_LCASE
+            PROP_DIGITS_LIST -> DEFAULT_DIGITS
+            PROP_SPECIALS_LIST -> DEFAULT_SPECIALS
+            PROP_SIMILAR_LIST -> DEFAULT_SIMILAR
+            else -> ""
+        }
+        CharListDialog(
+            title = context.getString(titleId),
+            currentValue = preferences.getString(propName, defaultVal) ?: defaultVal,
+            onDismiss = { showCharListDialogFor = null },
+            onConfirm = { 
+                preferences.edit { putString(propName, it) }
+                newPassword()
+                showCharListDialogFor = null
+            }
+        )
+    }
+}
+
+@Composable
+fun NumberPickerDialog(
+    title: String,
+    currentValue: Int,
+    minValue: Int,
+    maxValue: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var value by remember { mutableIntStateOf(currentValue) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            AndroidView(
+                factory = { ctx ->
+                    NumberPicker(ctx).apply {
+                        this.minValue = minValue
+                        this.maxValue = maxValue
+                        this.value = currentValue
+                        setOnValueChangedListener { _, _, newVal -> value = newVal }
+                    }
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(value) }) { Text(android.R.string.ok.let { LocalContext.current.getString(it) }) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(android.R.string.cancel.let { LocalContext.current.getString(it) }) }
+        }
+    )
+}
+
+@Composable
+fun CharListDialog(
+    title: String,
+    currentValue: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var value by remember { mutableStateOf(currentValue) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(value) }) { Text(android.R.string.ok.let { LocalContext.current.getString(it) }) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(android.R.string.cancel.let { LocalContext.current.getString(it) }) }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

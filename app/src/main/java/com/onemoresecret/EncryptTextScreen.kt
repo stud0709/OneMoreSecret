@@ -56,7 +56,7 @@ fun EncryptTextScreen(
                     val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
                     isEncrypted = true
                     displayedText = encrypted
-                    outputViewModel.setShareTitle(context.getString(R.string.encrypted_password))
+                    outputViewModel.setMessage(encrypted, context.getString(R.string.encrypted_password))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -64,7 +64,7 @@ fun EncryptTextScreen(
         } else {
             isEncrypted = false
             displayedText = phraseText
-            outputViewModel.setShareTitle("Unprotected phrase")
+            outputViewModel.setMessage(phraseText, "Unprotected phrase")
         }
     }
 
@@ -139,14 +139,7 @@ fun EncryptTextScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Box(modifier = Modifier.wrapContentHeight().fillMaxWidth()) {
-                OutputScreen(
-                    state = outputViewModel.state,
-                    onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
-                    onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
-                    onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
-                    onDiscoverableClick = {}, // TODO: handle bluetooth discoverable
-                    onTypeClick = {} // TODO: handle type click
-                )
+                OutputScreen(outputViewModel = outputViewModel)
             }
         }
     }

@@ -39,17 +39,53 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.onemoresecret.R
 
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import com.onemoresecret.bt.BluetoothController
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutputScreen(
-    state: OutputViewModel.State,
-    onBluetoothTargetSelected: (String) -> Unit,
-    onKeyboardLayoutSelected: (String) -> Unit,
-    onDelayedStrokesChanged: (Boolean) -> Unit,
-    onDiscoverableClick: () -> Unit,
-    onTypeClick: () -> Unit
+    outputViewModel: OutputViewModel
 ) {
+    val state = outputViewModel.state
+    val context = LocalContext.current
     var showBluetoothDialog by remember { mutableStateOf(false) }
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result -> }
+
+    DisposableEffect(outputViewModel) {
+        val applicationContext = context.applicationContext
+        outputViewModel.context = applicationContext
+        val controller = BluetoothController(applicationContext, launcher, outputViewModel.hidDeviceCallback)
+        outputViewModel.bluetoothController = controller
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, intent: Intent) {
+                outputViewModel.refreshBluetoothControls()
+            }
+        }
+        applicationContext.registerReceiver(receiver, filter)
+        outputViewModel.refreshBluetoothControls()
+
+        onDispose {
+            applicationContext.unregisterReceiver(receiver)
+            controller.destroy()
+            outputViewModel.bluetoothController = null
+            outputViewModel.context = null
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -71,8 +107,16 @@ fun OutputScreen(
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
             Button(
-                onClick = onTypeClick,
-                enabled = state.typeButtonEnabled
+                onClick = {
+                    val messageToType = outputViewModel.message ?: return@Button
+                    val selectedLayout = outputViewModel.getSelectedKeyboardLayout() ?: return@Button
+                    val strokes = selectedLayout.forString(messageToType)
+                    if (strokes.contains(null)) {
+                        return@Button
+                    }
+                    outputViewModel.type(strokes)
+                },
+                enabled = state.typeButtonEnabled && state.typingText.isNotEmpty()
             ) {
                 Icon(Icons.Default.Keyboard, contentDescription = null)
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
@@ -85,7 +129,7 @@ fun OutputScreen(
                 layouts = state.keyboardLayouts,
                 selectedClassName = state.selectedKeyboardLayoutClassName,
                 enabled = state.keyboardLayoutEnabled,
-                onSelected = onKeyboardLayoutSelected
+                onSelected = outputViewModel::onKeyboardLayoutSelected
             )
         }
 
@@ -113,7 +157,9 @@ fun OutputScreen(
                         selectedKey = state.selectedBluetoothAddress,
                         enabled = state.bluetoothTargetEnabled,
                         contentDescription = stringResource(R.string.bluetooth_targets),
-                        onSelected = onBluetoothTargetSelected,
+                        onSelected = {
+                            outputViewModel.onBluetoothTargetSelected(it)
+                        },
                         label = stringResource(R.string.bluetooth_target)
                     )
 
@@ -123,7 +169,10 @@ fun OutputScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Button(
-                            onClick = onDiscoverableClick,
+                            onClick = {
+                                val discoverableDuration = 60 // defaults to 60 as per old fragment
+                                outputViewModel.bluetoothController?.requestDiscoverable(discoverableDuration)
+                            },
                             enabled = state.discoverableEnabled
                         ) {
                             Icon(
@@ -135,7 +184,7 @@ fun OutputScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(
                                 checked = state.delayedStrokes,
-                                onCheckedChange = onDelayedStrokesChanged,
+                                onCheckedChange = outputViewModel::onDelayedStrokesChanged,
                                 enabled = state.delayedStrokesEnabled
                             )
                             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
