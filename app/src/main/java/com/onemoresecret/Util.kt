@@ -5,8 +5,6 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
-import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.NavHostFragment
 import java.util.Objects
 import androidx.core.net.toUri
 
@@ -56,11 +54,6 @@ object Util {
         }
     }
 
-    @JvmStatic
-    fun discardBackStack(fragment: Fragment) {
-        val navController = NavHostFragment.findNavController(fragment)
-        navController.popBackStack(navController.graph.startDestinationId, false)
-    }
 
     @JvmStatic
     fun printStackTrace(ex: Exception) {

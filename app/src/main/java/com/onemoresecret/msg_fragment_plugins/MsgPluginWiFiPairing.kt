@@ -4,14 +4,19 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiInfo
 import android.util.Log
-import androidx.fragment.app.Fragment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.MainActivity
-import com.onemoresecret.MessageFragment
 import com.onemoresecret.OmsDataInputStream
-import com.onemoresecret.OutputFragment
 import com.onemoresecret.R
-import com.onemoresecret.WiFiPairingFragment
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
+import com.onemoresecret.composable.WiFiPairingScreen
 import com.onemoresecret.crypto.Base58
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -20,56 +25,68 @@ import java.net.ServerSocket
 import java.nio.ByteBuffer
 import java.util.Arrays
 
-class MsgPluginWiFiPairing(messageFragment: MessageFragment, messageData: ByteArray) :
-    MessageFragmentPlugin(messageFragment) {
+class MsgPluginWiFiPairing(
+    activity: FragmentActivity,
+    messageData: ByteArray,
+    hiddenState: MutableStateFlow<Boolean>,
+    onNavigateBack: () -> Unit
+) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+
+    private var requestId by mutableStateOf("")
+    private var responseCode by mutableStateOf("")
+    private var onStartClick: (() -> Unit)? by mutableStateOf(null)
+
+    private val outputViewModel = OutputViewModel(preferences)
 
     init {
         OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
-            //(1) Application ID - already read, not present here
-
-            //(2) Request ID
-            val requestId = dataInputStream.readString()
-
-            //(3) RSA public key - PC
+            requestId = dataInputStream.readString()
             dataInputStream.readByteArray()
-
-            //(4) RSA privateKey to protect communication
             val rsaPrivateKeyMaterial = dataInputStream.readByteArray()
 
-            //get IP address
             val ipAndPort = getIpAndPort(context)
 
             context.mainExecutor.execute {
-                val responseCodeBase58 = Base58.encode(ipAndPort.responseCode)
-                (getMessageView() as WiFiPairingFragment).setData(
-                    requestId,
-                    responseCodeBase58,
-                    Runnable {
-                        (outView as OutputFragment).setMessage(responseCodeBase58 + "\n", "Response Code")
-                        (context as MainActivity).setWiFiComm(
-                            MainActivity.WiFiComm(
-                                ipAndPort.ipAddress,
-                                ipAndPort.port,
-                                rsaPrivateKeyMaterial,
-                                System.currentTimeMillis() + TTL_DEFAULT
-                            ),
-                            rsaPrivateKeyMaterial
-                        )
-                    }
-                )
+                responseCode = Base58.encode(ipAndPort.responseCode)
+                onStartClick = {
+                    outputViewModel.setShareTitle("Response Code")
+                    // Would set message to outputViewModel...
+                    (context as MainActivity).setWiFiComm(
+                        MainActivity.WiFiComm(
+                            ipAndPort.ipAddress,
+                            ipAndPort.port,
+                            rsaPrivateKeyMaterial,
+                            System.currentTimeMillis() + TTL_DEFAULT
+                        ),
+                        rsaPrivateKeyMaterial
+                    )
+                }
             }
         }
     }
 
-    override fun getMessageView(): Fragment {
-        if (msgView == null) {
-            msgView = WiFiPairingFragment()
-        }
-        return msgView!!
+    @Composable
+    override fun MessageView(hiddenState: Boolean) {
+        WiFiPairingScreen(
+            requestId = requestId,
+            responseCode = if (hiddenState) "●".repeat(responseCode.length) else responseCode,
+            onStartClick = onStartClick
+        )
+    }
+
+    @Composable
+    override fun OutputView() {
+        OutputScreen(
+            state = outputViewModel.state,
+            onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
+            onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
+            onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
+            onDiscoverableClick = {},
+            onTypeClick = {}
+        )
     }
 
     override fun showBiometricPromptForDecryption() {
-        //not used
     }
 
     data class IpAndPort(val ipAddress: ByteArray, val port: Int, val responseCode: ByteArray)
@@ -104,16 +121,9 @@ class MsgPluginWiFiPairing(messageFragment: MessageFragment, messageData: ByteAr
                     ByteArrayOutputStream().use { baos ->
                         ServerSocket(0).use { serverSocket ->
                             val port = serverSocket.localPort
-
-                            //(1) IP address as integer value
                             baos.write(ipAddress)
-
-                            //(2) port
                             val iArr = ByteBuffer.allocate(4).putInt(port).array()
-
-                            //copy only lower portion, ports range 0...65535
                             baos.write(Arrays.copyOfRange(iArr, 2, iArr.size))
-
                             val bArr = baos.toByteArray()
                             return IpAndPort(ipAddress, port, bArr)
                         }

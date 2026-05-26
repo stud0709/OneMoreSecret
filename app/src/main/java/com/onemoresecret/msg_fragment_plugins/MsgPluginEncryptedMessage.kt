@@ -1,41 +1,47 @@
 package com.onemoresecret.msg_fragment_plugins
 
 import androidx.biometric.BiometricPrompt
-import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
-import com.onemoresecret.HiddenTextFragment
-import com.onemoresecret.MessageFragment
-import com.onemoresecret.OutputFragment
+import androidx.compose.runtime.Composable
+import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
+import com.onemoresecret.composable.HiddenTextScreen
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 
 open class MsgPluginEncryptedMessage(
-    messageFragment: MessageFragment,
-    private val messageData: ByteArray?
-) : MessageFragmentPlugin(messageFragment) {
+    activity: FragmentActivity,
+    protected val messageData: ByteArray?,
+    hiddenState: MutableStateFlow<Boolean>,
+    onNavigateBack: () -> Unit
+) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+
+    private val message = String(messageData!!)
+    private val outputViewModel = OutputViewModel(preferences)
+
+    init {
+        outputViewModel.setShareTitle(context.getString(R.string.decrypted_message))
+    }
+
     override fun showBiometricPromptForDecryption() {
         //nothing to decrypt
     }
 
-    override fun getMessageView(): Fragment {
-        if (msgView == null) {
-            msgView = HiddenTextFragment()
-            context.mainExecutor.execute(Runnable {
-                val message = String(messageData!!)
-                val hiddenTextFragment = msgView as HiddenTextFragment?
-                messageFragment.hiddenState.observe(
-                    msgView!!,
-                    Observer { hidden: Boolean ->
-                        hiddenTextFragment?.text = if (hidden) context.getString(
-                                R.string.hidden_text
-                            ) else message
-                    })
-                (outView as OutputFragment).setMessage(
-                    message,
-                    context.getString(R.string.decrypted_message)
-                )
-            })
-        }
-        return msgView!!
+    @Composable
+    override fun MessageView(hiddenState: Boolean) {
+        HiddenTextScreen(text = if (hiddenState) context.getString(R.string.hidden_text) else message)
+    }
+
+    @Composable
+    override fun OutputView() {
+        OutputScreen(
+            state = outputViewModel.state,
+            onBluetoothTargetSelected = outputViewModel::onBluetoothTargetSelected,
+            onKeyboardLayoutSelected = outputViewModel::onKeyboardLayoutSelected,
+            onDelayedStrokesChanged = outputViewModel::onDelayedStrokesChanged,
+            onDiscoverableClick = {}, // TODO: handle bluetooth typing
+            onTypeClick = {} // TODO: handle type click
+        )
     }
 
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {

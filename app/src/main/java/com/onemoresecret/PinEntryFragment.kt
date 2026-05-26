@@ -116,8 +116,8 @@ class PinEntryFragment(
 
         //delete all sensitive information from SharedPreferences
         preferences.edit {
-            remove(QRFragment.PROP_RECENT_ENTRIES)
-            remove(QRFragment.PROP_PRESETS)
+            remove(QRScreen.PROP_RECENT_ENTRIES)
+            remove(QRScreen.PROP_PRESETS)
             remove(CryptographyManager.PROP_KEYSTORE)
             remove((CryptographyManager.MASTER_KEY_ALIAS))
         }

@@ -5,37 +5,35 @@ import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.biometric.BiometricPrompt
-import androidx.fragment.app.Fragment
+import androidx.compose.runtime.Composable
 import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.MainActivity
-import com.onemoresecret.MessageFragment
 import com.onemoresecret.OmsFileProvider
-import com.onemoresecret.OutputFragment
 import com.onemoresecret.R
 import com.onemoresecret.Util
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.RsaTransformation
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStoreException
 
 abstract class MessageFragmentPlugin(
-    protected val messageFragment: MessageFragment
+    protected val activity: FragmentActivity,
+    val hiddenState: MutableStateFlow<Boolean>,
+    protected val onNavigateBack: () -> Unit
 ) : BiometricPrompt.AuthenticationCallback() {
 
-    protected val context: Context = messageFragment.requireContext()
-    protected val activity: FragmentActivity = messageFragment.requireActivity()
+    protected val context: Context = activity
     @JvmField
     protected var fingerprint: ByteArray? = null
     protected val preferences: SharedPreferences = activity.getPreferences(Context.MODE_PRIVATE)
     protected var rsaTransformation: RsaTransformation? = null
     protected val TAG: String = javaClass.simpleName
-    protected var msgView: Fragment? = null
-    protected var outView: FragmentWithNotificationBeforePause? = null
 
-    abstract fun getMessageView(): Fragment
+    @Composable
+    abstract fun MessageView(hiddenState: Boolean)
 
-    open fun getOutputView(): FragmentWithNotificationBeforePause {
-        if (outView == null) outView = OutputFragment()
-        return outView!!
+    @Composable
+    open fun OutputView() {
     }
 
     protected open fun getReference(): String? {
@@ -78,7 +76,7 @@ abstract class MessageFragmentPlugin(
         Thread { OmsFileProvider.purgeTmp(context) }.start()
         context.mainExecutor.execute {
             Toast.makeText(context, "$errString ($errCode)", Toast.LENGTH_SHORT).show()
-            Util.discardBackStack(messageFragment)
+            onNavigateBack()
         }
     }
 
@@ -90,7 +88,7 @@ abstract class MessageFragmentPlugin(
 
         context.mainExecutor.execute {
             Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show()
-            Util.discardBackStack(messageFragment)
+            onNavigateBack()
         }
     }
 

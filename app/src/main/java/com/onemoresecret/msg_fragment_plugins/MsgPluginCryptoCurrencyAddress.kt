@@ -1,50 +1,51 @@
 package com.onemoresecret.msg_fragment_plugins
 
 import androidx.biometric.BiometricPrompt
-import androidx.fragment.app.Fragment
-import com.onemoresecret.CryptoCurrencyAddressFragment
-import com.onemoresecret.MessageFragment
-import com.onemoresecret.OutputFragment
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
-import com.onemoresecret.crypto.BTCAddress
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MsgPluginCryptoCurrencyAddress(
-    messageFragment: MessageFragment,
-    wif: ByteArray
-) : MessageFragmentPlugin(messageFragment) {
+    activity: FragmentActivity,
+    messageData: ByteArray,
+    hiddenState: MutableStateFlow<Boolean>,
+    onNavigateBack: () -> Unit
+) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
 
-    private val keyPair: BTCAddress.BTCKeyPair = BTCAddress.toKeyPair(BTCAddress.toPrivateKey(wif)).toBTCKeyPair()
+    private val address = String(messageData)
 
     override fun showBiometricPromptForDecryption() {
-        // nothing to decrypt
-    }
-
-    override fun getMessageView(): Fragment {
-        if (msgView == null) {
-            msgView = CryptoCurrencyAddressFragment()
-            context.mainExecutor.execute {
-                val fragment = msgView as CryptoCurrencyAddressFragment
-                fragment.setValue(keyPair.btcAddressBase58)
-
-                messageFragment.hiddenState.observe(msgView!!) { hidden ->
-                    if (hidden == true) {
-                        (outView as OutputFragment).setMessage(
-                            keyPair.btcAddressBase58,
-                            context.getString(R.string.public_address)
-                        )
-                    } else {
-                        (outView as OutputFragment).setMessage(
-                            keyPair.wifBase58,
-                            context.getString(R.string.private_key_wif)
-                        )
-                    }
-                }
-            }
-        }
-        return msgView!!
+        // nothing
     }
 
     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-        // no authentication
+    }
+
+    @Composable
+    override fun MessageView(hiddenState: Boolean) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.public_address),
+                style = MaterialTheme.typography.labelMedium
+            )
+            Text(
+                text = if (hiddenState) "●".repeat(address.length) else address.chunked(4).joinToString(" "),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }

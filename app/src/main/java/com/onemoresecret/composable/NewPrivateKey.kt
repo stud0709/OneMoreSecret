@@ -28,10 +28,11 @@ import com.onemoresecret.R
 
 @Composable
 fun NewPrivateKey(viewModel: NewPrivateKeyViewModel = viewModel()) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     NewPrivateKeyScreen(
         state = viewModel.state,
         onAction = viewModel::onAction,
-        onCreate = viewModel::createPrivateKey,
+        onCreate = { viewModel.createPrivateKey(context) },
         onActivate = viewModel.onActivate
     )
 }

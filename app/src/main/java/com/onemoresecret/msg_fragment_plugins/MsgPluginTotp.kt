@@ -1,39 +1,40 @@
 package com.onemoresecret.msg_fragment_plugins
 
-import androidx.fragment.app.Fragment
-import com.onemoresecret.MessageFragment
-import com.onemoresecret.OutputFragment
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
-import com.onemoresecret.TotpFragment
 import com.onemoresecret.crypto.OneTimePassword
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MsgPluginTotp(
-    messageFragment: MessageFragment,
-    messageData: ByteArray
-) : MsgPluginEncryptedMessage(messageFragment, messageData) {
+    activity: FragmentActivity,
+    messageData: ByteArray,
+    hiddenState: MutableStateFlow<Boolean>,
+    onNavigateBack: () -> Unit
+) : MsgPluginEncryptedMessage(activity, messageData, hiddenState, onNavigateBack) {
 
-    init {
-        context.mainExecutor.execute {
-            val message = String(messageData)
-            val totpFragment = msgView as TotpFragment
-            totpFragment.init(OneTimePassword(message), msgView!!) { code ->
-                (outView as OutputFragment).setMessage(code, context.getString(R.string.one_time_password))
-                totpFragment.setTotpText(if (messageFragment.hiddenState.value == true) {
-                    "●".repeat(code.length)
-                } else {
-                    code
-                })
-            }
+    private val otp = OneTimePassword(String(messageData))
 
-            // observe hidden state
-            messageFragment.hiddenState.observe(msgView!!) {
-                totpFragment.refresh()
+    @Composable
+    override fun MessageView(hiddenState: Boolean) {
+        var code by remember { mutableStateOf("") }
+        var remaining by remember { mutableStateOf(0) }
+
+        LaunchedEffect(Unit) {
+            while (true) {
+                val state = otp.state
+                remaining = (otp.period - state.secondsUntilNext).toInt()
+                code = otp.generateResponseCode(state.current)
+                delay(1000)
             }
         }
-    }
 
-    override fun getMessageView(): Fragment {
-        if (msgView == null) msgView = TotpFragment()
-        return msgView!!
+        Column {
+            Text("...${remaining}s")
+            Text(if (hiddenState) "●".repeat(code.length) else code)
+        }
     }
 }

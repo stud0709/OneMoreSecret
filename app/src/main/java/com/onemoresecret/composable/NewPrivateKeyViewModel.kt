@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.fragment.app.Fragment
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -17,7 +17,7 @@ import com.onemoresecret.OmsFileProvider.Companion.create
 import com.onemoresecret.R
 import com.onemoresecret.Util
 import com.onemoresecret.Util.byteArrayToHex
-import com.onemoresecret.Util.discardBackStack
+
 import com.onemoresecret.Util.printStackTrace
 import com.onemoresecret.crypto.AESUtil.generateSalt
 import com.onemoresecret.crypto.AESUtil.getAesKeyAlgorithm
@@ -50,9 +50,15 @@ class NewPrivateKeyViewModel(
     private val preferences: SharedPreferences, private val cryptographyManager: CryptographyManager
 ) : ViewModel() {
     var state by mutableStateOf(State())
-    private val _fragmentEvent = MutableSharedFlow<(Fragment) -> Unit>()
-    val fragmentEvent = _fragmentEvent.asSharedFlow()
+    private val _event = MutableSharedFlow<Event>()
+    val event = _event.asSharedFlow()
     var onActivate: () -> Unit = {}
+
+    sealed class Event {
+        data class ShowToast(val message: String) : Event()
+        data object PopBackStack : Event()
+        data class ShareFile(val fileRecordUri: android.net.Uri, val alias: String) : Event()
+    }
 
     fun onAction(action: Action) {
         state = when (action) {
@@ -64,47 +70,23 @@ class NewPrivateKeyViewModel(
         }
     }
 
-    fun createPrivateKey() {
+    fun createPrivateKey(context: android.content.Context) {
         viewModelScope.launch {
             try {
                 if (state.alias.isEmpty()) {
-                    _fragmentEvent.emit { fragment ->
-                        Toast.makeText(
-                            fragment.context,
-                            fragment.getString(R.string.key_alias_may_not_be_empty),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    _event.emit(Event.ShowToast(context.getString(R.string.key_alias_may_not_be_empty)))
                     return@launch
                 }
                 cryptographyManager.getByAlias(state.alias, preferences)?.let {
-                    _fragmentEvent.emit { fragment ->
-                        Toast.makeText(
-                            fragment.context,
-                            fragment.getString(R.string.key_alias_already_exists),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    _event.emit(Event.ShowToast(context.getString(R.string.key_alias_already_exists)))
                     return@launch
                 }
                 if (state.password.length < 10) {
-                    _fragmentEvent.emit { fragment ->
-                        Toast.makeText(
-                            fragment.context,
-                            fragment.getString(R.string.password_too_short),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    _event.emit(Event.ShowToast(context.getString(R.string.password_too_short)))
                     return@launch
                 }
                 if (state.password != state.repeatPassword) {
-                    _fragmentEvent.emit { fragment ->
-                        Toast.makeText(
-                            fragment.context,
-                            fragment.getString(R.string.password_mismatch),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    _event.emit(Event.ShowToast(context.getString(R.string.password_mismatch)))
                     return@launch
                 }
 
@@ -152,22 +134,11 @@ class NewPrivateKeyViewModel(
                             )
 
                             Arrays.fill(privateKeyMaterial, 0.toByte()) //wipe private key data
-                            _fragmentEvent.emit { fragment ->
-                                Toast.makeText(
-                                    fragment.context,
-                                    fragment.getString(R.string.key_successfully_activated),
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                //go back
-                                discardBackStack(fragment)
-                            }
+                            _event.emit(Event.ShowToast(context.getString(R.string.key_successfully_activated)))
+                            _event.emit(Event.PopBackStack)
                         } catch (ex: Exception) {
                             printStackTrace(ex)
-                            _fragmentEvent.emit { fragment ->
-                                Toast.makeText(
-                                    fragment.context, ex.message, Toast.LENGTH_LONG
-                                ).show()
-                            }
+                            _event.emit(Event.ShowToast(ex.message ?: ex.toString()))
                         }
                     }
                 }
@@ -178,31 +149,14 @@ class NewPrivateKeyViewModel(
                 val html = getKeyBackupHtml(state.alias, fingerprint, message)
                 val fingerprintString = byteArrayToHex(fingerprint).replace("\\s".toRegex(), "_")
 
-                _fragmentEvent.emit { fragment ->
-                    val fileRecord =
-                        create(fragment.requireContext(), "pk_$fingerprintString.html", true)
-                    Files.write(fileRecord.path, html.toByteArray(StandardCharsets.UTF_8))
-                    fileRecord.path!!.toFile().deleteOnExit()
-
-                    val intent = Intent()
-                    intent.setAction(Intent.ACTION_SEND)
-                    intent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    intent.setType("text/html")
-                    fragment.startActivity(
-                        Intent.createChooser(
-                            intent,
-                            String.format(fragment.getString(R.string.backup_file), state.alias)
-                        )
-                    )
-                }
+                val fileRecord = create(context, "pk_$fingerprintString.html", true)
+                Files.write(fileRecord.path, html.toByteArray(StandardCharsets.UTF_8))
+                fileRecord.path!!.toFile().deleteOnExit()
+                
+                _event.emit(Event.ShareFile(fileRecord.uri!!, state.alias))
             } catch (ex: Exception) {
                 printStackTrace(ex)
-                _fragmentEvent.emit { fragment ->
-                    Toast.makeText(
-                        fragment.context, ex.message ?: ex.toString(), Toast.LENGTH_LONG
-                    ).show()
-                }
+                _event.emit(Event.ShowToast(ex.message ?: ex.toString()))
             }
         }
     }
