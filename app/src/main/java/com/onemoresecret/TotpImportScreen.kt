@@ -123,7 +123,7 @@ fun TotpImportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.totp_import)) },
+                title = { Text(stringResource(R.string.totp_import), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { openUrl(R.string.totp_import_md_url, context) }) {
                         Icon(imageVector = Icons.Default.Help, contentDescription = stringResource(R.string.help))

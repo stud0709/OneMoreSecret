@@ -33,6 +33,10 @@ abstract class MessageFragmentPlugin(
     abstract fun MessageView(hiddenState: Boolean)
 
     @Composable
+    open fun TopBarActions() {
+    }
+
+    @Composable
     open fun OutputView() {
     }
 

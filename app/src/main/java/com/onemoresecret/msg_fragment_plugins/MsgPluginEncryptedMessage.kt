@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
 import com.onemoresecret.composable.HiddenTextScreen
+
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,11 @@ open class MsgPluginEncryptedMessage(
 
     override fun showBiometricPromptForDecryption() {
         //nothing to decrypt
+    }
+
+    @Composable
+    override fun TopBarActions() {
+
     }
 
     @Composable

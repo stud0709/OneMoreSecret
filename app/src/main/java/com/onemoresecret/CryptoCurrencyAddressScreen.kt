@@ -153,8 +153,9 @@ fun CryptoCurrencyAddressScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.crypto_address_generator)) },
+                title = { Text(stringResource(R.string.crypto_address_generator), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
+
                     IconButton(onClick = { newBitcoinAddress() }) {
                         Icon(Icons.Filled.AutoFixHigh, contentDescription = "New Address")
                     }
@@ -173,18 +174,18 @@ fun CryptoCurrencyAddressScreen() {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            Text(text = stringResource(R.string.public_address))
-
-            Text(
-                text = address.chunked(4).joinToString(" "),
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
             Text(
                 text = "WARNING: EXPERIMENTAL FEATURE!",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            Text(text = stringResource(R.string.public_address))
+
+            Text(
+                text = if (address.isEmpty()) "" else address.substring(0,2) + " " + address.substring(2).chunked(4).joinToString(" "),
+                modifier = Modifier.padding(vertical = 8.dp)
             )
 
             Text(text = stringResource(R.string.encrypt_with))

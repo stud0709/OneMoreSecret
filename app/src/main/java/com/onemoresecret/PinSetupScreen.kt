@@ -1,52 +1,31 @@
 package com.onemoresecret
 
 import android.content.Context
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.core.view.MenuProvider
-import androidx.lifecycle.Lifecycle
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.composable.OneMoreSecretTheme
 import com.onemoresecret.composable.PinSetup
 import com.onemoresecret.composable.PinSetupViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PinSetupScreen(
     onPopBackStack: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    DisposableEffect(context, lifecycleOwner) {
-        val menuProvider = object : MenuProvider {
-            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-                menuInflater.inflate(R.menu.menu_help, menu)
-            }
-
-            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-                if (menuItem.itemId == R.id.menuItemHelp) {
-                    openUrl(R.string.pin_setup_md_url, context)
-                    return true
-                }
-                return false
-            }
-        }
-
-        val activity = context as? ComponentActivity
-        activity?.addMenuProvider(menuProvider, lifecycleOwner, Lifecycle.State.RESUMED)
-
-        onDispose {
-            activity?.removeMenuProvider(menuProvider)
-        }
-    }
 
     val sharedPreferences = (context as? ComponentActivity)?.getPreferences(Context.MODE_PRIVATE)
         ?: context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
@@ -59,6 +38,32 @@ fun PinSetupScreen(
     )
 
     OneMoreSecretTheme {
-        PinSetup(viewModel = viewModel)
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.pin_setup), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        IconButton(onClick = onPopBackStack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Navigate up"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { openUrl(R.string.pin_setup_md_url, context) }) {
+                            Icon(
+                                imageVector = Icons.Default.Help,
+                                contentDescription = stringResource(R.string.help)
+                            )
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                PinSetup(viewModel = viewModel)
+            }
+        }
     }
 }

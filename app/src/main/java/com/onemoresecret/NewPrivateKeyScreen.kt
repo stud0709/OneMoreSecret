@@ -71,7 +71,7 @@ fun NewPrivateKeyScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(id = R.string.new_private_key)) },
+                title = { Text(stringResource(id = R.string.new_private_key), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = {
                         Util.openUrl(R.string.new_private_key_md_url, context)

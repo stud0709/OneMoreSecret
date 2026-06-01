@@ -71,27 +71,9 @@ fun EncryptTextScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.encrypt_text)) },
+                title = { Text(stringResource(R.string.encrypt_text), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
-                    IconButton(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Encrypted Text", displayedText)
-                        clipboard.setPrimaryClip(clip)
-                    }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
-                    }
-                    IconButton(onClick = {
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, displayedText)
-                            putExtra(Intent.EXTRA_TITLE, outputViewModel.state.typingText)
-                            type = "text/plain"
-                        }
-                        val shareIntent = Intent.createChooser(sendIntent, null)
-                        context.startActivity(shareIntent)
-                    }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
+
                     IconButton(onClick = {
                         Util.openUrl(R.string.encrypt_text_md_url, context)
                     }) {

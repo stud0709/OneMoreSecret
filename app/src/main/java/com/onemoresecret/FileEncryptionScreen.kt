@@ -148,7 +148,7 @@ fun FileEncryptionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.encrypt_file)) },
+                title = { Text(stringResource(R.string.encrypt_file), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { Util.openUrl(R.string.encrypt_file_md_url, context) }) {
                         Icon(Icons.Filled.Help, contentDescription = "Help")

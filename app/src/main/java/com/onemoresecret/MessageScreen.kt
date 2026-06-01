@@ -57,8 +57,9 @@ fun MessageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.message_fragment_label)) },
+                title = { Text(stringResource(R.string.message_fragment_label), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
+                    plugin?.TopBarActions()
                     IconButton(onClick = { viewModel.toggleVisibility() }) {
                         Icon(
                             imageVector = if (hiddenState) Icons.Default.Visibility else Icons.Default.VisibilityOff,

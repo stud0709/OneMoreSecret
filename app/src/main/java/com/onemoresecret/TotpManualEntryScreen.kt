@@ -118,27 +118,9 @@ fun TotpManualEntryScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.totp_manual_entry)) },
+                title = { Text(stringResource(R.string.totp_manual_entry), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
-                    IconButton(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("TOTP Code", outputMessage ?: totpCode)
-                        clipboard.setPrimaryClip(clip)
-                    }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
-                    }
-                    IconButton(onClick = {
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, outputMessage ?: totpCode)
-                            putExtra(Intent.EXTRA_TITLE, outputViewModel.state.typingText)
-                            type = "text/plain"
-                        }
-                        val shareIntent = Intent.createChooser(sendIntent, null)
-                        context.startActivity(shareIntent)
-                    }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
+
                 }
             )
         }

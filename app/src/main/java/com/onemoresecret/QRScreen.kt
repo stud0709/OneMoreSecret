@@ -13,9 +13,6 @@ import android.net.Uri
 import android.provider.Settings
 import android.text.method.LinkMovementMethod
 import android.util.Log
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.TextView
@@ -32,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
@@ -47,7 +45,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -56,7 +53,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
@@ -100,7 +96,7 @@ fun QRScreen(navController: NavController) {
     val activity = context as MainActivity
     val preferences = activity.getPreferences(Context.MODE_PRIVATE)
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
     var showPairingIndicator by remember { mutableStateOf(false) }
     var remainingCodes by remember { mutableStateOf("") }
@@ -110,7 +106,7 @@ fun QRScreen(navController: NavController) {
     var pinProtectedAction by remember { mutableStateOf<Runnable?>(null) }
     var pinProtectedCancel by remember { mutableStateOf<Runnable?>(null) }
     var pinProtectedEvaluateNext by remember { mutableStateOf(false) }
-    var nextPinRequestTimestampOuter by remember { mutableStateOf(0L) }
+    var nextPinRequestTimestampOuter by remember { mutableLongStateOf(0L) }
 
     val messageReceived = remember { AtomicBoolean(false) }
     var lastReceivedChunks by remember { mutableStateOf<BitSet?>(null) }
@@ -118,7 +114,7 @@ fun QRScreen(navController: NavController) {
     val cryptographyManager = remember { CryptographyManager() }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    
+
     var isZxingEnabled by remember { mutableStateOf(BuildConfig.FLAVOR == Util.FLAVOR_FOSS || preferences.getBoolean(QRScreen.PROP_USE_ZXING, false)) }
 
     LaunchedEffect(Unit) {
@@ -193,7 +189,7 @@ fun QRScreen(navController: NavController) {
                 val provider = cameraProvider!!
                 val preview = Preview.Builder().build()
                 if (previewView != null) {
-                    preview.setSurfaceProvider(previewView!!.surfaceProvider)
+                    preview.surfaceProvider = previewView!!.surfaceProvider
                 }
 
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -378,7 +374,7 @@ fun QRScreen(navController: NavController) {
             activity.destroyWiFiListener()
         }
     }
-    
+
     LaunchedEffect(activity.intent) {
         val intent = activity.intent
         if (intent != null) {
@@ -386,7 +382,7 @@ fun QRScreen(navController: NavController) {
             processIntent(intent)
         }
     }
-    
+
 if (showPinEntry) {
         Dialog(
             onDismissRequest = {
@@ -420,7 +416,7 @@ if (showPinEntry) {
                         showPinEntry = false
                         return@PinEntry false
                     }
-                    
+
                     if (enteredPin == correctPin) {
                         Toast.makeText(context, R.string.pin_accepted, Toast.LENGTH_SHORT).show()
                         if (pinProtectedEvaluateNext) {
@@ -463,7 +459,7 @@ if (showPinEntry) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(id = R.string.app_name)) },
+                title = { Text(stringResource(id = R.string.app_name), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { processClipboard() }) {
                         Icon(painterResource(id = R.drawable.baseline_content_paste_24), contentDescription = "Paste")
@@ -494,24 +490,24 @@ if (showPinEntry) {
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.password_generator)) },
+                            text = { Text(stringResource(R.string.password_generator)) },
                             onClick = { expanded = false; navController.navigate(PasswordGeneratorRoute) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.crypto_address_generator)) },
+                            text = { Text(stringResource(R.string.crypto_address_generator)) },
                             onClick = { expanded = false; navController.navigate(CryptoCurrencyAddressRoute) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.time_based_otp)) },
+                            text = { Text(stringResource(R.string.time_based_otp)) },
                             onClick = { expanded = false; navController.navigate(TotpManualEntryRoute) }
                         )
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.encrypt_text)) },
+                            text = { Text(stringResource(R.string.encrypt_text)) },
                             onClick = { expanded = false; navController.navigate(EncryptTextRoute()) }
                         )
                         if (activity.isWiFiCommSet) {
                             DropdownMenuItem(
-                                text = { androidx.compose.material3.Text(stringResource(R.string.clear_wifi_pairing)) },
+                                text = { Text(stringResource(R.string.clear_wifi_pairing)) },
                                 onClick = {
                                     expanded = false
                                     activity.setWiFiComm(null, null)
@@ -523,7 +519,7 @@ if (showPinEntry) {
                             )
                         }
                         DropdownMenuItem(
-                            text = { androidx.compose.material3.Text(stringResource(R.string.pin_setup)) },
+                            text = { Text(stringResource(R.string.pin_setup)) },
                             onClick = {
                                 expanded = false
                                 callbacks.runPinProtected({ navController.navigate(PinSetupRoute) }, null, false)
@@ -533,15 +529,23 @@ if (showPinEntry) {
                             text = { Text(stringResource(R.string.action_private_keys)) },
                             onClick = { expanded = false; navController.navigate(KeyManagementRoute) }
                         )
-                        DropdownMenuItem(
-                            text = { Text(if (isZxingEnabled) "ZXing Enabled (On)" else "ZXing Enabled (Off)") },
-                            onClick = {
-                                expanded = false
-                                val newZxing = !isZxingEnabled
-                                preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
-                                isZxingEnabled = newZxing
-                            }
-                        )
+                        if (BuildConfig.FLAVOR != Util.FLAVOR_FOSS) {
+                            DropdownMenuItem(
+                                text = { Text("ZXing Enabled") },
+                                trailingIcon = {
+                                    Checkbox(
+                                        checked = isZxingEnabled,
+                                        onCheckedChange = null
+                                    )
+                                },
+                                onClick = {
+                                    expanded = false
+                                    val newZxing = !isZxingEnabled
+                                    preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
+                                    isZxingEnabled = newZxing
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Feedback Email") },
                             onClick = {
@@ -549,20 +553,26 @@ if (showPinEntry) {
                                 val crashReportData = CrashReportData(null)
                                 val sendEmail: (Boolean) -> Unit = { includeLogcat ->
                                     try {
-                                        val intentSendTo = Intent(Intent.ACTION_SENDTO).apply {
-                                            data = "mailto:".toUri()
+                                        val intentSend = Intent(Intent.ACTION_SEND).apply {
+                                            type = "message/rfc822"
                                             putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback")
                                             putExtra(Intent.EXTRA_EMAIL, arrayOf(contactEmailMsg))
-                                            putExtra(Intent.EXTRA_TEXT, feedbackPromptMsg + "\n\n" + crashReportData.toString(includeLogcat))
+                                            putExtra(Intent.EXTRA_TEXT, feedbackPromptMsg + "\n\n" + (if (includeLogcat) "" else crashReportData.toString(false)))
+                                            if (includeLogcat) {
+                                                val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
+                                                java.nio.file.Files.write(fileRecord.path, (crashReportData.toString(true) ?: "").toByteArray())
+                                                putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
                                         }
-                                        context.startActivity(intentSendTo)
-                                    } catch (ex: ActivityNotFoundException) {
+                                        context.startActivity(Intent.createChooser(intentSend, null))
+                                    } catch (ex: Exception) {
                                         activity.mainExecutor.execute {
                                             Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
                                         }
                                     }
                                 }
-                                
+
                                 AlertDialog.Builder(context)
                                     .setTitle("Include logcat into feedback?")
                                     .setPositiveButton("Yes") { _, _ -> sendEmail(true) }
@@ -577,13 +587,17 @@ if (showPinEntry) {
                             text = { Text("Feedback Discord") },
                             onClick = { expanded = false; Util.openUrl(R.string.discord_url, context) }
                         )
+                        val isSecure = (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
                         DropdownMenuItem(
-                            text = { Text("Toggle Screenshot") },
+                            text = { Text(stringResource(R.string.allow_screenshots)) },
+                            trailingIcon = {
+                                Checkbox(
+                                    checked = !isSecure,
+                                    onCheckedChange = null
+                                )
+                            },
                             onClick = {
                                 expanded = false
-                                // we don't have menuItem.isChecked, so we just toggle
-                                val flags = activity.window.attributes.flags
-                                val isSecure = (flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
                                 if (isSecure) {
                                     activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                                 } else {
@@ -592,7 +606,7 @@ if (showPinEntry) {
                                 activity.mainExecutor.execute {
                                     Toast.makeText(
                                         context,
-                                        "Screenshots ",
+                                        "Screenshots ${if (isSecure) "enabled" else "disabled"}",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -602,13 +616,25 @@ if (showPinEntry) {
                             text = { Text(stringResource(R.string.logcat)) },
                             onClick = {
                                 expanded = false
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, CrashReportData(null).toString(true))
-                                    putExtra(Intent.EXTRA_TITLE, "Diagnose Data")
-                                    type = "text/plain"
+                                try {
+                                    val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
+                                    val logData = CrashReportData(null).toString(true)
+                                    if (logData != null) {
+                                        java.nio.file.Files.write(fileRecord.path, logData.toByteArray())
+                                    }
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
+                                        putExtra(Intent.EXTRA_TITLE, "Diagnose Data")
+                                        type = "text/plain"
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, null))
+                                } catch (ex: Exception) {
+                                    activity.mainExecutor.execute {
+                                        Toast.makeText(context, "Error creating log file", Toast.LENGTH_LONG).show()
+                                    }
                                 }
-                                context.startActivity(Intent.createChooser(sendIntent, null))
                             }
                         )
                         DropdownMenuItem(
@@ -620,7 +646,7 @@ if (showPinEntry) {
                             onClick = { expanded = false; Util.openUrl(R.string.qr_scanner_md_url, context) }
                         )
                         DropdownMenuItem(
-                            text = { Text(" ()") },
+                            text = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})") },
                             onClick = { expanded = false }
                         )
                     }

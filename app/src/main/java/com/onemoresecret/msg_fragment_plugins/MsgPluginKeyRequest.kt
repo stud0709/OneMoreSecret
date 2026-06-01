@@ -73,6 +73,15 @@ open class MsgPluginKeyRequest(
         HiddenTextScreen(text = if (hiddenState) context.getString(R.string.hidden_text) else messageText)
     }
 
+    private val outputViewModel = com.onemoresecret.composable.OutputViewModel(preferences)
+
+    @Composable
+    override fun TopBarActions() {
+        if (applicationId != MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST && applicationId != MessageComposer.APPLICATION_KEY_REQUEST_PAIRING) {
+
+        }
+    }
+
     @Composable
     override fun OutputView() {
         if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
@@ -80,7 +89,7 @@ open class MsgPluginKeyRequest(
         } else if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST_PAIRING) {
             KeyRequestPairingScreen(replyState = replyState, onNavigateBack = onNavigateBack)
         } else {
-            // OutputScreen
+            com.onemoresecret.composable.OutputScreen(outputViewModel = outputViewModel)
         }
     }
 
@@ -119,6 +128,7 @@ open class MsgPluginKeyRequest(
                             } else {
                                 messageText = String.format(context.getString(R.string.key_response_is_ready), msgReference)
                                 outputMessage = base64Message + "\n"
+                                outputViewModel.setMessage(outputMessage, context.getString(R.string.key_response))
                             }
                         }
                     }

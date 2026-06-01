@@ -94,7 +94,10 @@ private fun PinSetupContent(
                 onCheckedChange = null,
                 modifier = Modifier.padding(end = 12.dp)
             )
-            Text(stringResource(R.string.enable_pin_protection))
+            Text(
+                stringResource(R.string.enable_pin_protection),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
         AnimatedVisibility(visible = state.pinEnabled) {
@@ -125,58 +128,71 @@ private fun PinSetupContent(
                 // Advanced Settings
                 Text(
                     stringResource(R.string.advanced_optional_settings),
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.request_pin_entry_every))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.request_pin_entry_every),
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     OutlinedTextField(
                         singleLine = true,
                         value = state.requestInterval,
                         onValueChange = {
-                            onAction(
-                                PinSetupViewModel.Action.OnRequestIntervalChanged(
-                                    it
-                                )
-                            )
+                            onAction(PinSetupViewModel.Action.OnRequestIntervalChanged(it))
                         },
-                        modifier = Modifier
-                            .width(80.dp)
-                            .padding(horizontal = 8.dp),
+                        modifier = Modifier.width(80.dp),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.NumberPassword,
                             imeAction = ImeAction.Next
                         )
                     )
-                    Text(stringResource(R.string.minutes))
+                    Text(
+                        text = stringResource(R.string.minutes),
+                        modifier = Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.delete_all_keys))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.delete_all_keys),
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     OutlinedTextField(
                         singleLine = true,
                         value = state.maxAttempts,
                         onValueChange = {
-                            onAction(
-                                PinSetupViewModel.Action.OnMaxAttemptsChanged(
-                                    it
-                                )
-                            )
+                            onAction(PinSetupViewModel.Action.OnMaxAttemptsChanged(it))
                         },
-                        modifier = Modifier
-                            .width(80.dp)
-                            .padding(horizontal = 8.dp),
+                        modifier = Modifier.width(80.dp),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.NumberPassword,
                             imeAction = ImeAction.Next
                         )
                     )
-                    Text(stringResource(R.string.max_attempts))
+                    Text(
+                        text = stringResource(R.string.max_attempts),
+                        modifier = Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
 
                 // Panic PIN Section
                 Text(
-                    stringResource(R.string.panic_pin_descr)
+                    stringResource(R.string.panic_pin_descr),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PinField(

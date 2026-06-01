@@ -63,10 +63,7 @@ fun PasswordGeneratorScreen() {
         factory = OutputViewModel.Factory(preferences)
     )
     
-    // Initialize keyboard layouts
-    LaunchedEffect(Unit) {
-        outputViewModel.initializeKeyboardLayouts()
-    }
+
 
     var pwdLength by remember { mutableIntStateOf(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)) }
     var occurs by remember { mutableIntStateOf(preferences.getInt(PROP_OCCURS, OCCURS_DEFAULT)) }
@@ -199,8 +196,9 @@ fun PasswordGeneratorScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(context.getString(R.string.password_generator)) },
+                title = { Text(context.getString(R.string.password_generator), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
+
                     if (selectedAlias == null) {
                         IconButton(onClick = { newPassword() }) {
                             Icon(Icons.Filled.AutoFixHigh, contentDescription = "Generate")

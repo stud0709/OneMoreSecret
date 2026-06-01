@@ -21,6 +21,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.onemoresecret.crypto.CryptographyManager
 import java.util.Base64
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +40,10 @@ fun KeyManagementScreen(
     var aliasToDelete by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
 
+    val outputViewModel: OutputViewModel = viewModel(
+        factory = OutputViewModel.Factory(preferences)
+    )
+
     val publicKeyMessage = remember(selectedAlias, refreshTrigger) {
         selectedAlias?.let { alias ->
             try {
@@ -50,10 +58,18 @@ fun KeyManagementScreen(
         }
     }
 
+    LaunchedEffect(publicKeyMessage) {
+        if (publicKeyMessage != null) {
+            outputViewModel.setMessage(publicKeyMessage, context.getString(R.string.share_public_key_title, selectedAlias ?: ""))
+        } else {
+            outputViewModel.setMessage(null, "")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.key_management)) },
+                title = { Text(stringResource(R.string.key_management), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = onNavigateToNewPrivateKey) {
                         Icon(Icons.Filled.Add, contentDescription = "New Private Key")
@@ -62,34 +78,8 @@ fun KeyManagementScreen(
                         IconButton(onClick = { aliasToDelete = selectedAlias }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete Key")
                         }
-                        if (publicKeyMessage != null) {
-                            IconButton(onClick = {
-                                clipboardManager.setText(AnnotatedString(publicKeyMessage))
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.copied_to_clipboard),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy Public Key")
-                            }
-                            IconButton(onClick = {
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, publicKeyMessage)
-                                    putExtra(
-                                        Intent.EXTRA_TITLE,
-                                        context.getString(R.string.share_public_key_title, selectedAlias)
-                                    )
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, null)
-                                context.startActivity(shareIntent)
-                            }) {
-                                Icon(Icons.Filled.Share, contentDescription = "Share Public Key")
-                            }
-                        }
                     }
+
                     IconButton(onClick = { Util.openUrl(R.string.key_management_md_url, context) }) {
                         Icon(Icons.Filled.Help, contentDescription = "Help")
                     }
@@ -123,6 +113,8 @@ fun KeyManagementScreen(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 5
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutputScreen(outputViewModel = outputViewModel)
             }
         }
     }

@@ -2,13 +2,17 @@ package com.onemoresecret.composable
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -108,10 +112,17 @@ fun OutputScreen(
 
             Button(
                 onClick = {
-                    val messageToType = outputViewModel.message ?: return@Button
+                    val messageToType = outputViewModel.state.message ?: return@Button
                     val selectedLayout = outputViewModel.getSelectedKeyboardLayout() ?: return@Button
                     val strokes = selectedLayout.forString(messageToType)
                     if (strokes.contains(null)) {
+                        val unmappedIndices = strokes.indices.filter { strokes[it] == null }
+                        val unmappedChars = unmappedIndices.map { messageToType[it] }.distinct().joinToString()
+                        android.widget.Toast.makeText(
+                            context,
+                            "Cannot type: unsupported characters: $unmappedChars",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
                         return@Button
                     }
                     outputViewModel.type(strokes)
@@ -133,12 +144,44 @@ fun OutputScreen(
             )
         }
 
-        Text(
-            text = state.typingText,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            val helpUrl = stringResource(R.string.autotype_md_url)
+            IconButton(onClick = { uriHandler.openUri(helpUrl) }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Help,
+                    contentDescription = stringResource(R.string.help)
+                )
+            }
+            Text(
+                text = state.typingText,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
+            )
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val message = state.message
+            val shareTitle = state.typingText
+            if (message != null) {
+                IconButton(onClick = {
+                    val sendIntent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT, message)
+                        putExtra(android.content.Intent.EXTRA_TITLE, shareTitle)
+                        type = "text/plain"
+                    }
+                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                    context.startActivity(shareIntent)
+                }) {
+                    Icon(Icons.Default.Share, contentDescription = "Share")
+                }
+            } else {
+                Spacer(modifier = Modifier.width(48.dp))
+            }
+        }
     }
 
     if (showBluetoothDialog) {

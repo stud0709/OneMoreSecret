@@ -74,6 +74,11 @@ class MsgPluginWiFiPairing(
     }
 
     @Composable
+    override fun TopBarActions() {
+
+    }
+
+    @Composable
     override fun OutputView() {
         OutputScreen(outputViewModel = outputViewModel)
     }
