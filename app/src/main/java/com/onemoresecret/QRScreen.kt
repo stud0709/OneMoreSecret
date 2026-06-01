@@ -485,170 +485,214 @@ if (showPinEntry) {
                         Icon(painterResource(id = R.drawable.baseline_lock_24), contentDescription = "Panic")
                     }
                     var expanded by remember { mutableStateOf(false) }
+                    var currentMenuLevel by remember { mutableStateOf("MAIN") }
                     IconButton(onClick = { expanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More")
                     }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.password_generator)) },
-                            onClick = { expanded = false; navController.navigate(PasswordGeneratorRoute) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.crypto_address_generator)) },
-                            onClick = { expanded = false; navController.navigate(CryptoCurrencyAddressRoute) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.time_based_otp)) },
-                            onClick = { expanded = false; navController.navigate(TotpManualEntryRoute) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.encrypt_text)) },
-                            onClick = { expanded = false; navController.navigate(EncryptTextRoute()) }
-                        )
-                        if (activity.isWiFiCommSet) {
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = {
+                            expanded = false
+                            currentMenuLevel = "MAIN"
+                        }
+                    ) {
+                        if (currentMenuLevel == "MAIN") {
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.clear_wifi_pairing)) },
+                                text = { Text(stringResource(R.string.password_generator)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(PasswordGeneratorRoute) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.crypto_address_generator)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(CryptoCurrencyAddressRoute) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.time_based_otp)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(TotpManualEntryRoute) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.encrypt_text)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(EncryptTextRoute()) }
+                            )
+                            if (activity.isWiFiCommSet) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.clear_wifi_pairing)) },
+                                    onClick = {
+                                        expanded = false
+                                        currentMenuLevel = "MAIN"
+                                        activity.setWiFiComm(null, null)
+                                        activity.mainExecutor.execute {
+                                            Toast.makeText(context, "WiFi Pairing cleared", Toast.LENGTH_LONG).show()
+                                        }
+                                        showPairingIndicator = activity.isWiFiCommSet
+                                    }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Settings ▸") },
+                                onClick = { currentMenuLevel = "SETTINGS" }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.support_amp_feedback) + " ▸") },
+                                onClick = { currentMenuLevel = "SUPPORT" }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.project_home_page)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; Util.openUrl(R.string.readme_url, context) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.help)) },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN"; Util.openUrl(R.string.qr_scanner_md_url, context) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})") },
+                                onClick = { expanded = false; currentMenuLevel = "MAIN" },
+                                enabled = false
+                            )
+                        } else if (currentMenuLevel == "SETTINGS") {
+                            DropdownMenuItem(
+                                text = { Text("◂ Back") },
+                                onClick = { currentMenuLevel = "MAIN" }
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.pin_setup)) },
                                 onClick = {
                                     expanded = false
-                                    activity.setWiFiComm(null, null)
-                                    activity.mainExecutor.execute {
-                                        Toast.makeText(context, "WiFi Pairing cleared", Toast.LENGTH_LONG).show()
-                                    }
-                                    showPairingIndicator = activity.isWiFiCommSet
+                                    currentMenuLevel = "MAIN"
+                                    callbacks.runPinProtected({ navController.navigate(PinSetupRoute) }, null, false)
                                 }
                             )
-                        }
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.pin_setup)) },
-                            onClick = {
-                                expanded = false
-                                callbacks.runPinProtected({ navController.navigate(PinSetupRoute) }, null, false)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.action_private_keys)) },
-                            onClick = { expanded = false; navController.navigate(KeyManagementRoute) }
-                        )
-                        if (BuildConfig.FLAVOR != Util.FLAVOR_FOSS) {
                             DropdownMenuItem(
-                                text = { Text("ZXing Enabled") },
+                                text = { Text(stringResource(R.string.action_private_keys)) },
+                                onClick = { 
+                                    expanded = false
+                                    currentMenuLevel = "MAIN"
+                                    navController.navigate(KeyManagementRoute) 
+                                }
+                            )
+                            if (BuildConfig.FLAVOR != Util.FLAVOR_FOSS) {
+                                DropdownMenuItem(
+                                    text = { Text("ZXing Enabled") },
+                                    trailingIcon = {
+                                        Checkbox(
+                                            checked = isZxingEnabled,
+                                            onCheckedChange = null
+                                        )
+                                    },
+                                    onClick = {
+                                        expanded = false
+                                        currentMenuLevel = "MAIN"
+                                        val newZxing = !isZxingEnabled
+                                        preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
+                                        isZxingEnabled = newZxing
+                                    }
+                                )
+                            }
+                        } else if (currentMenuLevel == "SUPPORT") {
+                            DropdownMenuItem(
+                                text = { Text("◂ Back") },
+                                onClick = { currentMenuLevel = "MAIN" }
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.feedback_by_email)) },
+                                onClick = {
+                                    expanded = false
+                                    currentMenuLevel = "MAIN"
+                                    val crashReportData = CrashReportData(null)
+                                    val sendEmail: (Boolean) -> Unit = { includeLogcat ->
+                                        try {
+                                            val intentSend = Intent(Intent.ACTION_SEND).apply {
+                                                type = "message/rfc822"
+                                                putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback")
+                                                putExtra(Intent.EXTRA_EMAIL, arrayOf(contactEmailMsg))
+                                                putExtra(Intent.EXTRA_TEXT, feedbackPromptMsg + "\n\n" + (if (includeLogcat) "" else crashReportData.toString(false)))
+                                                if (includeLogcat) {
+                                                    val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
+                                                    java.nio.file.Files.write(fileRecord.path, (crashReportData.toString(true) ?: "").toByteArray())
+                                                    putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
+                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                }
+                                            }
+                                            context.startActivity(Intent.createChooser(intentSend, null))
+                                        } catch (ex: Exception) {
+                                            activity.mainExecutor.execute {
+                                                Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    }
+
+                                    AlertDialog.Builder(context)
+                                        .setTitle("Include logcat into feedback?")
+                                        .setPositiveButton("Yes") { _, _ -> sendEmail(true) }
+                                        .setNegativeButton("No") { dialog, _ ->
+                                            sendEmail(false)
+                                            dialog.dismiss()
+                                        }
+                                        .show()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.feedback_on_discord)) },
+                                onClick = { 
+                                    expanded = false
+                                    currentMenuLevel = "MAIN"
+                                    Util.openUrl(R.string.discord_url, context) 
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.logcat)) },
+                                onClick = {
+                                    expanded = false
+                                    currentMenuLevel = "MAIN"
+                                    try {
+                                        val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
+                                        val logData = CrashReportData(null).toString(true)
+                                        if (logData != null) {
+                                            java.nio.file.Files.write(fileRecord.path, logData.toByteArray())
+                                        }
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
+                                            putExtra(Intent.EXTRA_TITLE, "Diagnose Data")
+                                            type = "text/plain"
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, null))
+                                    } catch (ex: Exception) {
+                                        activity.mainExecutor.execute {
+                                            Toast.makeText(context, "Error creating log file", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            )
+                            val isSecure = (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.allow_screenshots)) },
                                 trailingIcon = {
                                     Checkbox(
-                                        checked = isZxingEnabled,
+                                        checked = !isSecure,
                                         onCheckedChange = null
                                     )
                                 },
                                 onClick = {
                                     expanded = false
-                                    val newZxing = !isZxingEnabled
-                                    preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
-                                    isZxingEnabled = newZxing
+                                    currentMenuLevel = "MAIN"
+                                    if (isSecure) {
+                                        activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                                    } else {
+                                        activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                                    }
+                                    activity.mainExecutor.execute {
+                                        Toast.makeText(
+                                            context,
+                                            "Screenshots ${if (isSecure) "enabled" else "disabled"}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 }
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text("Feedback Email") },
-                            onClick = {
-                                expanded = false
-                                val crashReportData = CrashReportData(null)
-                                val sendEmail: (Boolean) -> Unit = { includeLogcat ->
-                                    try {
-                                        val intentSend = Intent(Intent.ACTION_SEND).apply {
-                                            type = "message/rfc822"
-                                            putExtra(Intent.EXTRA_SUBJECT, "OneMoreSecret feedback")
-                                            putExtra(Intent.EXTRA_EMAIL, arrayOf(contactEmailMsg))
-                                            putExtra(Intent.EXTRA_TEXT, feedbackPromptMsg + "\n\n" + (if (includeLogcat) "" else crashReportData.toString(false)))
-                                            if (includeLogcat) {
-                                                val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
-                                                java.nio.file.Files.write(fileRecord.path, (crashReportData.toString(true) ?: "").toByteArray())
-                                                putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
-                                        }
-                                        context.startActivity(Intent.createChooser(intentSend, null))
-                                    } catch (ex: Exception) {
-                                        activity.mainExecutor.execute {
-                                            Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-
-                                AlertDialog.Builder(context)
-                                    .setTitle("Include logcat into feedback?")
-                                    .setPositiveButton("Yes") { _, _ -> sendEmail(true) }
-                                    .setNegativeButton("No") { dialog, _ ->
-                                        sendEmail(false)
-                                        dialog.dismiss()
-                                    }
-                                    .show()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Feedback Discord") },
-                            onClick = { expanded = false; Util.openUrl(R.string.discord_url, context) }
-                        )
-                        val isSecure = (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.allow_screenshots)) },
-                            trailingIcon = {
-                                Checkbox(
-                                    checked = !isSecure,
-                                    onCheckedChange = null
-                                )
-                            },
-                            onClick = {
-                                expanded = false
-                                if (isSecure) {
-                                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                                } else {
-                                    activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                                }
-                                activity.mainExecutor.execute {
-                                    Toast.makeText(
-                                        context,
-                                        "Screenshots ${if (isSecure) "enabled" else "disabled"}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.logcat)) },
-                            onClick = {
-                                expanded = false
-                                try {
-                                    val fileRecord = OmsFileProvider.create(context, "logcat.txt", false)
-                                    val logData = CrashReportData(null).toString(true)
-                                    if (logData != null) {
-                                        java.nio.file.Files.write(fileRecord.path, logData.toByteArray())
-                                    }
-                                    val sendIntent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
-                                        putExtra(Intent.EXTRA_TITLE, "Diagnose Data")
-                                        type = "text/plain"
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(sendIntent, null))
-                                } catch (ex: Exception) {
-                                    activity.mainExecutor.execute {
-                                        Toast.makeText(context, "Error creating log file", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.project_home_page)) },
-                            onClick = { expanded = false; Util.openUrl(R.string.readme_url, context) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.help)) },
-                            onClick = { expanded = false; Util.openUrl(R.string.qr_scanner_md_url, context) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})") },
-                            onClick = { expanded = false }
-                        )
                     }
                 }
             )
