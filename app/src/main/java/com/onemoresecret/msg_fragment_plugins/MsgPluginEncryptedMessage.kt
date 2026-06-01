@@ -18,7 +18,7 @@ open class MsgPluginEncryptedMessage(
 ) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
 
     private val message = String(messageData!!)
-    private val outputViewModel = OutputViewModel(preferences)
+    protected val outputViewModel = OutputViewModel(preferences)
 
     init {
         outputViewModel.setMessage(message, context.getString(R.string.decrypted_message))

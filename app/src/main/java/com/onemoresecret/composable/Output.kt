@@ -2,7 +2,6 @@ package com.onemoresecret.composable
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,7 +48,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.platform.LocalContext
 import com.onemoresecret.bt.BluetoothController
 
@@ -63,7 +63,7 @@ fun OutputScreen(
     val context = LocalContext.current
     var showBluetoothDialog by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result -> }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ -> }
 
     DisposableEffect(outputViewModel) {
         val applicationContext = context.applicationContext
@@ -98,8 +98,8 @@ fun OutputScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Center,
+            verticalAlignment = CenterVertically
         ) {
             OutlinedButton(onClick = { showBluetoothDialog = true }) {
                 Icon(
@@ -146,7 +146,7 @@ fun OutputScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = CenterVertically
         ) {
             val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
             val helpUrl = stringResource(R.string.autotype_md_url)
@@ -208,7 +208,7 @@ fun OutputScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Button(
@@ -224,7 +224,7 @@ fun OutputScreen(
                             )
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = CenterVertically) {
                             Switch(
                                 checked = state.delayedStrokes,
                                 onCheckedChange = outputViewModel::onDelayedStrokesChanged,
@@ -237,7 +237,7 @@ fun OutputScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Center
                     ) {
                         StatusChip(
                             iconRes = state.bluetoothStatusIcon,

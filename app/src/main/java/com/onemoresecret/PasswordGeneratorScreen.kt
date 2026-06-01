@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.edit
@@ -26,9 +27,11 @@ import com.onemoresecret.crypto.*
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.lang.StringBuilder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.util.Arrays
+import java.util.Objects
 
 const val PROP_UCASE = "pwgen_ucase"
 const val PROP_UCASE_LIST = "pwgen_ucase_list"
@@ -88,7 +91,7 @@ fun PasswordGeneratorScreen() {
     var selectedAlias by remember { mutableStateOf<String?>(null) }
     val cryptographyManager = remember { CryptographyManager() }
 
-    val newPassword = newPassword@{
+    val newPassword: () -> Unit = newPassword@{
         if (selectedAlias != null) {
             // Cannot generate new password when a key is selected
         } else {
@@ -105,8 +108,8 @@ fun PasswordGeneratorScreen() {
                 val blacklist = preferences.getString(PROP_SIMILAR_LIST, DEFAULT_SIMILAR)!!.toCharArray()
                 Arrays.sort(blacklist)
 
-                for (i in 0 until size) {
-                    val sb = java.lang.StringBuilder()
+                repeat (size) {
+                    val sb = StringBuilder()
                     val cArr = charClasses.removeAt(0).toCharArray()
                     for (c in cArr) {
                         if (Arrays.binarySearch(blacklist, c) < 0) sb.append(c)
@@ -122,8 +125,8 @@ fun PasswordGeneratorScreen() {
                     return@newPassword
                 }
 
-                for (i in 0 until size) {
-                    val sb = java.lang.StringBuilder()
+                repeat (size) {
+                    val sb = StringBuilder()
                     val cArr = charClasses.removeAt(0).toCharArray()
                     for (c in cArr) {
                         if (keyboardLayout.forKey(c) != null) {
@@ -134,7 +137,7 @@ fun PasswordGeneratorScreen() {
                 }
             }
 
-            for (i in 0 until size) {
+            repeat (size) {
                 val s = charClasses.removeAt(0)
                 charClasses.add(s.replace(Regex("(.)\\1+"), "$1"))
             }
@@ -145,7 +148,7 @@ fun PasswordGeneratorScreen() {
                 Toast.makeText(context, R.string.no_symbols_available, Toast.LENGTH_LONG).show()
             } else {
                 val list = mutableListOf<String>()
-                for (i in 0 until occurs) {
+                repeat (occurs) {
                     list.addAll(charClasses)
                 }
 
@@ -155,8 +158,8 @@ fun PasswordGeneratorScreen() {
                     list.add(charClasses[rnd.nextInt(charClasses.size)])
                 }
 
-                val sb = java.lang.StringBuilder()
-                for (i in 0 until pwdLength) {
+                val sb = StringBuilder()
+                repeat (pwdLength) {
                     val s = list.removeAt(rnd.nextInt(list.size))
                     val cArr = s.toCharArray()
                     sb.append(cArr[rnd.nextInt(cArr.size)])
@@ -175,7 +178,7 @@ fun PasswordGeneratorScreen() {
                 val keyStoreEntry = cryptographyManager.getByAlias(selectedAlias!!, preferences)
                 val encryptedMessage = EncryptedMessage(
                     passwordText.toByteArray(StandardCharsets.UTF_8),
-                    java.util.Objects.requireNonNull(keyStoreEntry)?.public!!,
+                    requireNotNull(keyStoreEntry).public,
                     RSAUtil.getRsaTransformation(preferences),
                     AESUtil.getKeyLength(preferences),
                     AESUtil.getAesTransformation(preferences)
@@ -199,7 +202,7 @@ fun PasswordGeneratorScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.password_generator), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                title = { Text(stringResource(R.string.password_generator), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 actions = {
 
                     if (selectedAlias == null) {
@@ -362,10 +365,7 @@ fun PasswordGeneratorScreen() {
             Box(modifier = Modifier.height(250.dp).fillMaxWidth()) {
                 KeyStoreListScreen(onSelectionChanged = { alias -> 
                     selectedAlias = alias
-                    if (alias != null) {
-                        // trigger encryptPwd
-                        passwordText = passwordText // to trigger recompose/encrypt
-                    } else {
+                    if (alias == null) {
                         isControlsEnabled = true
                     }
                 })

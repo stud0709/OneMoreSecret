@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -109,9 +110,9 @@ fun FileEncryptionScreen(
                         }
                     )
 
-                    withContext(Dispatchers.Main) {
+                    withContext(Dispatchers.IO) {
                         if (encryptionRunning) {
-                            updateProgress(fileInfoVal.fileSize.toInt()) // 100%
+                            updateProgress(fileInfoVal.fileSize) // 100%
                             
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "application/octet-stream"
@@ -122,7 +123,7 @@ fun FileEncryptionScreen(
                             context.startActivity(intent)
                             onNavigateBack()
                         } else {
-                            // operation has been cancelled
+                            // operation has been canceled
                             Files.delete(fileRecord.path)
                             Toast.makeText(
                                 context,
@@ -154,7 +155,7 @@ fun FileEncryptionScreen(
                 title = { Text(stringResource(R.string.encrypt_file), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { Util.openUrl(R.string.encrypt_file_md_url, context) }) {
-                        Icon(Icons.Filled.Help, contentDescription = "Help")
+                        Icon(Icons.AutoMirrored.Filled.Help, contentDescription = "Help")
                     }
                 }
             )

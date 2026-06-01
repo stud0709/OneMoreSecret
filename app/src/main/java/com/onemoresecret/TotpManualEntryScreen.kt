@@ -82,7 +82,7 @@ fun TotpManualEntryScreen() {
                 val code = otp.generateResponseCode(otpState.current)
 
                 totpCode = code
-                timerText = String.format("...%ss", otp.period - otpState.secondsUntilNext)
+                timerText = String.format("...%02ds", otp.period - otpState.secondsUntilNext)
 
                 if (lastState != otpState.current) {
                     if (selectedAlias == null) {
@@ -236,16 +236,19 @@ fun TotpManualEntryScreen() {
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 64.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
+                modifier = Modifier.alignByBaseline(),
                 text = totpCode,
-                style = MaterialTheme.typography.displaySmall
+                style = MaterialTheme.typography.displaySmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
+                modifier = Modifier.alignByBaseline(),
                 text = timerText,
                 style = MaterialTheme.typography.bodyLarge
             )

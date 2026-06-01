@@ -210,7 +210,7 @@ class CryptographyManager {
         try {
             keyPairGenerator.initialize(specBuilder.build())
             keyPairGenerator.generateKeyPair()
-        } catch (e: StrongBoxUnavailableException) {
+        } catch (_: StrongBoxUnavailableException) {
             // Fallback to TEE if StrongBox fails despite the system feature check
             specBuilder.setIsStrongBoxBacked(false)
             keyPairGenerator.initialize(specBuilder.build())
@@ -221,7 +221,7 @@ class CryptographyManager {
     fun deleteKey(alias: String, preferences: SharedPreferences) {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
-        val result = keystore
+        val result: Set<String> = keystore
             .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .filter { it.alias != alias }
             .map { OmsJson.encode(it) }

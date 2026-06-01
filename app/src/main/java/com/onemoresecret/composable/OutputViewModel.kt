@@ -26,7 +26,6 @@ import com.onemoresecret.R
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.printStackTrace
 import com.onemoresecret.bt.BluetoothController
-import com.onemoresecret.bt.KeyboardReport
 import com.onemoresecret.bt.layout.KeyboardLayout
 import com.onemoresecret.bt.layout.Stroke
 import java.util.Arrays
@@ -109,7 +108,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         if (device != null) {
             return try {
                 BluetoothTargetItem(device.address, device.name ?: device.address, device)
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 BluetoothTargetItem(device.address, device.address, device)
             }
         }
@@ -269,7 +268,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                             discoverableEnabled = !discoverable && !isTyping,
                             keyboardLayoutEnabled = !isTyping,
                             bluetoothTargetEnabled = !isTyping,
-                            typeButtonEnabled = isConnected && state.selectedKeyboardLayoutClassName != null && !state.message.isNullOrEmpty() && !isTyping,
+                            typeButtonEnabled = isConnected && state.selectedKeyboardLayoutClassName != null && !state.message.isNullOrEmpty(),
                             delayedStrokesEnabled = !isTyping,
                             typingText = state.typingText,
                             isTyping = isTyping
@@ -334,9 +333,10 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val bluetoothDevice = getSelectedBluetoothDevice()?.bluetoothDevice ?: return@launch
             for (s in strokes) {
-                if (!typing.get()) continue
+                if (!typing.get()) break
                 if (s == null) continue
                 for (r in s.get()) {
+                    if (!typing.get()) break
                     if (r == null) continue
                     try {
                         bluetoothController!!
