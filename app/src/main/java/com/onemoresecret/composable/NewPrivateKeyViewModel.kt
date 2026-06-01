@@ -264,7 +264,7 @@ class NewPrivateKeyViewModel(
     ) :
         ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(NewPrivateKeyViewModel::class.java)) {
+            if (modelClass.isAssignableFrom(/* cls = */ NewPrivateKeyViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
                 return NewPrivateKeyViewModel(preferences, cryptographyManager) as T
             }

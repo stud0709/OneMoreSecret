@@ -6,6 +6,8 @@ import kotlin.system.exitProcess
 
 class OmsUncaughtExceptionHandler(private val activity: Activity) :
     Thread.UncaughtExceptionHandler {
+    private val existingHandler = Thread.getDefaultUncaughtExceptionHandler()
+
     override fun uncaughtException(t: Thread, e: Throwable) {
         val crashReportData = CrashReportData(e)
         val intent = Intent(activity.applicationContext, CrashReportActivity::class.java).apply{
@@ -13,8 +15,12 @@ class OmsUncaughtExceptionHandler(private val activity: Activity) :
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         activity.applicationContext.startActivity(intent)
-        android.os.Process.killProcess(android.os.Process.myPid())
-        exitProcess(1)
+        if (existingHandler != null) {
+            existingHandler.uncaughtException(t, e)
+        } else {
+            android.os.Process.killProcess(android.os.Process.myPid())
+            exitProcess(1)
+        }
     }
 
     companion object {

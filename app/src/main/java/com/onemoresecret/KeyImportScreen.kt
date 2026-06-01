@@ -37,6 +37,7 @@ fun KeyImportScreen(
     viewModel: KeyImportViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val strUnknownDecryptFirst = androidx.compose.ui.res.stringResource(R.string.unknown_decrypt_first)
 
     LaunchedEffect(message) {
         try {
@@ -57,7 +58,7 @@ fun KeyImportScreen(
         fingerprint = if (viewModel.fingerprint.isNotBlank()) {
             "…%s".format(viewModel.fingerprint.takeLast(10))
         } else {
-            context.getString(R.string.unknown_decrypt_first)
+            strUnknownDecryptFirst
         },
         warning = viewModel.warning,
         saveEnabled = viewModel.saveEnabled,

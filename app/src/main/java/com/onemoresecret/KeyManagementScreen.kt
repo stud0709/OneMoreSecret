@@ -44,6 +44,8 @@ fun KeyManagementScreen(
         factory = OutputViewModel.Factory(preferences)
     )
 
+    val strSharePublicKeyTitle = stringResource(R.string.share_public_key_title, selectedAlias ?: "")
+
     val publicKeyMessage = remember(selectedAlias, refreshTrigger) {
         selectedAlias?.let { alias ->
             try {
@@ -60,7 +62,7 @@ fun KeyManagementScreen(
 
     LaunchedEffect(publicKeyMessage) {
         if (publicKeyMessage != null) {
-            outputViewModel.setMessage(publicKeyMessage, context.getString(R.string.share_public_key_title, selectedAlias ?: ""))
+            outputViewModel.setMessage(publicKeyMessage, strSharePublicKeyTitle)
         } else {
             outputViewModel.setMessage(null, "")
         }

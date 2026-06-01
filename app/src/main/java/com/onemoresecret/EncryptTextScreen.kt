@@ -41,6 +41,8 @@ fun EncryptTextScreen(
     
     val cryptographyManager = remember { CryptographyManager() }
 
+    val strEncryptedPassword = stringResource(R.string.encrypted_password)
+
     LaunchedEffect(phraseText, selectedAlias) {
         if (selectedAlias != null) {
             try {
@@ -56,7 +58,7 @@ fun EncryptTextScreen(
                     val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
                     isEncrypted = true
                     displayedText = encrypted
-                    outputViewModel.setMessage(encrypted, context.getString(R.string.encrypted_password))
+                    outputViewModel.setMessage(encrypted, strEncryptedPassword)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

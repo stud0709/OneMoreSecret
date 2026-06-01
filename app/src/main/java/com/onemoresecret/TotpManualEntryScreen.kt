@@ -45,6 +45,8 @@ fun TotpManualEntryScreen() {
     var timerText by remember { mutableStateOf("") }
     
     var outputMessage by remember { mutableStateOf<String?>(null) }
+    
+    val strAppName = stringResource(R.string.app_name)
 
     // Trigger regeneration when parameters change
     var lastState by remember { mutableLongStateOf(-1L) }
@@ -58,7 +60,7 @@ fun TotpManualEntryScreen() {
             val builder = Uri.Builder()
             builder.scheme(OneTimePassword.OTP_SCHEME)
                 .authority(OneTimePassword.TOTP)
-                .appendPath(context.getString(R.string.app_name))
+                .appendPath(strAppName)
 
             builder.appendQueryParameter(OneTimePassword.SECRET_PARAM, secretText)
 

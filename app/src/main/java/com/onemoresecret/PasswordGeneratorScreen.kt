@@ -17,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -62,7 +63,9 @@ fun PasswordGeneratorScreen() {
     val outputViewModel: OutputViewModel = viewModel(
         factory = OutputViewModel.Factory(preferences)
     )
-    
+
+    val strEncryptedPassword = stringResource(R.string.encrypted_password)
+    val strUnprotectedPassword = stringResource(R.string.unprotected_password)
 
 
     var pwdLength by remember { mutableIntStateOf(preferences.getInt(PROP_PWD_LENGTH, PWD_LEN_DEFAULT)) }
@@ -179,13 +182,13 @@ fun PasswordGeneratorScreen() {
                 ).message
                 val encrypted = MessageComposer.encodeAsOmsText(encryptedMessage)
                 isControlsEnabled = false
-                outputViewModel.setMessage(encrypted, context.getString(R.string.encrypted_password))
+                outputViewModel.setMessage(encrypted, strEncryptedPassword)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         } else {
             isControlsEnabled = true
-            outputViewModel.setMessage(passwordText, context.getString(R.string.unprotected_password))
+            outputViewModel.setMessage(passwordText, strUnprotectedPassword)
         }
     }
 
@@ -196,7 +199,7 @@ fun PasswordGeneratorScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(context.getString(R.string.password_generator), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                title = { Text(stringResource(R.string.password_generator), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
 
                     if (selectedAlias == null) {
@@ -214,28 +217,28 @@ fun PasswordGeneratorScreen() {
                         ) {
                             if (selectedAlias == null) {
                                 DropdownMenuItem(
-                                    text = { Text(context.getString(R.string.password_generator)) },
+                                    text = { Text(stringResource(R.string.password_generator)) },
                                     onClick = { showMenu = false; newPassword() }
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text(context.getString(R.string.chip_upper_case)) },
+                                text = { Text(stringResource(R.string.chip_upper_case)) },
                                 onClick = { showMenu = false; showCharListDialogFor = PROP_UCASE_LIST }
                             )
                             DropdownMenuItem(
-                                text = { Text(context.getString(R.string.chip_lower_case)) },
+                                text = { Text(stringResource(R.string.chip_lower_case)) },
                                 onClick = { showMenu = false; showCharListDialogFor = PROP_LCASE_LIST }
                             )
                             DropdownMenuItem(
-                                text = { Text(context.getString(R.string.chip_numbers)) },
+                                text = { Text(stringResource(R.string.chip_numbers)) },
                                 onClick = { showMenu = false; showCharListDialogFor = PROP_DIGITS_LIST }
                             )
                             DropdownMenuItem(
-                                text = { Text(context.getString(R.string.chip_specials)) },
+                                text = { Text(stringResource(R.string.chip_specials)) },
                                 onClick = { showMenu = false; showCharListDialogFor = PROP_SPECIALS_LIST }
                             )
                             DropdownMenuItem(
-                                text = { Text(context.getString(R.string.chip_similar)) },
+                                text = { Text(stringResource(R.string.chip_similar)) },
                                 onClick = { showMenu = false; showCharListDialogFor = PROP_SIMILAR_LIST }
                             )
                             DropdownMenuItem(
@@ -264,7 +267,7 @@ fun PasswordGeneratorScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_upper_case),
+                    label = stringResource(R.string.chip_upper_case),
                     selected = uCase,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -273,7 +276,7 @@ fun PasswordGeneratorScreen() {
                     }
                 )
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_lower_case),
+                    label = stringResource(R.string.chip_lower_case),
                     selected = lCase,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -282,7 +285,7 @@ fun PasswordGeneratorScreen() {
                     }
                 )
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_numbers),
+                    label = stringResource(R.string.chip_numbers),
                     selected = digits,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -291,7 +294,7 @@ fun PasswordGeneratorScreen() {
                     }
                 )
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_specials),
+                    label = stringResource(R.string.chip_specials),
                     selected = specials,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -300,7 +303,7 @@ fun PasswordGeneratorScreen() {
                     }
                 )
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_similar),
+                    label = stringResource(R.string.chip_similar),
                     selected = similar,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -309,7 +312,7 @@ fun PasswordGeneratorScreen() {
                     }
                 )
                 CustomFilterChip(
-                    label = context.getString(R.string.chip_layout),
+                    label = stringResource(R.string.chip_layout),
                     selected = layout,
                     enabled = isControlsEnabled,
                     onCheckedChange = { 
@@ -341,7 +344,7 @@ fun PasswordGeneratorScreen() {
                 value = passwordText,
                 onValueChange = { passwordText = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(context.getString(R.string.password)) },
+                label = { Text(stringResource(R.string.password)) },
                 enabled = isControlsEnabled,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
@@ -349,7 +352,7 @@ fun PasswordGeneratorScreen() {
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = context.getString(R.string.encrypt_with),
+                text = stringResource(R.string.encrypt_with),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -426,7 +429,7 @@ fun PasswordGeneratorScreen() {
             else -> ""
         }
         CharListDialog(
-            title = context.getString(titleId),
+            title = stringResource(titleId),
             currentValue = preferences.getString(propName, defaultVal) ?: defaultVal,
             onDismiss = { showCharListDialogFor = null },
             onConfirm = { 
@@ -464,10 +467,10 @@ fun NumberPickerDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(value) }) { Text(android.R.string.ok.let { LocalContext.current.getString(it) }) }
+            TextButton(onClick = { onConfirm(value) }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(android.R.string.cancel.let { LocalContext.current.getString(it) }) }
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
         }
     )
 }
@@ -491,10 +494,10 @@ fun CharListDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(value) }) { Text(android.R.string.ok.let { LocalContext.current.getString(it) }) }
+            TextButton(onClick = { onConfirm(value) }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(android.R.string.cancel.let { LocalContext.current.getString(it) }) }
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
         }
     )
 }

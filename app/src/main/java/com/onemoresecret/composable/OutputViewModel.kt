@@ -18,6 +18,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import com.onemoresecret.R
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.printStackTrace
@@ -151,7 +155,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         if (refreshingBtControls.get()) return
         val ctx = context ?: return
 
-        Thread {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (bluetoothController == null || !bluetoothController!!.isBluetoothAvailable ||
                     ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
@@ -179,10 +183,10 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                             refreshingBtControls.set(false)
                         }
                     }
-                    return@Thread
+                    return@launch
                 }
 
-                val bluetoothAdapter = bluetoothController!!.adapter ?: return@Thread
+                val bluetoothAdapter = bluetoothController!!.adapter ?: return@launch
                 val bluetoothAdapterEnabled = bluetoothAdapter.isEnabled
 
                 val discoverable =
@@ -279,7 +283,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }
-        }.start()
+        }
     }
 
     private fun checkConnectSelectedDevice() {
@@ -327,37 +331,39 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         typing.set(true)
         refreshBluetoothControls()
 
-        Thread {
-            val bluetoothDevice = getSelectedBluetoothDevice()?.bluetoothDevice ?: return@Thread
-            strokes.stream()
-                .filter { _: Stroke? -> typing.get() }
-                .flatMap<KeyboardReport?> { s: Stroke? -> s!!.get().stream() }
-                .forEach { r: KeyboardReport? ->
+        viewModelScope.launch(Dispatchers.IO) {
+            val bluetoothDevice = getSelectedBluetoothDevice()?.bluetoothDevice ?: return@launch
+            for (s in strokes) {
+                if (!typing.get()) continue
+                if (s == null) continue
+                for (r in s.get()) {
+                    if (r == null) continue
                     try {
                         bluetoothController!!
                             .bluetoothHidDevice
                             ?.sendReport(
                                 bluetoothDevice,
                                 0,
-                                r!!.report
+                                r.report
                             )
                     } catch (ex: Exception) {
                         printStackTrace(ex)
                         typing.set(false)
-                        return@forEach
+                        continue
                     }
                     try {
                         val delayOn = prefs.getLong("kbd_stroke_delay_on", 50)
                         val delayOff = prefs.getLong("kbd_stroke_delay_off", 10)
-                        Thread.sleep(if (state.delayedStrokes) delayOn else delayOff)
-                    } catch (e: InterruptedException) {
+                        delay(if (state.delayedStrokes) delayOn else delayOff)
+                    } catch (e: Exception) {
                         printStackTrace(e)
                     }
                 }
+            }
 
             typing.set(false)
             refreshBluetoothControls()
-        }.start()
+        }
     }
 
     inner class SpinnerItemDevice internal constructor(val ctx: Context, val bluetoothDevice: BluetoothDevice) {

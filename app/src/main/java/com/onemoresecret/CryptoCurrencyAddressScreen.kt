@@ -43,6 +43,10 @@ fun CryptoCurrencyAddressScreen() {
 
     val cryptographyManager = remember { CryptographyManager() }
 
+    val strWifEncrypted = stringResource(R.string.wif_encrypted)
+    val strPublicAddress = stringResource(R.string.public_address)
+    val strBackupFile = stringResource(R.string.backup_file)
+
     val newBitcoinAddress = {
         try {
             btcKeyPair = BTCAddress.newKeyPair().toBTCKeyPair()
@@ -77,7 +81,7 @@ fun CryptoCurrencyAddressScreen() {
                     ).message
                     
                     val encoded = MessageComposer.encodeAsOmsText(encryptedMessage)
-                    outputViewModel.setMessage(encoded, context.getString(R.string.wif_encrypted))
+                    outputViewModel.setMessage(encoded, strWifEncrypted)
                     
                     // Generate backup HTML
                     val stringBuilder = java.lang.StringBuilder()
@@ -146,7 +150,7 @@ fun CryptoCurrencyAddressScreen() {
             }
         } else {
             backupHtml = null
-            outputViewModel.setMessage(address, context.getString(R.string.public_address))
+            outputViewModel.setMessage(address, strPublicAddress)
         }
     }
 
@@ -215,7 +219,7 @@ fun CryptoCurrencyAddressScreen() {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 type = "text/html"
                             }
-                            context.startActivity(Intent.createChooser(intent, String.format(context.getString(R.string.backup_file), address)))
+                            context.startActivity(Intent.createChooser(intent, String.format(strBackupFile, address)))
                         } catch (ex: Exception) {
                             Toast.makeText(context, ex.message, Toast.LENGTH_LONG).show()
                             ex.printStackTrace()

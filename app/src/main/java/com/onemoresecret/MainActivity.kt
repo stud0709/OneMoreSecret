@@ -17,6 +17,7 @@ import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetSocketAddress
@@ -62,13 +63,13 @@ class MainActivity : FragmentActivity() {
                 .remove(PROP_PUBLIC_KEY_COMM)
                 .remove(PROP_WIFI_COMM_EXP)
                 .remove(PROP_IPADDR)
-                .remove(PROP_PORT).commit()
+                .remove(PROP_PORT).apply()
         } else {
             editor.putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(rsaPrivateKeyMaterial, Base64.DEFAULT))
                 .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey, Base64.DEFAULT))
                 .putLong(PROP_WIFI_COMM_EXP, wiFiComm.ts_expiry)
                 .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
-                .putInt(PROP_PORT, wiFiComm.port).commit()
+                .putInt(PROP_PORT, wiFiComm.port).apply()
         }
     }
 
@@ -96,7 +97,7 @@ class MainActivity : FragmentActivity() {
         preferences = getPreferences(MODE_PRIVATE)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        Thread { OmsFileProvider.purgeTmp(this@MainActivity) }.start()
+        lifecycleScope.launch(Dispatchers.IO) { OmsFileProvider.purgeTmp(this@MainActivity) }
 
         setContent {
             com.onemoresecret.composable.OneMoreSecretTheme {
@@ -165,7 +166,7 @@ class MainActivity : FragmentActivity() {
     }
 
     fun startWiFiListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
-        val wiFiListener = Thread {
+        val wiFiListener = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 ServerSocket().use { serverSocket ->
                     synchronized(MainActivity::class.java) {
@@ -175,7 +176,7 @@ class MainActivity : FragmentActivity() {
 
                         destroyWiFiListener()
 
-                        val comm = getWiFiComm() ?: return@Thread
+                        val comm = getWiFiComm() ?: return@launch
 
                         wiFiListenerShutdown = Runnable {
                             try {
@@ -194,7 +195,7 @@ class MainActivity : FragmentActivity() {
                         onSuccess.run()
                     }
 
-                    while (!Thread.currentThread().isInterrupted) {
+                    while (isActive) {
                         try {
                             val socket = serverSocket.accept()
                             onWiFiConnection(socket, messageConsumer)
@@ -208,7 +209,7 @@ class MainActivity : FragmentActivity() {
                 Util.printStackTrace(ex)
                 setWiFiComm(null, null)
                 runOnUiThread {
-                    AlertDialog.Builder(this)
+                    AlertDialog.Builder(this@MainActivity)
                         .setTitle(R.string.wifi_pairing_error)
                         .setMessage(R.string.wifi_pairing_error_message)
                         .setPositiveButton(android.R.string.ok, null)
@@ -217,12 +218,10 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
-        wiFiListener.isDaemon = true
-        wiFiListener.start()
     }
 
     private fun onWiFiConnection(socket: Socket, messageConsumer: Consumer<String>) {
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val dataInputStream = OmsDataInputStream(socket.getInputStream())
                 val envelope = MessageComposer.readRsaAesEnvelope(dataInputStream)
@@ -255,7 +254,7 @@ class MainActivity : FragmentActivity() {
                 Util.printStackTrace(ex)
                 runOnUiThread {
                     Toast.makeText(
-                        this,
+                        this@MainActivity,
                         ex.message ?: ex.javaClass.name,
                         Toast.LENGTH_LONG
                     ).show()
@@ -264,7 +263,7 @@ class MainActivity : FragmentActivity() {
                     socket.close()
                 } catch (ignored: IOException) {}
             }
-        }.start()
+        }
     }
 
     companion object {

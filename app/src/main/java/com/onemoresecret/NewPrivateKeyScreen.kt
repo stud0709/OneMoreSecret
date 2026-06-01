@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,6 +42,8 @@ fun NewPrivateKeyScreen(
         )
     )
 
+    val strBackupFile = stringResource(R.string.backup_file)
+
     LaunchedEffect(viewModel) {
         viewModel.event.collect { event ->
             when (event) {
@@ -60,7 +63,7 @@ fun NewPrivateKeyScreen(
                     context.startActivity(
                         Intent.createChooser(
                             intent,
-                            String.format(context.getString(R.string.backup_file), event.alias)
+                            String.format(strBackupFile, event.alias)
                         )
                     )
                 }
@@ -77,7 +80,7 @@ fun NewPrivateKeyScreen(
                         Util.openUrl(R.string.new_private_key_md_url, context)
                     }) {
                         Icon(
-                            imageVector = Icons.Default.Help,
+                            imageVector = Icons.AutoMirrored.Filled.Help,
                             contentDescription = "Help"
                         )
                     }

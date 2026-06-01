@@ -18,6 +18,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.navigation.NavController
 import java.util.concurrent.atomic.AtomicBoolean
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 interface QrMessageHandlerCallbacks {
     val context: Context
@@ -196,9 +199,9 @@ class QrMessageHandler(
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 callbacks.messageReceived.set(false)
                 val activity = callbacks.activity as MainActivity
-                Thread { activity.sendReplyViaSocket(ByteArray(0), true) }.start()
+                activity.lifecycleScope.launch(Dispatchers.IO) { activity.sendReplyViaSocket(ByteArray(0), true) }
                 callbacks.nextPinRequestTimestamp = 0
-                Thread { OmsFileProvider.purgeTmp(callbacks.context) }.start()
+                activity.lifecycleScope.launch(Dispatchers.IO) { OmsFileProvider.purgeTmp(callbacks.context) }
                 Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode))
                 callbacks.context.mainExecutor.execute {
                     Toast.makeText(callbacks.context, "$errString ($errorCode)", Toast.LENGTH_SHORT).show()

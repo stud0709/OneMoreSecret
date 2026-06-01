@@ -43,6 +43,9 @@ fun FileEncryptionScreen(
     var selectedAlias by remember { mutableStateOf<String?>(null) }
     var lastProgressPrc by remember { mutableIntStateOf(-1) }
 
+    val strDone = stringResource(R.string.done)
+    val strWorkingPrc = stringResource(R.string.working_prc)
+
     LaunchedEffect(uri) {
         withContext(Dispatchers.IO) {
             val info = Util.getFileInfo(context, uri)
@@ -62,9 +65,9 @@ fun FileEncryptionScreen(
 
             lastProgressPrc = progressPrc
             progressText = if (lastProgressPrc == 100) {
-                context.getString(R.string.done)
+                strDone
             } else {
-                String.format(Locale.getDefault(), context.getString(R.string.working_prc), lastProgressPrc)
+                String.format(Locale.getDefault(), strWorkingPrc, lastProgressPrc)
             }
         } else {
             progressText = ""

@@ -24,6 +24,7 @@ import com.onemoresecret.R
 fun Oms4WebUnlockScreen(message: String?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val strOms4webCallbackUrl = androidx.compose.ui.res.stringResource(R.string.oms4web_callback_url)
 
     DisposableEffect(lifecycleOwner, message) {
         val activity = context as? ComponentActivity
@@ -69,22 +70,18 @@ fun Oms4WebUnlockScreen(message: String?) {
         }
     }
 
-    androidx.compose.foundation.layout.Box(
-        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
-    ) {
-        androidx.compose.material3.Button(onClick = {
+    Oms4webUnlock(
+        message = message,
+        onUnlock = {
             if (message != null) {
                 val encodedData = Uri.encode(message)
-                val url = context.getString(R.string.oms4web_callback_url).format(encodedData)
+                val url = strOms4webCallbackUrl.format(encodedData)
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
                 (context as? ComponentActivity)?.finish()
             }
-        }) {
-            androidx.compose.material3.Text("Unlock")
         }
-    }
+    )
 }
