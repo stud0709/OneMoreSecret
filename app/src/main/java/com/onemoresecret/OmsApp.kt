@@ -6,88 +6,117 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.onemoresecret.navigation.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun OmsApp() {
     val navController = rememberNavController()
+    val omsState = remember { OmsState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    androidx.navigation.compose.NavHost(
-        navController = navController,
-        startDestination = QrRoute
-    ) {
-        composable<QrRoute> {
-            QRScreen(navController)
+    DisposableEffect(lifecycleOwner, omsState, navController) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                if (!omsState.isAutoLockDisarmed) {
+                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                    if (currentRoute?.contains(MessageRoute::class.qualifiedName!!) == true) {
+                        navController.popBackStack<QrRoute>(inclusive = false)
+                    }
+                }
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                omsState.isAutoLockDisarmed = false
+            }
         }
-        composable<PasswordGeneratorRoute> {
-            PasswordGeneratorScreen()
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
-        composable<MessageRoute> {
-            val previousBackStackEntry = navController.previousBackStackEntry
-            val applicationId = previousBackStackEntry?.savedStateHandle?.get<Int>(QRScreen.ARG_APPLICATION_ID)
-            val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE)
-            val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
-            MessageScreen(
-                applicationId = applicationId,
-                messageData = messageData,
-                uri = uri,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        composable<KeyImportRoute> {
-            val previousBackStackEntry = navController.previousBackStackEntry
-            val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
-            KeyImportScreen(
-                message = messageData,
-                onImportCompleted = { navController.popBackStack() }
-            )
-        }
-        composable<NewPrivateKeyRoute> {
-            NewPrivateKeyScreen(
-                onPopBackStack = { navController.popBackStack() }
-            )
-        }
-        composable<KeyManagementRoute> {
-            KeyManagementScreen(
-                onNavigateToNewPrivateKey = { navController.navigate(NewPrivateKeyRoute) }
-            )
-        }
-        composable<PermissionsRoute> {
-            PermissionsScreen(
-                onProceed = { navController.popBackStack() }
-            )
-        }
-        composable<EncryptTextRoute> { backStackEntry ->
-            val route = backStackEntry.toRoute<EncryptTextRoute>()
-            EncryptTextScreen(initialText = route.text ?: "", onNavigateBack = { navController.popBackStack() })
-        }
-        composable<TotpImportRoute> {
-            val previousBackStackEntry = navController.previousBackStackEntry
-            val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
-            TotpImportScreen(
-                message = messageData,
-                onImportCompleted = { navController.popBackStack() }
-            )
-        }
-        composable<TotpManualEntryRoute> {
-            TotpManualEntryScreen()
-        }
-        composable<PinSetupRoute> {
-            PinSetupScreen(
-                onPopBackStack = { navController.popBackStack() }
-            )
-        }
-        composable<FileEncryptionRoute> {
-            val previousBackStackEntry = navController.previousBackStackEntry
-            val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
-            if (uri != null) {
-                FileEncryptionScreen(
+    }
+
+    CompositionLocalProvider(LocalOmsState provides omsState) {
+        androidx.navigation.compose.NavHost(
+            navController = navController,
+            startDestination = QrRoute
+        ) {
+            composable<QrRoute> {
+                QRScreen(navController)
+            }
+            composable<PasswordGeneratorRoute> {
+                PasswordGeneratorScreen()
+            }
+            composable<MessageRoute> {
+                val previousBackStackEntry = navController.previousBackStackEntry
+                val applicationId = previousBackStackEntry?.savedStateHandle?.get<Int>(QRScreen.ARG_APPLICATION_ID)
+                val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE)
+                val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
+                MessageScreen(
+                    applicationId = applicationId,
+                    messageData = messageData,
                     uri = uri,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-        }
-        composable<CryptoCurrencyAddressRoute> {
-            CryptoCurrencyAddressScreen()
+            composable<KeyImportRoute> {
+                val previousBackStackEntry = navController.previousBackStackEntry
+                val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
+                KeyImportScreen(
+                    message = messageData,
+                    onImportCompleted = { navController.popBackStack() }
+                )
+            }
+            composable<NewPrivateKeyRoute> {
+                NewPrivateKeyScreen(
+                    onPopBackStack = { navController.popBackStack() }
+                )
+            }
+            composable<KeyManagementRoute> {
+                KeyManagementScreen(
+                    onNavigateToNewPrivateKey = { navController.navigate(NewPrivateKeyRoute) }
+                )
+            }
+            composable<PermissionsRoute> {
+                PermissionsScreen(
+                    onProceed = { navController.popBackStack() }
+                )
+            }
+            composable<EncryptTextRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<EncryptTextRoute>()
+                EncryptTextScreen(initialText = route.text ?: "", onNavigateBack = { navController.popBackStack() })
+            }
+            composable<TotpImportRoute> {
+                val previousBackStackEntry = navController.previousBackStackEntry
+                val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
+                TotpImportScreen(
+                    message = messageData,
+                    onImportCompleted = { navController.popBackStack() }
+                )
+            }
+            composable<TotpManualEntryRoute> {
+                TotpManualEntryScreen()
+            }
+            composable<PinSetupRoute> {
+                PinSetupScreen(
+                    onPopBackStack = { navController.popBackStack() }
+                )
+            }
+            composable<FileEncryptionRoute> {
+                val previousBackStackEntry = navController.previousBackStackEntry
+                val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
+                if (uri != null) {
+                    FileEncryptionScreen(
+                        uri = uri,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable<CryptoCurrencyAddressRoute> {
+                CryptoCurrencyAddressScreen()
+            }
         }
     }
 }

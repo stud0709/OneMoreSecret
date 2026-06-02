@@ -11,7 +11,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.onemoresecret.Util.byteArrayToHex
+import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
 import com.onemoresecret.composable.KeyImportScreen as KeyImportUI
 import com.onemoresecret.crypto.AESUtil.getAesKeyMaterialFromPassword
@@ -30,6 +42,7 @@ import java.io.IOException
 import java.util.Arrays
 import javax.crypto.Cipher
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KeyImportScreen(
     message: ByteArray,
@@ -37,7 +50,7 @@ fun KeyImportScreen(
     viewModel: KeyImportViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val strUnknownDecryptFirst = androidx.compose.ui.res.stringResource(R.string.unknown_decrypt_first)
+    val strUnknownDecryptFirst = stringResource(R.string.unknown_decrypt_first)
 
     LaunchedEffect(message) {
         try {
@@ -52,24 +65,38 @@ fun KeyImportScreen(
         }
     }
 
-    KeyImportUI(
-        alias = viewModel.keyAlias,
-        passphrase = viewModel.passphrase,
-        fingerprint = if (viewModel.fingerprint.isNotBlank()) {
-            "…%s".format(viewModel.fingerprint.takeLast(10))
-        } else {
-            strUnknownDecryptFirst
-        },
-        warning = viewModel.warning,
-        saveEnabled = viewModel.saveEnabled,
-        onAliasChange = {
-            viewModel.keyAlias = it
-            viewModel.validateAlias(context, viewModel.decryptedFingerprintBytes)
-        },
-        onPassphraseChange = { viewModel.passphrase = it },
-        onDecrypt = { viewModel.onDecryptClicked(context) },
-        onSave = { viewModel.onSaveClicked(context, onImportCompleted) }
-    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.private_key_import), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                actions = {
+                    IconButton(onClick = { openUrl(R.string.key_import_md_url, context) }) {
+                        Icon(imageVector = Icons.Default.Help, contentDescription = stringResource(R.string.help))
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        KeyImportUI(
+            modifier = Modifier.padding(innerPadding),
+            alias = viewModel.keyAlias,
+            passphrase = viewModel.passphrase,
+            fingerprint = if (viewModel.fingerprint.isNotBlank()) {
+                "…%s".format(viewModel.fingerprint.takeLast(10))
+            } else {
+                strUnknownDecryptFirst
+            },
+            warning = viewModel.warning,
+            saveEnabled = viewModel.saveEnabled,
+            onAliasChange = {
+                viewModel.keyAlias = it
+                viewModel.validateAlias(context, viewModel.decryptedFingerprintBytes)
+            },
+            onPassphraseChange = { viewModel.passphrase = it },
+            onDecrypt = { viewModel.onDecryptClicked(context) },
+            onSave = { viewModel.onSaveClicked(context, onImportCompleted) }
+        )
+    }
 }
 
 class KeyImportViewModel : ViewModel() {

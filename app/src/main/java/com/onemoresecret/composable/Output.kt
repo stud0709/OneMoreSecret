@@ -53,6 +53,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.platform.LocalContext
 import com.onemoresecret.bt.BluetoothController
+import com.onemoresecret.LocalOmsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +62,7 @@ fun OutputScreen(
 ) {
     val state = outputViewModel.state
     val context = LocalContext.current
+    val omsState = LocalOmsState.current
     var showBluetoothDialog by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ -> }
@@ -162,18 +164,19 @@ fun OutputScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
-            val context = androidx.compose.ui.platform.LocalContext.current
+            val context = LocalContext.current
             val message = state.message
             val shareTitle = state.typingText
             if (message != null) {
                 IconButton(onClick = {
-                    val sendIntent = android.content.Intent().apply {
-                        action = android.content.Intent.ACTION_SEND
-                        putExtra(android.content.Intent.EXTRA_TEXT, message)
-                        putExtra(android.content.Intent.EXTRA_TITLE, shareTitle)
+                    omsState.isAutoLockDisarmed = true
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, message)
+                        putExtra(Intent.EXTRA_TITLE, shareTitle)
                         type = "text/plain"
                     }
-                    val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+                    val shareIntent = Intent.createChooser(sendIntent, null)
                     context.startActivity(shareIntent)
                 }) {
                     Icon(Icons.Default.Share, contentDescription = "Share")
@@ -214,6 +217,7 @@ fun OutputScreen(
                         Button(
                             onClick = {
                                 val discoverableDuration = 60 // defaults to 60 as per old fragment
+                                omsState.isAutoLockDisarmed = true
                                 outputViewModel.bluetoothController?.requestDiscoverable(discoverableDuration)
                             },
                             enabled = state.discoverableEnabled

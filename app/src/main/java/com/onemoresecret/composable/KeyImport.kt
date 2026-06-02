@@ -30,6 +30,7 @@ import com.onemoresecret.R
 
 @Composable
 fun KeyImportScreen(
+    modifier: Modifier = Modifier,
     alias: String,
     passphrase: String,
     fingerprint: String,
@@ -41,7 +42,7 @@ fun KeyImportScreen(
     onSave: () -> Unit
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
             .animateContentSize()
