@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +52,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment.Companion.CenterVertically
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.onemoresecret.bt.BluetoothController
 import com.onemoresecret.LocalOmsState
 
@@ -90,6 +94,19 @@ fun OutputScreen(
             controller.destroy()
             outputViewModel.bluetoothController = null
             outputViewModel.context = null
+        }
+    }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, outputViewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                outputViewModel.bluetoothController?.registerApp()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -272,7 +289,7 @@ private fun KeyboardLayoutSelector(
         OutlinedButton(
             onClick = {}, // handled by ExposedDropdownMenuBox
             enabled = enabled,
-            modifier = Modifier.menuAnchor()
+            modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled)
         ) {
             Text(selectedLayout?.shortName ?: "")
             Spacer(modifier = Modifier.padding(horizontal = 2.dp))
@@ -313,13 +330,15 @@ private fun DropdownField(
         expanded = expanded,
         onExpandedChange = { if (enabled) expanded = !expanded }
     ) {
+        val fillMaxWidth = Modifier
+            .fillMaxWidth()
         OutlinedTextField(
             label = { Text(label) },
             value = selectedLabel,
             onValueChange = {},
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled)
                 .semantics { this.contentDescription = contentDescription },
             readOnly = true,
             enabled = enabled,

@@ -97,8 +97,23 @@ class BluetoothController(
                 return
             }
 
-            val hidDevice = bluetoothHidDevice ?: return
+            registerApp()
+        } catch (_: IllegalStateException) {
+            //things are happening outside the context
+            Log.e(TAG, "Not attached to a context")
+        }
+    }
 
+    fun registerApp() {
+        try {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            val hidDevice = bluetoothHidDevice ?: return
             Log.i(
                 TAG, String.format(
                     "registering HID app: %s",
@@ -112,7 +127,6 @@ class BluetoothController(
                 )
             )
         } catch (_: IllegalStateException) {
-            //things are happening outside the context
             Log.e(TAG, "Not attached to a context")
         }
     }
