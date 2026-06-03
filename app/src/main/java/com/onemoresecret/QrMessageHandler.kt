@@ -316,16 +316,13 @@ class QrMessageHandler(
 
                 if (optOriginalMessage == null) return
 
-                val optDrawableId = MessageComposer.getDrawableIdForApplicationId(
-                    bundle.getInt(QRScreen.ARG_APPLICATION_ID)
-                )
-
-                if (optDrawableId.isEmpty) return
+                val applicationId = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+                if (!MessageComposer.isApplicationIdStorableInRecent(applicationId)) return
 
                 QrRecentManager.setRecent(
                     callbacks.preferences,
                     optOriginalMessage,
-                    optDrawableId.get()
+                    applicationId
                 )
             }
         }

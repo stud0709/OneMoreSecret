@@ -1,5 +1,6 @@
 package com.onemoresecret.composable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -29,7 +30,7 @@ fun Oms4webUnlock(
             }
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.baseline_key_24),
+                imageVector = androidx.compose.material.icons.Icons.Default.VpnKey,
                 contentDescription = null
             )
             Spacer(Modifier.width(8.dp))

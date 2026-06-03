@@ -11,6 +11,9 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -119,7 +122,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         bluetoothAvailable: Boolean,
         bluetoothTargets: List<BluetoothTargetItem>,
         bluetoothStatusText: String,
-        bluetoothStatusIcon: Int,
+        bluetoothStatusIcon: androidx.compose.ui.graphics.vector.ImageVector,
         discoverableEnabled: Boolean,
         keyboardLayoutEnabled: Boolean,
         bluetoothTargetEnabled: Boolean,
@@ -167,7 +170,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                                 bluetoothAvailable = false,
                                 bluetoothTargets = emptyList(),
                                 bluetoothStatusText = ctx.getString(R.string.bt_not_available),
-                                bluetoothStatusIcon = R.drawable.ic_baseline_bluetooth_disabled_24,
+                                bluetoothStatusIcon = androidx.compose.material.icons.Icons.Default.BluetoothDisabled,
                                 discoverableEnabled = false,
                                 keyboardLayoutEnabled = false,
                                 bluetoothTargetEnabled = false,
@@ -227,11 +230,11 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                     try {
                         val isTyping = typing.get()
                         var status = ctx.getString(R.string.bt_off)
-                        var icon = R.drawable.ic_baseline_bluetooth_disabled_24
+                        var icon = androidx.compose.material.icons.Icons.Default.BluetoothDisabled
 
                         if (bluetoothAdapterEnabled) {
                             status = ctx.getString(R.string.bt_disconnected)
-                            icon = R.drawable.ic_baseline_bluetooth_24
+                            icon = androidx.compose.material.icons.Icons.Default.Bluetooth
                         }
 
                         val restoredAddress = state.selectedBluetoothAddress
@@ -255,7 +258,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
                             if (connectedDevices.contains(device)) {
                                 status = ctx.getString(R.string.bt_connected)
-                                icon = R.drawable.ic_baseline_bluetooth_connected_24
+                                icon = androidx.compose.material.icons.Icons.Default.BluetoothConnected
                                 isConnected = true
                             }
                         }
@@ -447,7 +450,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         val keyboardLayouts: List<KeyboardLayoutItem> = emptyList(),
         val selectedKeyboardLayoutClassName: String? = null,
         val bluetoothStatusText: String = "",
-        val bluetoothStatusIcon: Int = 0,
+        val bluetoothStatusIcon: androidx.compose.ui.graphics.vector.ImageVector = androidx.compose.material.icons.Icons.Default.BluetoothDisabled,
         val discoverableEnabled: Boolean = false,
         val keyboardLayoutEnabled: Boolean = false,
         val bluetoothTargetEnabled: Boolean = false,

@@ -18,6 +18,9 @@ import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Timelapse
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
 import com.onemoresecret.crypto.*
@@ -158,7 +161,7 @@ fun TotpManualEntryScreen() {
                     onClick = { algorithmMenuExpanded = true },
                     label = { Text(selectedAlgorithm) },
                     leadingIcon = {
-                        Icon(painterResource(R.drawable.baseline_category_24), contentDescription = null)
+                        Icon(androidx.compose.material.icons.Icons.Default.Category, contentDescription = null)
                     },
                     enabled = selectedAlias == null
                 )
@@ -185,7 +188,7 @@ fun TotpManualEntryScreen() {
                     onClick = { digitsMenuExpanded = true },
                     label = { Text(selectedDigits) },
                     leadingIcon = {
-                        Icon(painterResource(R.drawable.baseline_password_24), contentDescription = null)
+                        Icon(androidx.compose.material.icons.Icons.Default.Password, contentDescription = null)
                     },
                     enabled = selectedAlias == null
                 )
@@ -214,7 +217,7 @@ fun TotpManualEntryScreen() {
                     onClick = { periodMenuExpanded = true },
                     label = { Text("${selectedPeriod}s") },
                     leadingIcon = {
-                        Icon(painterResource(R.drawable.baseline_timelapse_24), contentDescription = null)
+                        Icon(androidx.compose.material.icons.Icons.Default.Timelapse, contentDescription = null)
                     },
                     enabled = selectedAlias == null
                 )

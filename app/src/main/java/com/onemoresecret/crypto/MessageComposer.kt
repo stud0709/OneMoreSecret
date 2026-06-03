@@ -99,30 +99,18 @@ abstract class MessageComposer {
         const val APPLICATION_OMS4WEB_CALLBACK_REQUEST = 13
 
         /**
-         * Assigns a drawable to an applicationId. This is used to display recent entries.
-         * **ApplicationId without a drawableId wil not be added to recent entries.**
+         * Checks if an applicationId should be added to recent entries.
          *
          * @param applicationId
-         * @return drawableId
+         * @return boolean
          */
         @JvmStatic
-        fun getDrawableIdForApplicationId(applicationId: Int): Optional<Int> {
-            when (applicationId) {
-                APPLICATION_BITCOIN_ADDRESS -> {
-                    return Optional.of<Int>(R.drawable.baseline_currency_bitcoin_24)
-                }
-
-                APPLICATION_ENCRYPTED_MESSAGE, APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
-                    return Optional.of<Int>(R.drawable.baseline_password_24)
-                }
-
-                APPLICATION_TOTP_URI, APPLICATION_TOTP_URI_DEPRECATED -> {
-                    return Optional.of<Int>(R.drawable.baseline_timelapse_24)
-                }
-
-                else -> {
-                    return Optional.empty<Int>()
-                }
+        fun isApplicationIdStorableInRecent(applicationId: Int): Boolean {
+            return when (applicationId) {
+                APPLICATION_BITCOIN_ADDRESS,
+                APPLICATION_ENCRYPTED_MESSAGE, APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                APPLICATION_TOTP_URI, APPLICATION_TOTP_URI_DEPRECATED -> true
+                else -> false
             }
         }
 

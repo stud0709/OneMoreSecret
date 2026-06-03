@@ -61,6 +61,13 @@ import com.onemoresecret.composable.PinSetupViewModel
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.navigation.*
+import com.onemoresecret.navigation.PinSetupRoute
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.CurrencyBitcoin
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Timelapse
+import androidx.compose.material.icons.filled.DeviceUnknown
 import com.onemoresecret.qr.MessageParser
 import com.onemoresecret.qr.QRCodeAnalyzer
 import java.util.BitSet
@@ -247,7 +254,7 @@ fun QRScreen(navController: NavController) {
                 AlertDialog.Builder(context)
                     .setTitle(R.string.biometrics_unavailable)
                     .setMessage(R.string.biometrics_unavailable_long_text)
-                    .setIcon(R.drawable.baseline_fingerprint_24)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
                     .setNegativeButton(R.string.exit) { _, _ -> activity.finish() }
                     .show()
                 return false
@@ -265,7 +272,7 @@ fun QRScreen(navController: NavController) {
                 AlertDialog.Builder(context)
                     .setTitle(R.string.biometrics_not_enabled)
                     .setMessage(R.string.biometrics_not_enabled_long_text)
-                    .setIcon(R.drawable.baseline_fingerprint_24)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
                     .setPositiveButton(R.string.open_settings) { _, _ ->
                         context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
                     }
@@ -462,7 +469,7 @@ if (showPinEntry) {
                 title = { Text(stringResource(id = R.string.app_name), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { processClipboard() }) {
-                        Icon(painterResource(id = R.drawable.baseline_content_paste_24), contentDescription = "Paste")
+                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.ContentPaste, contentDescription = "Paste")
                     }
                     IconButton(onClick = {
                         if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
@@ -482,7 +489,7 @@ if (showPinEntry) {
                             navController.navigate(PinSetupRoute)
                         }
                     }) {
-                        Icon(painterResource(id = R.drawable.baseline_lock_24), contentDescription = "Panic")
+                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.Lock, contentDescription = "Panic")
                     }
                     var expanded by remember { mutableStateOf(false) }
                     var currentMenuLevel by remember { mutableStateOf("MAIN") }
@@ -769,7 +776,14 @@ if (showPinEntry) {
                             onClick = { messageHandler.onMessage(entry.message, false) }
                         ) {
                             Icon(
-                                painter = painterResource(id = entry.drawableId),
+                                imageVector = when (entry.applicationId) {
+                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_BITCOIN_ADDRESS -> androidx.compose.material.icons.Icons.Default.CurrencyBitcoin
+                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_ENCRYPTED_MESSAGE, 
+                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> androidx.compose.material.icons.Icons.Default.Password
+                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_TOTP_URI, 
+                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> androidx.compose.material.icons.Icons.Default.Timelapse
+                                    else -> androidx.compose.material.icons.Icons.Default.DeviceUnknown
+                                },
                                 contentDescription = "Recent Message"
                             )
                         }

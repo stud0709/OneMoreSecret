@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,7 +47,7 @@ fun PrivateKeyListItem(
             verticalAlignment = Alignment.Top
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.baseline_key_24),
+                imageVector = androidx.compose.material.icons.Icons.Default.VpnKey,
                 contentDescription = stringResource(id = R.string.key_icon),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp)
@@ -68,7 +70,7 @@ fun PrivateKeyListItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.baseline_fingerprint_24),
+                        imageVector = androidx.compose.material.icons.Icons.Default.Fingerprint,
                         contentDescription = stringResource(id = R.string.fingerprint),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)

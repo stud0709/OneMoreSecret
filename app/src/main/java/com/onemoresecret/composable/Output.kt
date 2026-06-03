@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -122,7 +124,7 @@ fun OutputScreen(
         ) {
             OutlinedButton(onClick = { showBluetoothDialog = true }) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_baseline_bluetooth_24),
+                    imageVector = androidx.compose.material.icons.Icons.Default.Bluetooth,
                     contentDescription = stringResource(R.string.bluetooth_target)
                 )
             }
@@ -240,7 +242,7 @@ fun OutputScreen(
                             enabled = state.discoverableEnabled
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_baseline_bluetooth_discovering_24),
+                                imageVector = androidx.compose.material.icons.Icons.Default.BluetoothSearching,
                                 contentDescription = stringResource(R.string.make_this_device_discoverable)
                             )
                         }
@@ -261,7 +263,7 @@ fun OutputScreen(
                         horizontalArrangement = Center
                     ) {
                         StatusChip(
-                            iconRes = state.bluetoothStatusIcon,
+                            iconVector = state.bluetoothStatusIcon,
                             text = state.bluetoothStatusText
                         )
                     }
@@ -365,7 +367,7 @@ private fun DropdownField(
 
 @Composable
 private fun StatusChip(
-    @DrawableRes iconRes: Int,
+    iconVector: androidx.compose.ui.graphics.vector.ImageVector,
     text: String
 ) {
     AssistChip(
@@ -373,12 +375,10 @@ private fun StatusChip(
         enabled = false,
         label = { Text(text) },
         leadingIcon = {
-            if (iconRes != 0) {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null
-                )
-            }
+            Icon(
+                imageVector = iconVector,
+                contentDescription = null
+            )
         }
     )
 }

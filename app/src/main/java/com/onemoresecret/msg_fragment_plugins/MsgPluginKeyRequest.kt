@@ -3,6 +3,7 @@ package com.onemoresecret.msg_fragment_plugins
 import android.util.Log
 import android.widget.Toast
 import androidx.biometric.BiometricPrompt
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,8 +78,22 @@ open class MsgPluginKeyRequest(
 
     @Composable
     override fun TopBarActions() {
-        if (applicationId != MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST && applicationId != MessageComposer.APPLICATION_KEY_REQUEST_PAIRING) {
-
+        if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST && outputMessage.isNotEmpty()) {
+            androidx.compose.material3.IconButton(onClick = {
+                val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clipData = android.content.ClipData.newPlainText("oneMoreSecret", outputMessage)
+                val persistableBundle = android.os.PersistableBundle().apply {
+                    putBoolean("android.content.extra.IS_SENSITIVE", true)
+                }
+                clipData.description.extras = persistableBundle
+                clipboardManager.setPrimaryClip(clipData)
+                Toast.makeText(context, context.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+            }) {
+                androidx.compose.material3.Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.ContentCopy,
+                    contentDescription = "Copy"
+                )
+            }
         }
     }
 

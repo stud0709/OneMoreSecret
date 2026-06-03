@@ -10,7 +10,7 @@ object QrRecentManager {
     private const val DEF_RECENT_SIZE = 3
     private val RECENT_TTL = TimeUnit.HOURS.toMillis(12)
 
-    fun setRecent(preferences: SharedPreferences, message: String, drawableId: Int) {
+    fun setRecent(preferences: SharedPreferences, message: String, applicationId: Int) {
         try {
             val recentEntries = OmsJson.decodeRecentEntries(
                 preferences.getString(PROP_RECENT_ENTRIES, "[]")
@@ -28,7 +28,7 @@ object QrRecentManager {
             // add latest recent values
             val newEntry = RecentEntry(
                 message,
-                drawableId,
+                applicationId,
                 currentTime + RECENT_TTL
             )
 
