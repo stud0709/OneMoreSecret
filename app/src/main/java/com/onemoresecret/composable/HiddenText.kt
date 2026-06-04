@@ -12,6 +12,7 @@ fun HiddenTextScreen(
 ) {
     Text(
         text = text,
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        fontFamily = JetBrainsMono
     )
 }

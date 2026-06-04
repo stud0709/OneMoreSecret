@@ -380,7 +380,10 @@ fun PasswordGeneratorScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.password)) },
                 enabled = isControlsEnabled,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                    fontFamily = com.onemoresecret.composable.JetBrainsMono
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))

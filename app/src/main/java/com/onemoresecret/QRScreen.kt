@@ -310,7 +310,7 @@ fun QRScreen(navController: NavController) {
                 Intent.ACTION_SEND -> {
                     val text = intent.getStringExtra(Intent.EXTRA_TEXT)
                     if (text.isNullOrEmpty()) {
-                        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                        val uri = androidx.core.content.IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
                         if (uri != null) {
                             Log.d("QRScreen", "URI: $uri")
                             onUri(uri)
@@ -462,7 +462,7 @@ if (showPinEntry) {
                 title = { Text(stringResource(id = R.string.app_name), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { processClipboard() }) {
-                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.ContentPaste, contentDescription = "Paste")
+                        Icon(imageVector = Icons.Default.ContentPaste, contentDescription = "Paste")
                     }
                     IconButton(onClick = {
                         if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
@@ -482,7 +482,7 @@ if (showPinEntry) {
                             navController.navigate(PinSetupRoute)
                         }
                     }) {
-                        Icon(imageVector = androidx.compose.material.icons.Icons.Default.Lock, contentDescription = "Panic")
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = "Panic")
                     }
                     var expanded by remember { mutableStateOf(false) }
                     var currentMenuLevel by remember { mutableStateOf("MAIN") }
@@ -770,12 +770,12 @@ if (showPinEntry) {
                         ) {
                             Icon(
                                 imageVector = when (entry.applicationId) {
-                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_BITCOIN_ADDRESS -> androidx.compose.material.icons.Icons.Default.CurrencyBitcoin
-                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_ENCRYPTED_MESSAGE, 
-                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> androidx.compose.material.icons.Icons.Default.Password
-                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_TOTP_URI, 
-                                    com.onemoresecret.crypto.MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> androidx.compose.material.icons.Icons.Default.Timelapse
-                                    else -> androidx.compose.material.icons.Icons.Default.DeviceUnknown
+                                    MessageComposer.APPLICATION_BITCOIN_ADDRESS -> Icons.Default.CurrencyBitcoin
+                                    MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
+                                    MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> Icons.Default.Password
+                                    MessageComposer.APPLICATION_TOTP_URI,
+                                    MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> Icons.Default.Timelapse
+                                    else -> Icons.Default.DeviceUnknown
                                 },
                                 contentDescription = "Recent Message"
                             )

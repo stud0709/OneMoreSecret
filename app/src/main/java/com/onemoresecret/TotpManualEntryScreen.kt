@@ -169,7 +169,10 @@ fun TotpManualEntryScreen() {
             onValueChange = { secretText = it.uppercase() },
             label = { Text(stringResource(R.string.totp_secret)) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = selectedAlias == null
+            enabled = selectedAlias == null,
+            textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                fontFamily = com.onemoresecret.composable.JetBrainsMono
+            )
         )
 
         Text(

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 open class MsgPluginEncryptedMessage(
     activity: FragmentActivity,
-    protected val messageData: ByteArray?,
+    messageData: ByteArray?,
     hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
 ) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {

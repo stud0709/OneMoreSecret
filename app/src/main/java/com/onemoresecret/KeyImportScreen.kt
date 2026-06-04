@@ -4,10 +4,6 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,9 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,13 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.onemoresecret.R
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
@@ -57,14 +50,12 @@ import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
-import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.util.Arrays
-import javax.crypto.Cipher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
+import java.io.ByteArrayInputStream
+import java.util.Arrays
+import javax.crypto.Cipher
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +87,7 @@ fun KeyImportScreen(
                 title = { Text(stringResource(R.string.private_key_import), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { openUrl(R.string.key_import_md_url, context) }) {
-                        Icon(imageVector = Icons.Default.Help, contentDescription = stringResource(R.string.help))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Help, contentDescription = stringResource(R.string.help))
                     }
                 }
             )
