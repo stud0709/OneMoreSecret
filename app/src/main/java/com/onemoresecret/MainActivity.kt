@@ -10,7 +10,6 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
 import com.onemoresecret.crypto.AESUtil
 import com.onemoresecret.crypto.MessageComposer
@@ -24,7 +23,6 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.Arrays
-import java.util.Objects
 import java.util.function.Consumer
 import javax.crypto.Cipher
 
@@ -34,12 +32,32 @@ class MainActivity : FragmentActivity() {
         val ipAdr: ByteArray,
         val port: Int,
         val publicKey: ByteArray,
-        val ts_expiry: Long
+        val tsExpiry: Long
     ) {
-        fun isValid(): Boolean = System.currentTimeMillis() < ts_expiry
+        fun isValid(): Boolean = System.currentTimeMillis() < tsExpiry
 
         fun getRsaPrivateKeyMaterial(preferences: SharedPreferences): ByteArray {
             return Base64.decode(preferences.getString(PROP_PRIVATE_KEY_COMM, ""), Base64.DEFAULT)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is WiFiComm) return false
+
+            if (port != other.port) return false
+            if (tsExpiry != other.tsExpiry) return false
+            if (!ipAdr.contentEquals(other.ipAdr)) return false
+            if (!publicKey.contentEquals(other.publicKey)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = port
+            result = 31 * result + tsExpiry.hashCode()
+            result = 31 * result + ipAdr.contentHashCode()
+            result = 31 * result + publicKey.contentHashCode()
+            return result
         }
     }
 
@@ -67,7 +85,7 @@ class MainActivity : FragmentActivity() {
         } else {
             editor.putString(PROP_PRIVATE_KEY_COMM, Base64.encodeToString(rsaPrivateKeyMaterial, Base64.DEFAULT))
                 .putString(PROP_PUBLIC_KEY_COMM, Base64.encodeToString(wiFiComm.publicKey, Base64.DEFAULT))
-                .putLong(PROP_WIFI_COMM_EXP, wiFiComm.ts_expiry)
+                .putLong(PROP_WIFI_COMM_EXP, wiFiComm.tsExpiry)
                 .putString(PROP_IPADDR, Base64.encodeToString(wiFiComm.ipAdr, Base64.DEFAULT))
                 .putInt(PROP_PORT, wiFiComm.port).apply()
         }
@@ -197,6 +215,8 @@ class MainActivity : FragmentActivity() {
                                 Util.printStackTrace(e)
                             }
                         }
+
+                        serverSocket.reuseAddress = true
 
                         serverSocket.bind(
                             InetSocketAddress(
