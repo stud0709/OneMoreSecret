@@ -300,7 +300,8 @@ private fun KeyboardLayoutSelector(
         
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            matchTextFieldWidth = false
         ) {
             layouts.forEach { layout ->
                 DropdownMenuItem(

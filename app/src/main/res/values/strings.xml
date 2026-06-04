@@ -174,7 +174,7 @@
     <string name="logcat">Logcat</string>
     <string name="could_not_decode">Could not decode message</string>
     <string name="wif_encrypted">WIF (encrypted)</string>
-    <string name="public_address">Public Address:</string>
+    <string name="public_address">Public Address</string>
     <string name="crypto_address_generator">BTC Address Generator</string>
     <string name="private_key_wif">"Private Key (WIF)"</string>
     <string name="allow_screenshots">Allow Screenshots</string>

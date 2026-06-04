@@ -79,10 +79,10 @@ fun CryptoCurrencyAddressScreen() {
                         AESUtil.getKeyLength(preferences),
                         AESUtil.getAesTransformation(preferences)
                     ).message
-                    
+
                     val encoded = MessageComposer.encodeAsOmsText(encryptedMessage)
                     outputViewModel.setMessage(encoded, strWifEncrypted)
-                    
+
                     // Generate backup HTML
                     val stringBuilder = java.lang.StringBuilder()
                     val list = QRUtil.getQrSequence(
@@ -185,7 +185,7 @@ fun CryptoCurrencyAddressScreen() {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            Text(text = stringResource(R.string.public_address))
+            Text(text = stringResource(R.string.public_address) + ":")
 
             Text(
                 text = if (address.isEmpty()) "" else address.substring(0,2) + " " + address.substring(2).chunked(4).joinToString(" "),
@@ -196,7 +196,9 @@ fun CryptoCurrencyAddressScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            Box(modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()) {
                 KeyStoreListScreen(
                     onSelectionChanged = { alias ->
                         selectedAlias = alias
@@ -234,7 +236,9 @@ fun CryptoCurrencyAddressScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Box(modifier = Modifier.wrapContentHeight().fillMaxWidth()) {
+            Box(modifier = Modifier
+                .wrapContentHeight()
+                .fillMaxWidth()) {
                 OutputScreen(outputViewModel = outputViewModel)
             }
         }
