@@ -126,12 +126,18 @@ class MainActivity : FragmentActivity() {
     @Synchronized
     fun sendReplyViaSocket(data: ByteArray, closeSocket: Boolean) {
         var shouldClose = closeSocket
+        Log.d(TAG, "sendReplyViaSocket: ENTERED. Data size: ${data.size}, closeSocket: $closeSocket, Caller: ${Thread.currentThread().stackTrace[3]}")
         if (socketWaitingForReply == null || socketWaitingForReply!!.isClosed) {
             Log.w(TAG, "sendReplyViaSocket: Socket waiting for reply not set or closed")
             return
         }
         try {
-            val comm = getWiFiComm() ?: return
+            val comm = getWiFiComm()
+            if (comm == null) {
+                Log.e(TAG, "sendReplyViaSocket: getWiFiComm() returned null! Aborting without sending.")
+                return
+            }
+            Log.d(TAG, "sendReplyViaSocket: Comm is valid. Creating envelope...")
             val reply = MessageComposer.createRsaAesEnvelope(
                 comm.publicKey,
                 RSAUtil.getRsaTransformation(preferences),
@@ -139,18 +145,24 @@ class MainActivity : FragmentActivity() {
                 AESUtil.getAesTransformation(preferences),
                 data
             )
+            Log.d(TAG, "sendReplyViaSocket: Envelope created. Size: ${reply.size}")
 
             val outputStream = socketWaitingForReply!!.getOutputStream()
             outputStream.write(reply)
             outputStream.flush()
+            Log.d(TAG, "sendReplyViaSocket: Successfully wrote envelope to output stream.")
         } catch (ex: Exception) {
+            Log.e(TAG, "sendReplyViaSocket: EXCEPTION THROWN: ${ex.message}", ex)
             Util.printStackTrace(ex)
             shouldClose = true
         } finally {
+            Log.d(TAG, "sendReplyViaSocket: FINALLY block. shouldClose = $shouldClose")
             if (shouldClose) {
                 try {
                     socketWaitingForReply?.close()
+                    Log.d(TAG, "sendReplyViaSocket: socketWaitingForReply closed.")
                 } catch (ignored: IOException) {
+                    Log.e(TAG, "sendReplyViaSocket: Exception while closing socket", ignored)
                 } finally {
                     socketWaitingForReply = null
                 }

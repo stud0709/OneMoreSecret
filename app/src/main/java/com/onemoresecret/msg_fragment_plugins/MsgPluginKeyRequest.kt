@@ -1,31 +1,55 @@
 package com.onemoresecret.msg_fragment_plugins
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
+import com.onemoresecret.MainActivity
 import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.OmsDataOutputStream
 import com.onemoresecret.R
 import com.onemoresecret.Util
 import com.onemoresecret.composable.HiddenTextScreen
-import com.onemoresecret.composable.KeyRequestPairingScreen
-import com.onemoresecret.composable.Oms4WebUnlockScreen
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil
 import com.onemoresecret.crypto.RsaTransformation
-import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.Arrays
 import java.util.Base64
 import javax.crypto.Cipher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+
 
 open class MsgPluginKeyRequest(
     activity: FragmentActivity,
@@ -165,6 +189,106 @@ open class MsgPluginKeyRequest(
                 Toast.makeText(context, e.message ?: "Auth failed", Toast.LENGTH_SHORT).show()
                 onNavigateBack()
             }
+        }
+    }
+}
+
+
+
+@Composable
+fun KeyRequestPairingScreen(
+    replyState: ByteArray?,
+    onNavigateBack: () -> Unit
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    KeyRequestPairing(
+        reply = replyState,
+        onSendKeyClicked = {
+            var ctx = context
+            while (ctx is android.content.ContextWrapper && ctx !is MainActivity) {
+                ctx = ctx.baseContext
+            }
+            val activity = ctx as? MainActivity
+            replyState?.let { replyData ->
+                Thread {
+                    activity?.sendReplyViaSocket(replyData, true)
+                }.start()
+            }
+            onNavigateBack()
+        }
+    )
+}
+
+
+@Composable
+fun KeyRequestPairing(
+    reply: ByteArray?,
+    onSendKeyClicked: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 8.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Button(
+            onClick = onSendKeyClicked,
+            // The button is enabled only if the reply data is present
+            enabled = reply != null
+        ) {
+            Text(text = "Send Key")
+        }
+    }
+}
+
+@Composable
+fun Oms4WebUnlockScreen(message: String?) {
+    val context = LocalContext.current
+    val strOms4webCallbackUrl = androidx.compose.ui.res.stringResource(R.string.oms4web_callback_url)
+
+    Oms4webUnlock(
+        message = message,
+        onUnlock = {
+            if (message != null) {
+                val encodedData = Uri.encode(message)
+                val url = strOms4webCallbackUrl.format(encodedData)
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+                (context as? ComponentActivity)?.finish()
+            }
+        }
+    )
+}
+
+@Composable
+fun Oms4webUnlock(
+    message: String?,
+    onUnlock: () -> Unit
+) {
+    ConstraintLayout(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        val btnUnlock = createRef()
+
+        Button(
+            onClick = onUnlock,
+            enabled = message != null,
+            modifier = Modifier.constrainAs(btnUnlock) {
+                bottom.linkTo(parent.bottom, margin = 32.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+            }
+        ) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.VpnKey,
+                contentDescription = null
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(text = stringResource(id = R.string.unlock))
         }
     }
 }

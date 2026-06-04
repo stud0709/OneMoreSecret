@@ -57,7 +57,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import com.onemoresecret.composable.PinEntry
-import com.onemoresecret.composable.PinSetupViewModel
+import com.onemoresecret.PinSetupViewModel
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.navigation.*

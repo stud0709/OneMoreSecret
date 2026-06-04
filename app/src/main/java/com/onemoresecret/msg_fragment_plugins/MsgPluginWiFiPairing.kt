@@ -4,19 +4,32 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiInfo
 import android.util.Log
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.MainActivity
 import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.R
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
-import com.onemoresecret.composable.WiFiPairingScreen
 import com.onemoresecret.crypto.Base58
-import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -24,6 +37,8 @@ import java.net.Inet4Address
 import java.net.ServerSocket
 import java.nio.ByteBuffer
 import java.util.Arrays
+import kotlinx.coroutines.flow.MutableStateFlow
+
 
 class MsgPluginWiFiPairing(
     activity: FragmentActivity,
@@ -41,7 +56,7 @@ class MsgPluginWiFiPairing(
     init {
         OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
             requestId = dataInputStream.readString()
-            dataInputStream.readByteArray()
+            val rsaPublicKeyMaterial = dataInputStream.readByteArray()
             val rsaPrivateKeyMaterial = dataInputStream.readByteArray()
 
             val ipAndPort = getIpAndPort(context)
@@ -54,7 +69,7 @@ class MsgPluginWiFiPairing(
                         MainActivity.WiFiComm(
                             ipAndPort.ipAddress,
                             ipAndPort.port,
-                            rsaPrivateKeyMaterial,
+                            rsaPublicKeyMaterial,
                             System.currentTimeMillis() + TTL_DEFAULT
                         ),
                         rsaPrivateKeyMaterial
@@ -129,6 +144,88 @@ class MsgPluginWiFiPairing(
             }
 
             throw IOException("Unsupported network (not IP4)")
+        }
+    }
+}
+
+
+
+@Composable
+fun WiFiPairingScreen(
+    requestId: String,
+    responseCode: String,
+    onStartClick: (() -> Unit)?
+) {
+    var isPairingAccepted by remember { mutableStateOf(false) }
+
+    WiFiPairing(
+        requestId = requestId,
+        responseCode = responseCode,
+        isPairingAccepted = isPairingAccepted,
+        onConfirm = {
+            isPairingAccepted = true
+            onStartClick?.invoke()
+        }
+    )
+}
+
+@Composable
+fun WiFiPairing(
+    requestId: String,
+    responseCode: String,
+    isPairingAccepted: Boolean,
+    onConfirm: () -> Unit
+) {
+    AnimatedContent(targetState = isPairingAccepted, label = "pairingStateAnimation") { accepted ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
+        ) {
+            if (accepted) {
+                Text(
+                    text = stringResource(id = R.string.pairing_info_response),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+
+                Text(
+                    text = responseCode,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    text = stringResource(id = R.string.pairing_info_request),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = requestId,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = stringResource(
+                            id = R.string.accept_pairing
+                        )
+                    )
+                }
+            }
         }
     }
 }

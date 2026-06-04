@@ -198,7 +198,7 @@ fun OutputScreen(
                     val shareIntent = Intent.createChooser(sendIntent, null)
                     context.startActivity(shareIntent)
                 }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share")
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
                 }
             } else {
                 Spacer(modifier = Modifier.width(48.dp))

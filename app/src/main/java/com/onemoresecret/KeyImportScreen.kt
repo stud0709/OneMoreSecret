@@ -2,30 +2,53 @@ package com.onemoresecret
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Help
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.onemoresecret.R
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
-import com.onemoresecret.composable.KeyImportScreen as KeyImportUI
+import com.onemoresecret.composable.PasswordField
 import com.onemoresecret.crypto.AESUtil.getAesKeyMaterialFromPassword
 import com.onemoresecret.crypto.AESUtil.process
 import com.onemoresecret.crypto.AesKeyAlgorithm
@@ -34,13 +57,15 @@ import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.util.Arrays
 import javax.crypto.Cipher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,6 +332,95 @@ class KeyImportViewModel : ViewModel() {
             result = 31 * result + aesTransformation.hashCode()
             result = 31 * result + keyAlg.hashCode()
             return result
+        }
+    }
+}
+
+
+
+@Composable
+fun KeyImportUI(
+    modifier: Modifier = Modifier,
+    alias: String,
+    passphrase: String,
+    fingerprint: String,
+    warning: String,
+    saveEnabled: Boolean,
+    onAliasChange: (String) -> Unit,
+    onPassphraseChange: (String) -> Unit,
+    onDecrypt: () -> Unit,
+    onSave: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .animateContentSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(text = stringResource(R.string.key_alias))
+        OutlinedTextField(
+            value = alias,
+            onValueChange = onAliasChange,
+            label = { Text(stringResource(R.string.key_alias)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        AnimatedVisibility(visible = !saveEnabled) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = stringResource(R.string.transport_passphrase_required))
+                PasswordField(
+                    value = passphrase,
+                    enabled = !saveEnabled,
+                    onValueChange = onPassphraseChange,
+                    label = stringResource(R.string.passphrase),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = onDecrypt,
+                    enabled = !saveEnabled,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.decrypt))
+                }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Fingerprint,
+                    contentDescription = stringResource(id = R.string.fingerprint),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                Text(
+                    text = fingerprint,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Button(
+                onClick = onSave,
+                enabled = saveEnabled,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.save))
+            }
+
+            Text(
+                text = warning,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
