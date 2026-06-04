@@ -3,16 +3,22 @@ package com.onemoresecret
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.content.pm.PackageManager
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import com.onemoresecret.R
 import com.onemoresecret.composable.OneMoreSecretTheme
 
 
@@ -44,26 +49,7 @@ fun PermissionsScreen(onProceed: () -> Unit) {
 object PermissionsScreen {
     const val PROP_PERMISSIONS_REQUESTED: String = "permissions_requested"
     val TAG: String = PermissionsScreen::class.java.simpleName
-
-    fun isAllPermissionsGranted(
-        tag: String,
-        ctx: Context,
-        vararg permissions: String
-    ): Boolean {
-        if (permissions.all { p -> ctx.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED }) return true
-
-        Log.d(tag, "Granted permissions:")
-
-        permissions.forEach { p ->
-            val isGranted = ctx.checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
-            Log.d(tag, "$p: $isGranted")
-        }
-
-        return false
-    }
 }
-
-
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable

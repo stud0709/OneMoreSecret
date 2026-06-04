@@ -22,6 +22,7 @@ import com.onemoresecret.crypto.OneTimePassword
 import com.onemoresecret.crypto.RSAUtil
 import com.onemoresecret.crypto.TotpUriTransfer
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 class TotpImportViewModel : ViewModel() {
     private val cryptographyManager = CryptographyManager()
@@ -116,7 +117,7 @@ fun TotpImportScreen(
     LaunchedEffect(Unit) {
         while (true) {
             viewModel.refreshTotp(preferences)
-            delay(1000)
+            delay(1000.milliseconds)
         }
     }
 

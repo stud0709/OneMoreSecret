@@ -36,6 +36,7 @@ import java.util.Comparator
 import java.util.Objects
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Collectors
+import kotlin.time.Duration.Companion.milliseconds
 
 class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
     var state by mutableStateOf(State())
@@ -357,7 +358,7 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                     try {
                         val delayOn = prefs.getLong("kbd_stroke_delay_on", 50)
                         val delayOff = prefs.getLong("kbd_stroke_delay_off", 10)
-                        delay(if (state.delayedStrokes) delayOn else delayOff)
+                        delay((if (state.delayedStrokes) delayOn else delayOff).milliseconds)
                     } catch (e: Exception) {
                         printStackTrace(e)
                     }

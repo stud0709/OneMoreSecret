@@ -1,17 +1,28 @@
 package com.onemoresecret
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import com.onemoresecret.navigation.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.onemoresecret.navigation.CryptoCurrencyAddressRoute
+import com.onemoresecret.navigation.EncryptTextRoute
+import com.onemoresecret.navigation.FileEncryptionRoute
+import com.onemoresecret.navigation.KeyImportRoute
+import com.onemoresecret.navigation.KeyManagementRoute
+import com.onemoresecret.navigation.MessageRoute
+import com.onemoresecret.navigation.NewPrivateKeyRoute
+import com.onemoresecret.navigation.PasswordGeneratorRoute
+import com.onemoresecret.navigation.PermissionsRoute
+import com.onemoresecret.navigation.PinSetupRoute
+import com.onemoresecret.navigation.QrRoute
+import com.onemoresecret.navigation.TotpImportRoute
+import com.onemoresecret.navigation.TotpManualEntryRoute
 
 @Composable
 fun OmsApp() {

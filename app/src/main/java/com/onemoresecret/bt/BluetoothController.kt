@@ -10,11 +10,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+
 class BluetoothController(
     private val context: Context,
     private val activityResultLauncher: ActivityResultLauncher<Intent>?,

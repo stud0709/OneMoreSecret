@@ -94,7 +94,7 @@ class QrMessageHandler(
                                         )
                                     },
                                     onCancel = {
-                                        (callbacks.activity as MainActivity).sendReplyViaSocket(ByteArray(0), true)
+                                        callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
                                         callbacks.messageReceived.set(false)
                                     },
                                     evaluateNextPinRequestTimestamp = true
@@ -119,7 +119,7 @@ class QrMessageHandler(
                                         )
                                     },
                                     onCancel = {
-                                        (callbacks.activity as MainActivity).sendReplyViaSocket(ByteArray(0), true)
+                                        callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
                                         callbacks.messageReceived.set(false)
                                     },
                                     evaluateNextPinRequestTimestamp = true
@@ -129,7 +129,7 @@ class QrMessageHandler(
                         }
 
                         if (closeSocketWaitingForReply) {
-                            (callbacks.activity as MainActivity).sendReplyViaSocket(ByteArray(0), true)
+                            callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
                         }
                     }
                 }
@@ -137,7 +137,7 @@ class QrMessageHandler(
         } catch (ex: Exception) {
             Util.printStackTrace(ex)
             callbacks.messageReceived.set(false)
-            (callbacks.activity as MainActivity).sendReplyViaSocket(ByteArray(0), true)
+            callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
         }
     }
 
@@ -198,7 +198,7 @@ class QrMessageHandler(
         return object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 callbacks.messageReceived.set(false)
-                val activity = callbacks.activity as MainActivity
+                val activity = callbacks.activity
                 activity.lifecycleScope.launch(Dispatchers.IO) { activity.sendReplyViaSocket(ByteArray(0), true) }
                 callbacks.nextPinRequestTimestamp = 0
                 activity.lifecycleScope.launch(Dispatchers.IO) { OmsFileProvider.purgeTmp(callbacks.context) }
@@ -273,7 +273,6 @@ class QrMessageHandler(
                 val bundle = Bundle().apply {
                     putByteArray(QRScreen.ARG_MESSAGE, payload)
                 }
-                val navController = callbacks.navController
 
                 when (rsaAesEnvelope.applicationId) {
                     MessageComposer.APPLICATION_RSA_AES_GENERIC -> {

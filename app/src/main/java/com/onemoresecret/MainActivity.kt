@@ -138,7 +138,14 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         finish()
-        startActivity(intent)
+        
+        // Construct a safe, explicit intent to prevent Intent Redirection vulnerabilities
+        val safeIntent = Intent(this, MainActivity::class.java).apply {
+            action = intent.action
+            data = intent.data
+            intent.extras?.let { putExtras(it) }
+        }
+        startActivity(safeIntent)
     }
 
     @Synchronized
@@ -196,7 +203,7 @@ class MainActivity : FragmentActivity() {
     }
 
     fun startWiFiListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
-        val wiFiListener = lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 ServerSocket().use { serverSocket ->
                     synchronized(MainActivity::class.java) {
@@ -293,7 +300,7 @@ class MainActivity : FragmentActivity() {
                 }
                 try {
                     socket.close()
-                } catch (ignored: IOException) {}
+                } catch (_: IOException) {}
             }
         }
     }

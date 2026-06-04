@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package com.onemoresecret.bt
 
 enum class KeyModifier(value: Int) {

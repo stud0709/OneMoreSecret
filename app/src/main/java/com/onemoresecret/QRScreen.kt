@@ -2,7 +2,6 @@ package com.onemoresecret
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -57,7 +56,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import com.onemoresecret.composable.PinEntry
-import com.onemoresecret.PinSetupViewModel
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.navigation.*
@@ -75,19 +73,14 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Collectors
 import java.util.stream.IntStream
-import androidx.core.net.toUri
 
 object QRScreen {
     const val PROP_USE_ZXING = "use_zxing"
-    const val PROP_RECENT_SIZE = "recent_size"
     const val PROP_RECENT_ENTRIES = "recent_entries"
     const val PROP_PRESETS = "presets"
-    const val DEF_RECENT_SIZE = 3
-    const val RECENT_TTL = 12 * 60 * 60 * 1000L
 
     const val ARG_URI = "URI"
     const val ARG_MESSAGE = "MESSAGE"
-    const val ARG_TEXT = "TEXT"
     const val ARG_APPLICATION_ID = "AI"
 }
 
@@ -622,7 +615,7 @@ if (showPinEntry) {
                                                 }
                                             }
                                             context.startActivity(Intent.createChooser(intentSend, null))
-                                        } catch (ex: Exception) {
+                                        } catch (_: Exception) {
                                             activity.mainExecutor.execute {
                                                 Toast.makeText(context, "Could not send email", Toast.LENGTH_LONG).show()
                                             }
@@ -666,7 +659,7 @@ if (showPinEntry) {
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
                                         context.startActivity(Intent.createChooser(sendIntent, null))
-                                    } catch (ex: Exception) {
+                                    } catch (_: Exception) {
                                         activity.mainExecutor.execute {
                                             Toast.makeText(context, "Error creating log file", Toast.LENGTH_LONG).show()
                                         }

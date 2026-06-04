@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.onemoresecret.msg_fragment_plugins.MessageFragmentPlugin
 import com.onemoresecret.Util.openUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +68,7 @@ fun MessageScreen(
                     IconButton(onClick = {
                         openUrl(R.string.decrypted_message_md_url, context)
                     }) {
-                        Icon(imageVector = Icons.Default.Help, contentDescription = "Help")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Help, contentDescription = "Help")
                     }
                 }
             )
