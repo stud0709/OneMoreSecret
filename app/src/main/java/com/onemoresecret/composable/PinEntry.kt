@@ -73,7 +73,7 @@ fun PinEntry(
 
                         // Delete Button
                         item {
-                            IconButton(
+                            OutlinedIconButton(
                                 onClick = { if (enteredPin.isNotEmpty()) enteredPin = onDelete(enteredPin) },
                                 modifier = Modifier.size(50.dp)
                             ) {
@@ -83,7 +83,7 @@ fun PinEntry(
 
                         // Unlock Button
                         item {
-                            IconButton(
+                            OutlinedIconButton(
                                 onClick = { if(!onUnlock(enteredPin)) enteredPin = "" },
                                 enabled = enteredPin.isNotEmpty(),
                                 modifier = Modifier.size(50.dp)

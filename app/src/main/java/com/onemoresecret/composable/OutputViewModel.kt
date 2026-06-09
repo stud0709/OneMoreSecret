@@ -370,6 +370,31 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
         }
     }
 
+    fun sendTestKeystroke(usage: com.onemoresecret.bt.KeyboardUsage) {
+        val ctx = context ?: return
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val bluetoothDevice = getSelectedBluetoothDevice()?.bluetoothDevice ?: return@launch
+            try {
+                val stroke = Stroke().type(usage)
+                for (r in stroke.get()) {
+                    if (r == null) continue
+                    bluetoothController?.bluetoothHidDevice?.sendReport(
+                        bluetoothDevice,
+                        0,
+                        r.report
+                    )
+                    // Add a tiny delay between press and release
+                    delay(10)
+                }
+            } catch (ex: Exception) {
+                printStackTrace(ex)
+            }
+        }
+    }
+
     inner class SpinnerItemDevice internal constructor(val ctx: Context, val bluetoothDevice: BluetoothDevice) {
         override fun toString(): String {
             try {

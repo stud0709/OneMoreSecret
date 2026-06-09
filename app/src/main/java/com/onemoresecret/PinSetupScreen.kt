@@ -358,7 +358,7 @@ class PinSetupViewModel(private val prefs: SharedPreferences, val onBack: () -> 
     var onAction: ((Action) -> Unit)
 
     init {
-        onAction = onActionFactory(this::updateState) { onSave { onBack } }
+        onAction = onActionFactory(this::updateState) { onSave { onBack() } }
 
         state = state.copy(
             pinEnabled = prefs.getBoolean(PIN_ENABLED, false),

@@ -12,8 +12,12 @@ import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
@@ -68,6 +72,7 @@ fun OutputScreen(
     val context = LocalContext.current
     val omsState = LocalOmsState.current
     var showBluetoothDialog by remember { mutableStateOf(false) }
+    var showKeyboardTestTool by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ -> }
 
@@ -129,28 +134,45 @@ fun OutputScreen(
 
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
 
-            Button(
-                onClick = {
-                    val messageToType = outputViewModel.state.message ?: return@Button
-                    val selectedLayout = outputViewModel.getSelectedKeyboardLayout() ?: return@Button
-                    val strokes = selectedLayout.forString(messageToType)
-                    if (strokes.contains(null)) {
-                        val unmappedIndices = strokes.indices.filter { strokes[it] == null }
-                        val unmappedChars = unmappedIndices.map { messageToType[it] }.distinct().joinToString()
-                        android.widget.Toast.makeText(
-                            context,
-                            "Cannot type: unsupported characters: $unmappedChars",
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
-                        return@Button
-                    }
-                    outputViewModel.type(strokes)
-                },
-                enabled = state.typeButtonEnabled && state.typingText.isNotEmpty()
+            @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+            Surface(
+                shape = androidx.compose.material3.ButtonDefaults.shape,
+                color = if (state.typeButtonEnabled && state.typingText.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (state.typeButtonEnabled && state.typingText.isNotEmpty()) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                modifier = Modifier.clip(androidx.compose.material3.ButtonDefaults.shape)
             ) {
-                Icon(Icons.Default.Keyboard, contentDescription = null)
-                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text(if (state.isTyping) stringResource(R.string.cancel) else stringResource(R.string.type))
+                Row(
+                    verticalAlignment = CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .combinedClickable(
+                            onClick = {
+                                if (!(state.typeButtonEnabled && state.typingText.isNotEmpty())) return@combinedClickable
+                                val messageToType = outputViewModel.state.message ?: return@combinedClickable
+                                val selectedLayout = outputViewModel.getSelectedKeyboardLayout() ?: return@combinedClickable
+                                val strokes = selectedLayout.forString(messageToType)
+                                if (strokes.contains(null)) {
+                                    val unmappedIndices = strokes.indices.filter { strokes[it] == null }
+                                    val unmappedChars = unmappedIndices.map { messageToType[it] }.distinct().joinToString()
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Cannot type: unsupported characters: $unmappedChars",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                    return@combinedClickable
+                                }
+                                outputViewModel.type(strokes)
+                            },
+                            onLongClick = {
+                                showKeyboardTestTool = true
+                            }
+                        )
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                ) {
+                    Icon(Icons.Default.Keyboard, contentDescription = null)
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Text(if (state.isTyping) stringResource(R.string.cancel) else stringResource(R.string.type))
+                }
             }
 
             Spacer(modifier = Modifier.padding(horizontal = 8.dp))
@@ -264,6 +286,36 @@ fun OutputScreen(
                             iconVector = state.bluetoothStatusIcon,
                             text = state.bluetoothStatusText
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showKeyboardTestTool) {
+        Dialog(onDismissRequest = { showKeyboardTestTool = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = "Keyboard Test Tool", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    androidx.compose.foundation.lazy.LazyColumn {
+                        items(com.onemoresecret.bt.KeyboardUsage.values().size) { index ->
+                            val usage = com.onemoresecret.bt.KeyboardUsage.values()[index]
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    android.widget.Toast.makeText(context, usage.name, android.widget.Toast.LENGTH_SHORT).show()
+                                    outputViewModel.sendTestKeystroke(usage)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(usage.name, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                            }
+                        }
                     }
                 }
             }

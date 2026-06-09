@@ -10,10 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.onemoresecret.R
-import java.util.Locale
 
 @Composable
 fun FileInfo(fileInfo: com.onemoresecret.Util.UriFileInfo?) {
@@ -41,7 +41,7 @@ fun FileInfo(fileInfo: com.onemoresecret.Util.UriFileInfo?) {
             )
             Text(
                 text = String.format(
-                    Locale.getDefault(),
+                    LocalLocale.current.platformLocale,
                     " %.3f KB",
                     (fileInfo?.fileSize ?: 0) / 1024.0
                 ),

@@ -141,7 +141,7 @@ object Ripemd160 {
 
     private fun k2(j: Int): Int =
         when (j) {
-            in 0..15 -> 0x50a28be6.toInt()
+            in 0..15 -> 0x50a28be6
             in 16..31 -> 0x5c4dd124
             in 32..47 -> 0x6d703ef3
             in 48..63 -> 0x7a6d76e9
