@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.onemoresecret.Util.openUrl
@@ -70,13 +71,14 @@ fun MessageScreen(
                     }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Help, contentDescription = "Help")
                     }
+                    com.onemoresecret.composable.ScreenshotMenu()
                 }
             )
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             if (plugin != null) {
-                Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                Column(modifier = Modifier.padding(8.dp).fillMaxWidth().weight(1f)) {
                     plugin.MessageView(hiddenState = hiddenState)
                 }
                 plugin.OutputView()

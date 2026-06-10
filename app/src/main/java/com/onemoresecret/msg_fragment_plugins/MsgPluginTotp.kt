@@ -15,14 +15,13 @@ import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
 import com.onemoresecret.crypto.OneTimePassword
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.time.Duration.Companion.milliseconds
 
 class MsgPluginTotp(
     activity: FragmentActivity,
     messageData: ByteArray,
-    hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
-) : MsgPluginEncryptedMessage(activity, messageData, hiddenState, onNavigateBack) {
+) : MsgPluginEncryptedMessage(activity, messageData, onNavigateBack) {
 
     private val otp = OneTimePassword(String(messageData))
 
@@ -41,7 +40,7 @@ class MsgPluginTotp(
                     code = newCode
                     outputViewModel.setMessage(newCode, title)
                 }
-                delay(500)
+                delay(500.milliseconds)
             }
         }
 

@@ -30,28 +30,28 @@ class MessageViewModel(
 
     init {
         plugin = if (uri != null) {
-            MsgPluginEncryptedFile(activity, uri, _hiddenState, onNavigateBack)
+            MsgPluginEncryptedFile(activity, uri, onNavigateBack)
         } else if (messageData != null && applicationId != null) {
             when (applicationId) {
                 MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                 MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
                 MessageComposer.APPLICATION_ENCRYPTED_OTP ->
-                    MsgPluginEncryptedMessage(activity, messageData, _hiddenState, onNavigateBack)
+                    MsgPluginEncryptedMessage(activity, messageData, onNavigateBack)
 
                 MessageComposer.APPLICATION_KEY_REQUEST,
                 MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST,
                 MessageComposer.APPLICATION_KEY_REQUEST_PAIRING ->
-                    MsgPluginKeyRequest(activity, messageData, _hiddenState, onNavigateBack)
+                    MsgPluginKeyRequest(activity, messageData, onNavigateBack)
 
                 MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                 MessageComposer.APPLICATION_TOTP_URI ->
-                    MsgPluginTotp(activity, messageData, _hiddenState, onNavigateBack)
+                    MsgPluginTotp(activity, messageData, onNavigateBack)
 
                 MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
-                    MsgPluginCryptoCurrencyAddress(activity, messageData, _hiddenState, onNavigateBack)
+                    MsgPluginCryptoCurrencyAddress(activity, messageData, onNavigateBack)
 
                 MessageComposer.APPLICATION_WIFI_PAIRING ->
-                    MsgPluginWiFiPairing(activity, messageData, _hiddenState, onNavigateBack)
+                    MsgPluginWiFiPairing(activity, messageData, onNavigateBack)
 
                 else -> throw IllegalArgumentException("Wrong application id: $applicationId")
             }

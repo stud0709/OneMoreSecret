@@ -92,12 +92,12 @@ fun EncryptTextScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.encrypt_text), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
-
                     IconButton(onClick = {
                         Util.openUrl(R.string.encrypt_text_md_url, context)
                     }) {
                         Icon(Icons.AutoMirrored.Filled.Help, contentDescription = "Help")
                     }
+                    com.onemoresecret.composable.ScreenshotMenu()
                 }
             )
         }

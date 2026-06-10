@@ -13,12 +13,10 @@ import com.onemoresecret.R
 import com.onemoresecret.Util
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.RsaTransformation
-import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStoreException
 
 abstract class MessageFragmentPlugin(
     protected val activity: FragmentActivity,
-    val hiddenState: MutableStateFlow<Boolean>,
     protected val onNavigateBack: () -> Unit
 ) : BiometricPrompt.AuthenticationCallback() {
 

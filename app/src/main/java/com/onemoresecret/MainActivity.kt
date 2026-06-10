@@ -114,6 +114,7 @@ class MainActivity : FragmentActivity() {
         Thread.setDefaultUncaughtExceptionHandler(OmsUncaughtExceptionHandler(this))
         preferences = getPreferences(MODE_PRIVATE)
 
+        //prohibit screenshots
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         lifecycleScope.launch(Dispatchers.IO) { OmsFileProvider.purgeTmp(this@MainActivity) }
 

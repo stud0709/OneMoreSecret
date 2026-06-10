@@ -60,11 +60,12 @@ fun OmsApp() {
             composable<PasswordGeneratorRoute> {
                 PasswordGeneratorScreen()
             }
-            composable<MessageRoute> {
+            composable<MessageRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<MessageRoute>()
                 val previousBackStackEntry = navController.previousBackStackEntry
                 val applicationId = previousBackStackEntry?.savedStateHandle?.get<Int>(QRScreen.ARG_APPLICATION_ID)
                 val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE)
-                val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
+                val uri = route.uriString?.let { android.net.Uri.parse(it) } ?: previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
                 MessageScreen(
                     applicationId = applicationId,
                     messageData = messageData,
@@ -115,12 +116,12 @@ fun OmsApp() {
                     onPopBackStack = { navController.popBackStack() }
                 )
             }
-            composable<FileEncryptionRoute> {
-                val previousBackStackEntry = navController.previousBackStackEntry
-                val uri = previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
-                if (uri != null) {
+            composable<FileEncryptionRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<FileEncryptionRoute>()
+                val uriString = route.uriString
+                if (uriString != null) {
                     FileEncryptionScreen(
-                        uri = uri,
+                        uri = android.net.Uri.parse(uriString),
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

@@ -37,15 +37,13 @@ import java.net.Inet4Address
 import java.net.ServerSocket
 import java.nio.ByteBuffer
 import java.util.Arrays
-import kotlinx.coroutines.flow.MutableStateFlow
 
 
 class MsgPluginWiFiPairing(
     activity: FragmentActivity,
     messageData: ByteArray,
-    hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
-) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+) : MessageFragmentPlugin(activity, onNavigateBack) {
 
     private var requestId by mutableStateOf("")
     private var responseCode by mutableStateOf("")

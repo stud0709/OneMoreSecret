@@ -10,21 +10,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
 import com.onemoresecret.crypto.BTCAddress
-import kotlinx.coroutines.flow.MutableStateFlow
 
 class MsgPluginCryptoCurrencyAddress(
     activity: FragmentActivity,
     messageData: ByteArray,
-    hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
-) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+) : MessageFragmentPlugin(activity, onNavigateBack) {
 
     private val keyPair = BTCAddress.toKeyPair(BTCAddress.toPrivateKey(messageData)).toBTCKeyPair()
     private val outputViewModel = OutputViewModel(preferences)

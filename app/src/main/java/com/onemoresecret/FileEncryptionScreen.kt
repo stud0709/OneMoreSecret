@@ -157,6 +157,7 @@ fun FileEncryptionScreen(
                     IconButton(onClick = { Util.openUrl(R.string.encrypt_file_md_url, context) }) {
                         Icon(Icons.AutoMirrored.Filled.Help, contentDescription = "Help")
                     }
+                    com.onemoresecret.composable.ScreenshotMenu()
                 }
             )
         }

@@ -8,14 +8,12 @@ import com.onemoresecret.composable.HiddenTextScreen
 
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 
 open class MsgPluginEncryptedMessage(
     activity: FragmentActivity,
     messageData: ByteArray?,
-    hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
-) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+) : MessageFragmentPlugin(activity, onNavigateBack) {
 
     private val message = String(messageData!!)
     protected val outputViewModel = OutputViewModel(preferences)

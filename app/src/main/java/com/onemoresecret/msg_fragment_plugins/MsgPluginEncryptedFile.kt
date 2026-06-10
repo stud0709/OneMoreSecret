@@ -7,14 +7,12 @@ import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.Util
 import com.onemoresecret.composable.FileInfoScreen
 import com.onemoresecret.composable.FileOutputScreen
-import kotlinx.coroutines.flow.MutableStateFlow
 
 class MsgPluginEncryptedFile(
     activity: FragmentActivity,
     val uri: Uri,
-    hiddenState: MutableStateFlow<Boolean>,
     onNavigateBack: () -> Unit
-) : MessageFragmentPlugin(activity, hiddenState, onNavigateBack) {
+) : MessageFragmentPlugin(activity, onNavigateBack) {
 
     private val fileInfo = Util.getFileInfo(activity, uri)
     

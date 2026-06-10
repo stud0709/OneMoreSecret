@@ -32,6 +32,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clipToBounds
@@ -106,7 +107,7 @@ fun QRScreen(navController: NavController) {
     var pinProtectedAction by remember { mutableStateOf<Runnable?>(null) }
     var pinProtectedCancel by remember { mutableStateOf<Runnable?>(null) }
     var pinProtectedEvaluateNext by remember { mutableStateOf(false) }
-    var nextPinRequestTimestampOuter by remember { mutableLongStateOf(0L) }
+    var nextPinRequestTimestampOuter by androidx.compose.runtime.saveable.rememberSaveable { mutableLongStateOf(0L) }
 
     val messageReceived = remember { AtomicBoolean(false) }
     var lastReceivedChunks by remember { mutableStateOf<BitSet?>(null) }
@@ -277,12 +278,16 @@ fun QRScreen(navController: NavController) {
         }
     }
 
-    fun onUri(uri: Uri) {
+    fun onUri(uri: Uri, popBackStack: Boolean = false) {
         val fileInfo = Util.getFileInfo(context, uri)
         if (fileInfo.filename.endsWith(".${MessageComposer.OMS_FILE_TYPE}")) {
-            navController.navigate(MessageRoute(uriString = uri.toString()))
+            navController.navigate(MessageRoute(uriString = uri.toString())) {
+                if (popBackStack) popUpTo<QrRoute> { inclusive = true }
+            }
         } else {
-            navController.navigate(FileEncryptionRoute(uriString = uri.toString()))
+            navController.navigate(FileEncryptionRoute(uriString = uri.toString())) {
+                if (popBackStack) popUpTo<QrRoute> { inclusive = true }
+            }
         }
     }
 
@@ -296,14 +301,14 @@ fun QRScreen(navController: NavController) {
                 Intent.ACTION_VIEW -> {
                     val m = intent.getStringExtra("m")
                     if (m != null) {
-                        messageHandler.onMessage(m, true)
+                        messageHandler.onMessage(m, true, popBackStack = true)
                         return true
                     }
                     val uri = intent.data
                     if (uri == null) {
                         Toast.makeText(context, R.string.malformed_intent, Toast.LENGTH_LONG).show()
                     } else {
-                        onUri(uri)
+                        onUri(uri, true)
                         return true
                     }
                 }
@@ -313,14 +318,16 @@ fun QRScreen(navController: NavController) {
                         val uri = androidx.core.content.IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
                         if (uri != null) {
                             Log.d("QRScreen", "URI: $uri")
-                            onUri(uri)
+                            onUri(uri, true)
                             return true
                         }
                     } else {
                         if (MessageComposer.decode(text) == null) {
-                            navController.navigate(EncryptTextRoute(text = text))
+                            navController.navigate(EncryptTextRoute(text = text)) {
+                                popUpTo<QrRoute> { inclusive = true }
+                            }
                         } else {
-                            messageHandler.onMessage(text, true)
+                            messageHandler.onMessage(text, true, popBackStack = true)
                         }
                         return true
                     }
@@ -341,6 +348,39 @@ fun QRScreen(navController: NavController) {
             if (text != null) {
                 messageHandler.onMessage(text, true)
             }
+        }
+    }
+
+    fun panic() {
+        OmsFileProvider.purgeTmp(context)
+        cryptographyManager.deleteAndroidKeystoreEntries()
+        preferences.edit {
+            PinSetupViewModel.clearPinSetup(this)
+            remove(QRScreen.PROP_RECENT_ENTRIES)
+            remove(QRScreen.PROP_PRESETS)
+            remove(CryptographyManager.PROP_KEYSTORE)
+            remove(CryptographyManager.MASTER_KEY_ALIAS)
+        }
+        activity.mainExecutor.execute { recentEntries = emptyList() }
+        showPinEntry = false
+    }
+
+    fun lockWorkspace() {
+        if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
+            nextPinRequestTimestampOuter = 0
+            Thread {
+                OmsFileProvider.purgeTmp(context)
+                preferences.edit(commit = true) { remove(QRScreen.PROP_RECENT_ENTRIES) }
+                activity.mainExecutor.execute { recentEntries = emptyList() }
+            }.start()
+            activity.mainExecutor.execute {
+                Toast.makeText(context, R.string.locked, Toast.LENGTH_LONG).show()
+            }
+        } else {
+            activity.mainExecutor.execute {
+                Toast.makeText(context, R.string.enable_pin_first, Toast.LENGTH_LONG).show()
+            }
+            navController.navigate(PinSetupRoute)
         }
     }
 
@@ -402,18 +442,7 @@ if (showPinEntry) {
                     val panicPinEntered = (enteredPin == panicPin)
 
                     if (panicPinEntered) {
-                        OmsFileProvider.purgeTmp(context)
-                        cryptographyManager.deleteAndroidKeystoreEntries()
-                        preferences.edit {
-                            remove(QRScreen.PROP_RECENT_ENTRIES)
-                            remove(QRScreen.PROP_PRESETS)
-                            remove(CryptographyManager.PROP_KEYSTORE)
-                            remove(CryptographyManager.MASTER_KEY_ALIAS)
-                        }
-                        activity.mainExecutor.execute {
-                            recentEntries = QrRecentManager.getRecentEntries(preferences)
-                        }
-                        showPinEntry = false
+                        panic()
                         return@PinEntry false
                     }
 
@@ -423,28 +452,27 @@ if (showPinEntry) {
                             val intervalMs = TimeUnit.MINUTES.toMillis(
                                 preferences.getLong(PinSetupViewModel.PIN_REQUEST_INTERVAL_MINUTES, 0)
                             )
-                            nextPinRequestTimestampOuter = if (intervalMs == 0L) Long.MAX_VALUE else System.currentTimeMillis() + intervalMs
+                            nextPinRequestTimestampOuter = if (intervalMs == 0L) 0L else System.currentTimeMillis() + intervalMs
                         }
                         activity.mainExecutor.execute { pinProtectedAction?.run() }
                         pinProtectedCancel = null
                         showPinEntry = false
                     } else {
-                        var remainingAttempts = preferences.getInt(PinSetupViewModel.PIN_REMAINING_ATTEMPTS, Int.MAX_VALUE)
-                        remainingAttempts--
-                        preferences.edit { putInt(PinSetupViewModel.PIN_REMAINING_ATTEMPTS, remainingAttempts) }
-                        if (remainingAttempts <= 0) {
-                            OmsFileProvider.purgeTmp(context)
-                            cryptographyManager.deleteAndroidKeystoreEntries()
+                        if(preferences.contains(PinSetupViewModel.PIN_REMAINING_ATTEMPTS)) {
+                            var remainingAttempts = preferences.getInt(
+                                PinSetupViewModel.PIN_REMAINING_ATTEMPTS,
+                                Int.MAX_VALUE
+                            )
+                            remainingAttempts--
                             preferences.edit {
-                                remove(QRScreen.PROP_RECENT_ENTRIES)
-                                remove(QRScreen.PROP_PRESETS)
-                                remove(CryptographyManager.PROP_KEYSTORE)
-                                remove(CryptographyManager.MASTER_KEY_ALIAS)
+                                putInt(
+                                    PinSetupViewModel.PIN_REMAINING_ATTEMPTS,
+                                    remainingAttempts
+                                )
                             }
-                            activity.mainExecutor.execute {
-                                recentEntries = QrRecentManager.getRecentEntries(preferences)
+                            if (remainingAttempts <= 0) {
+                                panic()
                             }
-                            showPinEntry = false
                         }
                         Toast.makeText(context, R.string.wrong_pin, Toast.LENGTH_LONG).show()
                         return@PinEntry false
@@ -465,24 +493,9 @@ if (showPinEntry) {
                         Icon(imageVector = Icons.Default.ContentPaste, contentDescription = "Paste")
                     }
                     IconButton(onClick = {
-                        if (preferences.getBoolean(PinSetupViewModel.PIN_ENABLED, false)) {
-                            nextPinRequestTimestampOuter = 0
-                            Thread {
-                                OmsFileProvider.purgeTmp(context)
-                                preferences.edit(commit = true) { remove(QRScreen.PROP_RECENT_ENTRIES) }
-                                activity.mainExecutor.execute { recentEntries = emptyList() }
-                            }.start()
-                            activity.mainExecutor.execute {
-                                Toast.makeText(context, R.string.locked, Toast.LENGTH_LONG).show()
-                            }
-                        } else {
-                            activity.mainExecutor.execute {
-                                Toast.makeText(context, R.string.enable_pin_first, Toast.LENGTH_LONG).show()
-                            }
-                            navController.navigate(PinSetupRoute)
-                        }
+                        lockWorkspace()
                     }) {
-                        Icon(imageVector = Icons.Default.Lock, contentDescription = "Panic")
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = "Lock Workspace")
                     }
                     var expanded by remember { mutableStateOf(false) }
                     var currentMenuLevel by remember { mutableStateOf("MAIN") }
@@ -564,10 +577,10 @@ if (showPinEntry) {
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.action_private_keys)) },
-                                onClick = { 
+                                onClick = {
                                     expanded = false
                                     currentMenuLevel = "MAIN"
-                                    navController.navigate(KeyManagementRoute) 
+                                    callbacks.runPinProtected({ navController.navigate(KeyManagementRoute) }, null, false)
                                 }
                             )
                             if (BuildConfig.FLAVOR != Util.FLAVOR_FOSS) {
@@ -634,10 +647,10 @@ if (showPinEntry) {
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.feedback_on_discord)) },
-                                onClick = { 
+                                onClick = {
                                     expanded = false
                                     currentMenuLevel = "MAIN"
-                                    Util.openUrl(R.string.discord_url, context) 
+                                    Util.openUrl(R.string.discord_url, context)
                                 }
                             )
                             DropdownMenuItem(
@@ -670,10 +683,9 @@ if (showPinEntry) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.allow_screenshots)) },
                                 trailingIcon = {
-                                    Checkbox(
-                                        checked = !isSecure,
-                                        onCheckedChange = null
-                                    )
+                                    if (!isSecure) {
+                                        Icon(Icons.Default.Check, contentDescription = null)
+                                    }
                                 },
                                 onClick = {
                                     expanded = false
@@ -699,7 +711,9 @@ if (showPinEntry) {
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
         Box(
             modifier = Modifier
@@ -791,7 +805,9 @@ if (showPinEntry) {
                         movementMethod = LinkMovementMethod.getInstance()
                     }
                 },
-                modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
             )
         }
     }

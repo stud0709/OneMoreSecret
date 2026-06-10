@@ -392,12 +392,15 @@ class PinSetupViewModel(private val prefs: SharedPreferences, val onBack: () -> 
                 if (maxAttr > 0) {
                     putInt(PIN_MAX_ATTEMPTS, maxAttr)
                     putInt(PIN_REMAINING_ATTEMPTS, maxAttr)
+                } else {
+                    remove(PIN_MAX_ATTEMPTS)
+                    remove(PIN_REMAINING_ATTEMPTS)
                 }
 
                 val interval = state.requestInterval.toLongOrNull() ?: 0L
-                if (interval > 0) putLong(PIN_REQUEST_INTERVAL_MINUTES, interval)
+                if (interval > 0) putLong(PIN_REQUEST_INTERVAL_MINUTES, interval) else remove(PIN_REQUEST_INTERVAL_MINUTES)
             } else {
-                remove(PIN_ENABLED).remove(PIN_VALUE).remove(PIN_PANIC) // ... etc
+                clearPinSetup(this)
             }
         }
         onSuccess()
@@ -410,6 +413,15 @@ class PinSetupViewModel(private val prefs: SharedPreferences, val onBack: () -> 
         const val PIN_REQUEST_INTERVAL_MINUTES = "pin_request_interval_minutes"
         const val PIN_PANIC = "pin_panic"
         const val PIN_REMAINING_ATTEMPTS = "pin_remaining_attempts"
+
+        fun clearPinSetup(editor: SharedPreferences.Editor) {
+            editor.remove(PIN_ENABLED)
+                .remove(PIN_VALUE)
+                .remove(PIN_PANIC)
+                .remove(PIN_MAX_ATTEMPTS)
+                .remove(PIN_REMAINING_ATTEMPTS)
+                .remove(PIN_REQUEST_INTERVAL_MINUTES)
+        }
         fun onActionFactory(
             stateUpdater: ((State) -> State) -> Unit,
             onSave: (() -> Unit) -> Unit
