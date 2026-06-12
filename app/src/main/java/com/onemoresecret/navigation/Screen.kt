@@ -6,10 +6,10 @@ import kotlinx.serialization.Serializable
 data object QrRoute
 
 @Serializable
-data class MessageRoute(val uriString: String? = null, val text: String? = null)
+data class MessageRoute(val uriString: String? = null, val text: String? = null, val popBackStack: Boolean = false)
 
 @Serializable
-data object KeyImportRoute
+data class KeyImportRoute(val popBackStack: Boolean = false)
 
 @Serializable
 data object NewPrivateKeyRoute
@@ -24,7 +24,7 @@ data object PasswordGeneratorRoute
 data object PermissionsRoute
 
 @Serializable
-data class EncryptTextRoute(val text: String? = null)
+data class EncryptTextRoute(val text: String? = null, val popBackStack: Boolean = false)
 
 @Serializable
 data object TimeOtpRoute
@@ -36,7 +36,7 @@ data object TotpManualEntryRoute
 data object PinSetupRoute
 
 @Serializable
-data class FileEncryptionRoute(val uriString: String? = null)
+data class FileEncryptionRoute(val uriString: String? = null, val popBackStack: Boolean = false)
 
 @Serializable
 data object CryptoCurrencyAddressRoute
@@ -45,4 +45,4 @@ data object CryptoCurrencyAddressRoute
 data class CrashReportRoute(val errorMessage: String? = null)
 
 @Serializable
-data object TotpImportRoute
+data class TotpImportRoute(val popBackStack: Boolean = false)

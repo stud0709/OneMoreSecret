@@ -67,7 +67,7 @@ class QrMessageHandler(
 
                     if (OneTimePassword(message).valid) {
                         Log.d(TAG, "calling TotpImportScreen")
-                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.TotpImportRoute) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.TotpImportRoute(popBackStack = popBackStack))
                     } else {
                         Log.d(TAG, String.format("Application-ID: %d", applicationId))
 
@@ -78,8 +78,8 @@ class QrMessageHandler(
                                 Log.d(TAG, "calling KeyImportScreen")
                                 callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }
                                 callbacks.navController.navigate(
-                                    com.onemoresecret.navigation.KeyImportRoute
-                                ) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                                    com.onemoresecret.navigation.KeyImportRoute(popBackStack = popBackStack)
+                                )
                             }
                             MessageComposer.APPLICATION_KEY_REQUEST,
                             MessageComposer.APPLICATION_KEY_REQUEST_PAIRING,
@@ -90,8 +90,8 @@ class QrMessageHandler(
                                         Log.d(TAG, "calling " + "MessageScreen")
                                         callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }
                                         callbacks.navController.navigate(
-                                            com.onemoresecret.navigation.MessageRoute()
-                                        ) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                                            com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack)
+                                        )
                                     },
                                     onCancel = {
                                         callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
@@ -290,7 +290,7 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_TOTP_URI -> {
                                 bundle.putByteArray(QRScreen.ARG_MESSAGE, dataInputStream.readByteArray())
                                 Log.d(TAG, "calling " + "MessageScreen")
-                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute()) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
                             }
                             MessageComposer.APPLICATION_WIFI_PAIRING -> {
                                 val bArr = ByteArray(dataInputStream.available())
@@ -298,7 +298,7 @@ class QrMessageHandler(
                                 bundle.putByteArray(QRScreen.ARG_MESSAGE, bArr)
 
                                 Log.d(TAG, "calling " + "MessageScreen")
-                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute()) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
                             }
                             else -> throw IllegalArgumentException(
                                 "No processor defined for application ID " + Integer.toHexString(rsaAesEnvelope.applicationId)
@@ -309,7 +309,7 @@ class QrMessageHandler(
                     MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
                         bundle.putInt(QRScreen.ARG_APPLICATION_ID, rsaAesEnvelope.applicationId)
                         Log.d(TAG, "calling " + "MessageScreen")
-                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute()) { if (popBackStack) popUpTo<com.onemoresecret.navigation.QrRoute> { inclusive = true } }
+                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
                     }
                     else -> throw IllegalArgumentException(
                         "No processor defined for application ID " + Integer.toHexString(rsaAesEnvelope.applicationId)

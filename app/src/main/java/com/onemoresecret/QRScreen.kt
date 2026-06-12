@@ -281,13 +281,9 @@ fun QRScreen(navController: NavController) {
     fun onUri(uri: Uri, popBackStack: Boolean = false) {
         val fileInfo = Util.getFileInfo(context, uri)
         if (fileInfo.filename.endsWith(".${MessageComposer.OMS_FILE_TYPE}")) {
-            navController.navigate(MessageRoute(uriString = uri.toString())) {
-                if (popBackStack) popUpTo<QrRoute> { inclusive = true }
-            }
+            navController.navigate(MessageRoute(uriString = uri.toString(), popBackStack = popBackStack))
         } else {
-            navController.navigate(FileEncryptionRoute(uriString = uri.toString())) {
-                if (popBackStack) popUpTo<QrRoute> { inclusive = true }
-            }
+            navController.navigate(FileEncryptionRoute(uriString = uri.toString(), popBackStack = popBackStack))
         }
     }
 
@@ -323,9 +319,7 @@ fun QRScreen(navController: NavController) {
                         }
                     } else {
                         if (MessageComposer.decode(text) == null) {
-                            navController.navigate(EncryptTextRoute(text = text)) {
-                                popUpTo<QrRoute> { inclusive = true }
-                            }
+                            navController.navigate(EncryptTextRoute(text = text, popBackStack = true))
                         } else {
                             messageHandler.onMessage(text, true, popBackStack = true)
                         }

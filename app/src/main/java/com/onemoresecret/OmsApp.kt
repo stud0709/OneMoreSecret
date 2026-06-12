@@ -66,19 +66,28 @@ fun OmsApp() {
                 val applicationId = previousBackStackEntry?.savedStateHandle?.get<Int>(QRScreen.ARG_APPLICATION_ID)
                 val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE)
                 val uri = route.uriString?.let { android.net.Uri.parse(it) } ?: previousBackStackEntry?.savedStateHandle?.get<android.net.Uri>(QRScreen.ARG_URI)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.activity.compose.BackHandler(enabled = route.popBackStack) {
+                    (context as? android.app.Activity)?.finish()
+                }
                 MessageScreen(
                     applicationId = applicationId,
                     messageData = messageData,
                     uri = uri,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() }
                 )
             }
-            composable<KeyImportRoute> {
+            composable<KeyImportRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<KeyImportRoute>()
                 val previousBackStackEntry = navController.previousBackStackEntry
                 val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.activity.compose.BackHandler(enabled = route.popBackStack) {
+                    (context as? android.app.Activity)?.finish()
+                }
                 KeyImportScreen(
                     message = messageData,
-                    onImportCompleted = { navController.popBackStack() }
+                    onImportCompleted = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() }
                 )
             }
             composable<NewPrivateKeyRoute> {
@@ -98,14 +107,23 @@ fun OmsApp() {
             }
             composable<EncryptTextRoute> { backStackEntry ->
                 val route = backStackEntry.toRoute<EncryptTextRoute>()
-                EncryptTextScreen(initialText = route.text ?: "", onNavigateBack = { navController.popBackStack() })
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.activity.compose.BackHandler(enabled = route.popBackStack) {
+                    (context as? android.app.Activity)?.finish()
+                }
+                EncryptTextScreen(initialText = route.text ?: "", onNavigateBack = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() })
             }
-            composable<TotpImportRoute> {
+            composable<TotpImportRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<TotpImportRoute>()
                 val previousBackStackEntry = navController.previousBackStackEntry
                 val messageData = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_MESSAGE) ?: ByteArray(0)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.activity.compose.BackHandler(enabled = route.popBackStack) {
+                    (context as? android.app.Activity)?.finish()
+                }
                 TotpImportScreen(
                     message = messageData,
-                    onImportCompleted = { navController.popBackStack() }
+                    onImportCompleted = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() }
                 )
             }
             composable<TotpManualEntryRoute> {
@@ -119,10 +137,14 @@ fun OmsApp() {
             composable<FileEncryptionRoute> { backStackEntry ->
                 val route = backStackEntry.toRoute<FileEncryptionRoute>()
                 val uriString = route.uriString
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.activity.compose.BackHandler(enabled = route.popBackStack) {
+                    (context as? android.app.Activity)?.finish()
+                }
                 if (uriString != null) {
                     FileEncryptionScreen(
                         uri = android.net.Uri.parse(uriString),
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() }
                     )
                 }
             }
