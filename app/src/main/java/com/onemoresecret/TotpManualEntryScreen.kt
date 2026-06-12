@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
+import com.onemoresecret.composable.TotpCodeView
 import com.onemoresecret.crypto.AESUtil
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
@@ -268,24 +269,10 @@ fun TotpManualEntryScreen() {
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 64.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            Text(
-                modifier = Modifier.alignByBaseline(),
-                text = totpCode,
-                style = MaterialTheme.typography.displaySmall,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                modifier = Modifier.alignByBaseline(),
-                text = timerText,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+        TotpCodeView(
+            code = totpCode,
+            remaining = timerText
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = stringResource(R.string.encrypt_with))

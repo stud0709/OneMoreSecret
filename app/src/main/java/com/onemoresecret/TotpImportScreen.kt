@@ -36,6 +36,9 @@ import com.onemoresecret.Util.openUrl
 import com.onemoresecret.crypto.AESUtil
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
+import com.onemoresecret.composable.TotpCodeView
 import com.onemoresecret.crypto.OneTimePassword
 import com.onemoresecret.crypto.RSAUtil
 import com.onemoresecret.crypto.TotpUriTransfer
@@ -50,6 +53,7 @@ class TotpImportViewModel : ViewModel() {
 
     var totpValue by mutableStateOf("")
     var totpRemaining by mutableStateOf("")
+    var nameIssuer by mutableStateOf("")
 
     private var otp: OneTimePassword? = null
     private var lastState = -1L
@@ -62,6 +66,14 @@ class TotpImportViewModel : ViewModel() {
         originalMessage = message
         otp = OneTimePassword(String(message))
         require(otp!!.valid) { "Invalid scheme or authority" }
+
+        val name = otp!!.name
+        val issuer = otp!!.issuer
+        nameIssuer = if (issuer.isNullOrEmpty()) {
+            name ?: ""
+        } else {
+            "$name ($issuer)"
+        }
     }
 
     fun onAliasSelected(alias: String?, preferences: SharedPreferences) {
@@ -119,6 +131,18 @@ fun TotpImportScreen(
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
 
+    val outputViewModel: OutputViewModel = viewModel(
+        factory = OutputViewModel.Factory(preferences)
+    )
+
+    LaunchedEffect(viewModel.messageText, viewModel.messageTitle) {
+        if (viewModel.messageText.isNotEmpty()) {
+            outputViewModel.setMessage(viewModel.messageText, viewModel.messageTitle)
+        } else {
+            outputViewModel.setMessage(null, "")
+        }
+    }
+
     LaunchedEffect(message) {
         try {
             viewModel.init(message)
@@ -160,29 +184,13 @@ fun TotpImportScreen(
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
+                TotpCodeView(
+                    code = viewModel.totpValue,
+                    remaining = viewModel.totpRemaining,
+                    nameIssuer = viewModel.nameIssuer,
                     modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = viewModel.totpValue,
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                    Text(
-                        text = viewModel.totpRemaining,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = viewModel.messageText,
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(viewModel.messageTitle) },
-                readOnly = true
-            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -195,10 +203,14 @@ fun TotpImportScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Box(modifier = Modifier.weight(1f)) {
-                KeyStoreListScreen(onSelectionChanged = { alias -> 
+                KeyStoreListScreen(onSelectionChanged = { alias ->
                     viewModel.onAliasSelected(alias, preferences)
                 })
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutputScreen(outputViewModel = outputViewModel)
         }
     }
 }

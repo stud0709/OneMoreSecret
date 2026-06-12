@@ -120,19 +120,7 @@ fun KeyManagementScreen(
                 }
             }
 
-            if (publicKeyMessage != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = publicKeyMessage,
-                    onValueChange = {},
-                    label = { Text(stringResource(R.string.public_key)) },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 5
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutputScreen(outputViewModel = outputViewModel)
-            }
+            OutputScreen(outputViewModel = outputViewModel)
         }
     }
 

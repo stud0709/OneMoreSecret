@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.R
 import com.onemoresecret.crypto.OneTimePassword
+import com.onemoresecret.composable.TotpCodeView
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -44,16 +45,10 @@ class MsgPluginTotp(
             }
         }
 
-        Row(verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (hiddenState) "●".repeat(code.length) else code,
-                style = MaterialTheme.typography.displaySmall
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("...${remaining}s")
-        }
+        TotpCodeView(
+            code = code,
+            remaining = "...${remaining}s",
+            hiddenState = hiddenState
+        )
     }
 }
