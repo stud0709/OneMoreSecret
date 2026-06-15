@@ -160,7 +160,14 @@ abstract class MessageComposer {
             val version = Objects.requireNonNull(m.group(1)).toInt()
 
             // (1) remove prefix and line breaks
-            omsText = omsText.substring(m.group().length)
+            omsText = omsText.substring(m.end())
+            
+            // Extract only the base64 part, stopping at the first invalid character (e.g., punctuation or backticks)
+            val b64Matcher = Pattern.compile("^[A-Za-z0-9+/=\\s]+").matcher(omsText)
+            if (b64Matcher.find()) {
+                omsText = b64Matcher.group()
+            }
+            
             omsText = omsText.replace("\\s+".toRegex(), "")
 
             if (version == 0) {
