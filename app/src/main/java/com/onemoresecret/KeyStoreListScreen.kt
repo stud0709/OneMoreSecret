@@ -25,7 +25,7 @@ fun KeyStoreListScreen(
     onSelectionChanged: (String?) -> Unit
 ) {
     val context = LocalContext.current
-    val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val preferences = com.onemoresecret.OmsPreferences.get(context)
 
     var aliasList by remember { mutableStateOf(emptyList<String>()) }
     var keyStoreEntries by remember { mutableStateOf(emptySet<KeyStoreEntry>()) }

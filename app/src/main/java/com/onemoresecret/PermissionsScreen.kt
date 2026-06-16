@@ -37,9 +37,8 @@ fun PermissionsScreen(onProceed: () -> Unit) {
 
     OneMoreSecretTheme {
         Permissions(onProceed = { result ->
-            val activity = context as? Activity
-            val preferences = activity?.getPreferences(Context.MODE_PRIVATE)
-            preferences?.edit { putBoolean(PermissionsScreen.PROP_PERMISSIONS_REQUESTED, true) }
+            val preferences = OmsPreferences.get(context)
+            preferences.edit { putBoolean(PermissionsScreen.PROP_PERMISSIONS_REQUESTED, true) }
             Log.d(PermissionsScreen.TAG, "Granted permissions: $result")
             onProceed()
         })

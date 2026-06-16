@@ -68,12 +68,14 @@ class TotpImportViewModel : ViewModel() {
         require(otp!!.valid) { "Invalid scheme or authority" }
 
         val name = otp!!.name
+        nameIssuer = name ?: ""
+        /*
         val issuer = otp!!.issuer
         nameIssuer = if (issuer.isNullOrEmpty()) {
             name ?: ""
         } else {
             "$name ($issuer)"
-        }
+        }*/
     }
 
     fun onAliasSelected(alias: String?, preferences: SharedPreferences) {
@@ -129,7 +131,7 @@ fun TotpImportScreen(
     viewModel: TotpImportViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val preferences = com.onemoresecret.OmsPreferences.get(context)
 
     val outputViewModel: OutputViewModel = viewModel(
         factory = OutputViewModel.Factory(preferences)

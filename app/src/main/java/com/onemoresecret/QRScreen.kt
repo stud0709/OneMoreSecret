@@ -95,7 +95,7 @@ fun QRScreen(navController: NavController) {
 
 
     val activity = context as MainActivity
-    val preferences = activity.getPreferences(Context.MODE_PRIVATE)
+    val preferences = OmsPreferences.get(context)
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 

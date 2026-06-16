@@ -82,9 +82,7 @@ fun NewPrivateKeyScreen(
     onPopBackStack: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
-    val preferences = activity?.getPreferences(Context.MODE_PRIVATE)
-        ?: context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val preferences = OmsPreferences.get(context)
 
     val viewModel: NewPrivateKeyViewModel = viewModel(
         factory = NewPrivateKeyViewModel.Factory(

@@ -213,7 +213,7 @@ class KeyImportViewModel : ViewModel() {
         try {
             val alias = keyAlias
             var warningText: String? = null
-            val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+            val preferences = com.onemoresecret.OmsPreferences.get(context)
 
             cryptographyManager.getByAlias(alias, preferences)?.let {
                 if (!it.fingerprint.contentEquals(fingerprintNew)) {
@@ -248,7 +248,7 @@ class KeyImportViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+                val preferences = com.onemoresecret.OmsPreferences.get(context)
 
                 val sameFingerprint = cryptographyManager.getByFingerprint(
                     fingerprintBytes,

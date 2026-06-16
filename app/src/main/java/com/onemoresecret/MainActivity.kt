@@ -112,7 +112,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Thread.setDefaultUncaughtExceptionHandler(OmsUncaughtExceptionHandler(this))
-        preferences = getPreferences(MODE_PRIVATE)
+        preferences = OmsPreferences.get(this)
 
         //prohibit screenshots
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

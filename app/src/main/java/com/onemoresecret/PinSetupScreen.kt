@@ -67,8 +67,7 @@ fun PinSetupScreen(
 ) {
     val context = LocalContext.current
 
-    val sharedPreferences = (context as? ComponentActivity)?.getPreferences(Context.MODE_PRIVATE)
-        ?: context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val sharedPreferences = OmsPreferences.get(context)
 
     val viewModel: PinSetupViewModel = viewModel(
         factory = PinSetupViewModel.Factory(sharedPreferences) {

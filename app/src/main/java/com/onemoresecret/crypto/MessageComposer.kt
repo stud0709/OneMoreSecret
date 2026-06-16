@@ -37,7 +37,7 @@ abstract class MessageComposer {
 
         override fun hashCode(): Int {
             var result = aesKeyMaterial.contentHashCode()
-            result = 31 * result + iv.hashCode()
+            result = 31 * result + iv.contentHashCode()
             return result
         }
     }
@@ -77,7 +77,7 @@ abstract class MessageComposer {
     }
 
     companion object {
-        private val TAG: String = MessageComposer::class.java.getSimpleName()
+        private val TAG: String = MessageComposer::class.java.simpleName
         const val APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER: Int = 0
         const val APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED: Int = 1
         const val APPLICATION_TOTP_URI_DEPRECATED: Int = 2
@@ -157,7 +157,7 @@ abstract class MessageComposer {
 
             val result: ByteArray?
 
-            val version = Objects.requireNonNull(m.group(1)).toInt()
+            val version = m.group(1)!!.toInt()
 
             // (1) remove prefix and line breaks
             omsText = omsText.substring(m.end())

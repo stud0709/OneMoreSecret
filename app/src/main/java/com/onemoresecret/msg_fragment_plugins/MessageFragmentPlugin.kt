@@ -23,7 +23,7 @@ abstract class MessageFragmentPlugin(
     protected val context: Context = activity
     @JvmField
     protected var fingerprint: ByteArray? = null
-    protected val preferences: SharedPreferences = activity.getPreferences(Context.MODE_PRIVATE)
+    protected val preferences: SharedPreferences = com.onemoresecret.OmsPreferences.get(activity)
     protected var rsaTransformation: RsaTransformation? = null
     protected val TAG: String = javaClass.simpleName
 

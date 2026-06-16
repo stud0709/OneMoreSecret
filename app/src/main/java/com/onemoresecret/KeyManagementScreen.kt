@@ -47,7 +47,7 @@ fun KeyManagementScreen(
     onNavigateToNewPrivateKey: () -> Unit
 ) {
     val context = LocalContext.current
-    val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val preferences = com.onemoresecret.OmsPreferences.get(context)
     val cryptographyManager = remember { CryptographyManager() }
     val keyDeleted = stringResource(R.string.key_deleted)
 

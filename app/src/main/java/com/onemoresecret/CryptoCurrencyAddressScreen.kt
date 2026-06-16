@@ -53,7 +53,7 @@ import java.util.Base64
 @Composable
 fun CryptoCurrencyAddressScreen() {
     val context = LocalContext.current
-    val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+    val preferences = com.onemoresecret.OmsPreferences.get(context)
 
     val outputViewModel: OutputViewModel = viewModel(
         factory = OutputViewModel.Factory(preferences)
