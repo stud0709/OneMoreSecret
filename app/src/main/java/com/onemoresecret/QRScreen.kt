@@ -76,7 +76,6 @@ import java.util.stream.Collectors
 import java.util.stream.IntStream
 
 object QRScreen {
-    const val PROP_USE_ZXING = "use_zxing"
     const val PROP_RECENT_ENTRIES = "recent_entries"
     const val PROP_PRESETS = "presets"
 
@@ -115,8 +114,6 @@ fun QRScreen(navController: NavController) {
     val cryptographyManager = remember { CryptographyManager() }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-
-    var isZxingEnabled by remember { mutableStateOf(BuildConfig.FLAVOR == Util.FLAVOR_FOSS || preferences.getBoolean(QRScreen.PROP_USE_ZXING, false)) }
 
     LaunchedEffect(Unit) {
         if (!preferences.getBoolean(PermissionsScreen.PROP_PERMISSIONS_REQUESTED, false)) {
@@ -202,7 +199,7 @@ fun QRScreen(navController: NavController) {
 
                 imageAnalysis.setAnalyzer(
                     ContextCompat.getMainExecutor(context),
-                    object : QRCodeAnalyzer(isZxingEnabled) {
+                    object : QRCodeAnalyzer() {
                         override fun onQRCodeFound(barcodeValue: String?) {
                             try {
                                 barcodeValue?.let { parser.consume(it) }
@@ -231,7 +228,7 @@ fun QRScreen(navController: NavController) {
         }
     }
 
-    LaunchedEffect(previewView, isZxingEnabled) {
+    LaunchedEffect(previewView) {
         if (previewView != null) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 startCamera()
@@ -577,24 +574,6 @@ if (showPinEntry) {
                                     callbacks.runPinProtected({ navController.navigate(KeyManagementRoute) }, null, false)
                                 }
                             )
-                            if (BuildConfig.FLAVOR != Util.FLAVOR_FOSS) {
-                                DropdownMenuItem(
-                                    text = { Text("ZXing Enabled") },
-                                    trailingIcon = {
-                                        Checkbox(
-                                            checked = isZxingEnabled,
-                                            onCheckedChange = null
-                                        )
-                                    },
-                                    onClick = {
-                                        expanded = false
-                                        currentMenuLevel = "MAIN"
-                                        val newZxing = !isZxingEnabled
-                                        preferences.edit { putBoolean(QRScreen.PROP_USE_ZXING, newZxing) }
-                                        isZxingEnabled = newZxing
-                                    }
-                                )
-                            }
                         } else if (currentMenuLevel == "SUPPORT") {
                             DropdownMenuItem(
                                 text = { Text("◂ Back") },

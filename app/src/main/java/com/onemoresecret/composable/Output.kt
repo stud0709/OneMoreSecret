@@ -74,7 +74,9 @@ fun OutputScreen(
     var showBluetoothDialog by remember { mutableStateOf(false) }
     var showKeyboardTestTool by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ -> }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
+        outputViewModel.refreshBluetoothControls()
+    }
 
     DisposableEffect(outputViewModel) {
         val applicationContext = context.applicationContext
@@ -85,6 +87,7 @@ fun OutputScreen(
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED)
+            addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)
         }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {

@@ -214,9 +214,6 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
 
                 val spinnerItems = bluetoothAdapter.bondedDevices
                     .stream()
-                    .filter { d: BluetoothDevice? ->
-                        compatibleDevices.contains(d)
-                    }
                     .map { bluetoothDevice -> SpinnerItemDevice(ctx, bluetoothDevice) }
                     .sorted { s1: SpinnerItemDevice, s2: SpinnerItemDevice ->
                         val i1 = if (connectedDevices.contains(s1.bluetoothDevice)) 0 else 1

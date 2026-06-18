@@ -5,12 +5,12 @@ import androidx.camera.core.ImageProxy
 import com.onemoresecret.BuildConfig
 import com.onemoresecret.Util
 
-abstract class QRCodeAnalyzer(private val zxingEnabled: Boolean) : ImageAnalysis.Analyzer {
+abstract class QRCodeAnalyzer : ImageAnalysis.Analyzer {
     private var analyzer: Analyzer? = null
 
     override fun analyze(imageProxy: ImageProxy) {
         try {
-            if (zxingEnabled || BuildConfig.FLAVOR == Util.FLAVOR_FOSS) {
+            if (BuildConfig.FLAVOR == Util.FLAVOR_FOSS) {
                 if (analyzer == null || analyzer !is ZXingBarcodeAnalyzer) {
                     analyzer = ZXingBarcodeAnalyzer()
                 }
