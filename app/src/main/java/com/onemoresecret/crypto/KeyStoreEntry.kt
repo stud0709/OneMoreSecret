@@ -1,5 +1,8 @@
 package com.onemoresecret.crypto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class KeyStoreEntry (
     val alias: String = "",
     val type: String = "",

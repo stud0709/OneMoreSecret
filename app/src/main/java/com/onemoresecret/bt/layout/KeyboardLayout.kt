@@ -1,8 +1,6 @@
 package com.onemoresecret.bt.layout
 
 import android.util.Log
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.onemoresecret.Util
 import java.util.TreeMap
 import java.util.function.Consumer
 import java.util.stream.Collectors
@@ -10,6 +8,7 @@ import java.util.stream.Collectors
 abstract class KeyboardLayout {
     @JvmField
     protected val layout: MutableMap<Char?, Stroke?> = TreeMap<Char?, Stroke?>()
+    abstract val shortName: String
     abstract fun forKey(c: Char): Stroke?
 
     /**
@@ -47,11 +46,7 @@ abstract class KeyboardLayout {
 
     fun logLayout() {
         layout.entries.forEach(Consumer { entry: MutableMap.MutableEntry<Char?, Stroke?>? ->
-            try {
-                Log.d(this::class.qualifiedName, Util.JACKSON_MAPPER.writeValueAsString(entry))
-            } catch (e: JsonProcessingException) {
-                e.printStackTrace()
-            }
+            Log.d(this::class.simpleName ?: KeyboardLayout::class.java.simpleName, "${entry?.key} -> ${entry?.value}")
         })
     }
 

@@ -152,7 +152,7 @@ object AESUtil {
 
     @JvmStatic
     fun getKeySpecIterations(preferences: SharedPreferences): Int {
-        return preferences.getInt(PROP_AES_KEY_ITERATIONS, 1024)
+        return preferences.getInt(PROP_AES_KEY_ITERATIONS, 600000)
     }
 
     @JvmStatic

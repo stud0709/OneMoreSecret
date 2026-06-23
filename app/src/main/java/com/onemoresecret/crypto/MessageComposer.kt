@@ -37,7 +37,7 @@ abstract class MessageComposer {
 
         override fun hashCode(): Int {
             var result = aesKeyMaterial.contentHashCode()
-            result = 31 * result + iv.hashCode()
+            result = 31 * result + iv.contentHashCode()
             return result
         }
     }
@@ -77,7 +77,7 @@ abstract class MessageComposer {
     }
 
     companion object {
-        private val TAG: String = MessageComposer::class.java.getSimpleName()
+        private val TAG: String = MessageComposer::class.java.simpleName
         const val APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER: Int = 0
         const val APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED: Int = 1
         const val APPLICATION_TOTP_URI_DEPRECATED: Int = 2
@@ -99,30 +99,18 @@ abstract class MessageComposer {
         const val APPLICATION_OMS4WEB_CALLBACK_REQUEST = 13
 
         /**
-         * Assigns a drawable to an applicationId. This is used to display recent entries.
-         * **ApplicationId without a drawableId wil not be added to recent entries.**
+         * Checks if an applicationId should be added to recent entries.
          *
          * @param applicationId
-         * @return drawableId
+         * @return boolean
          */
         @JvmStatic
-        fun getDrawableIdForApplicationId(applicationId: Int): Optional<Int> {
-            when (applicationId) {
-                APPLICATION_BITCOIN_ADDRESS -> {
-                    return Optional.of<Int>(R.drawable.baseline_currency_bitcoin_24)
-                }
-
-                APPLICATION_ENCRYPTED_MESSAGE, APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED -> {
-                    return Optional.of<Int>(R.drawable.baseline_password_24)
-                }
-
-                APPLICATION_TOTP_URI, APPLICATION_TOTP_URI_DEPRECATED -> {
-                    return Optional.of<Int>(R.drawable.baseline_timelapse_24)
-                }
-
-                else -> {
-                    return Optional.empty<Int>()
-                }
+        fun isApplicationIdStorableInRecent(applicationId: Int): Boolean {
+            return when (applicationId) {
+                APPLICATION_BITCOIN_ADDRESS,
+                APPLICATION_ENCRYPTED_MESSAGE, APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
+                APPLICATION_TOTP_URI, APPLICATION_TOTP_URI_DEPRECATED -> true
+                else -> false
             }
         }
 
@@ -169,10 +157,17 @@ abstract class MessageComposer {
 
             val result: ByteArray?
 
-            val version = Objects.requireNonNull(m.group(1)).toInt()
+            val version = m.group(1)!!.toInt()
 
             // (1) remove prefix and line breaks
-            omsText = omsText.substring(m.group().length)
+            omsText = omsText.substring(m.end())
+            
+            // Extract only the base64 part, stopping at the first invalid character (e.g., punctuation or backticks)
+            val b64Matcher = Pattern.compile("^[A-Za-z0-9+/=\\s]+").matcher(omsText)
+            if (b64Matcher.find()) {
+                omsText = b64Matcher.group()
+            }
+            
             omsText = omsText.replace("\\s+".toRegex(), "")
 
             if (version == 0) {

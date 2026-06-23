@@ -1,18 +1,26 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!-- Base application theme. -->
     <style name="Theme.OneMoreSecret" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">@color/primary_cyan</item>
+        <item name="colorPrimaryVariant">@color/primary_cyan_light</item>
+        <item name="colorOnPrimary">@color/bg_dark</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondary">@color/primary_cyan</item>
+        <item name="colorSecondaryVariant">@color/primary_cyan_light</item>
+        <item name="colorOnSecondary">@color/bg_dark</item>
+        
+        <!-- Background and Surface Colors -->
+        <item name="android:colorBackground">@color/bg_dark</item>
+        <item name="colorSurface">@color/bg_card</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
         <!-- Customize your theme here. -->
     </style>
+
 
     <style name="Theme.OneMoreSecret.PopupOverlay" parent="ThemeOverlay.MaterialComponents.Dark">
         <item name="android:textColor">@android:color/white</item>

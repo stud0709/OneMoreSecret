@@ -8,20 +8,14 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import androidx.core.content.edit
-import com.onemoresecret.Util
+import com.onemoresecret.OmsJson
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
-import org.spongycastle.crypto.generators.RSAKeyPairGenerator
-import org.spongycastle.crypto.params.RSAKeyGenerationParameters
-import org.spongycastle.crypto.util.PrivateKeyInfoFactory
-import org.spongycastle.crypto.util.SubjectPublicKeyInfoFactory
-import org.spongycastle.jcajce.provider.asymmetric.util.PrimeCertaintyCalculator
-import java.io.IOException
-import java.math.BigInteger
 import java.security.InvalidAlgorithmParameterException
 import java.security.Key
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
 import java.security.SecureRandom
@@ -31,8 +25,7 @@ import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 
 class CryptographyManager {
-    @JvmField
-    val keyStore: KeyStore
+    private val keyStore: KeyStore
 
     init {
         try {
@@ -95,6 +88,10 @@ class CryptographyManager {
         } catch (ex: Exception) {
             throw RuntimeException(ex)
         }
+    }
+
+    fun isMasterKeySetUp(): Boolean {
+        return keyStore.containsAlias(MASTER_KEY_ALIAS)
     }
 
     /**
@@ -176,7 +173,7 @@ class CryptographyManager {
         //add the new KeyStoreEntry to the keystore property
         val keystoreSet: Set<String?> = preferences.getStringSet(PROP_KEYSTORE, setOf<String?>())!!
         val mutableSet = keystoreSet.toMutableSet()
-        mutableSet.add(Util.JACKSON_MAPPER.writeValueAsString(entry))
+        mutableSet.add(OmsJson.encode(entry))
         preferences.edit { putStringSet(PROP_KEYSTORE, mutableSet) }
     }
 
@@ -213,7 +210,7 @@ class CryptographyManager {
         try {
             keyPairGenerator.initialize(specBuilder.build())
             keyPairGenerator.generateKeyPair()
-        } catch (e: StrongBoxUnavailableException) {
+        } catch (_: StrongBoxUnavailableException) {
             // Fallback to TEE if StrongBox fails despite the system feature check
             specBuilder.setIsStrongBoxBacked(false)
             keyPairGenerator.initialize(specBuilder.build())
@@ -224,10 +221,10 @@ class CryptographyManager {
     fun deleteKey(alias: String, preferences: SharedPreferences) {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
-        val result = keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+        val result: Set<String> = keystore
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .filter { it.alias != alias }
-            .map { Util.JACKSON_MAPPER.writeValueAsString(it) }
+            .map { OmsJson.encode(it) }
             .toSet()
         preferences.edit { putStringSet(PROP_KEYSTORE, result) }
     }
@@ -242,7 +239,7 @@ class CryptographyManager {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
         return keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .find { it.fingerprint contentEquals fingerprint }
     }
 
@@ -250,9 +247,20 @@ class CryptographyManager {
         val keystore: Set<String> =
             preferences.getStringSet(PROP_KEYSTORE, mutableSetOf<String>())!!
         val result = keystore
-            .map { s -> Util.JACKSON_MAPPER.readValue(s, KeyStoreEntry::class.java) }
+            .map { s -> OmsJson.decode<KeyStoreEntry>(s) }
             .find { it.alias == alias }
         return result
+    }
+
+    fun deleteAndroidKeystoreEntries() {
+        try {
+            val aliasesEnum = keyStore.aliases()
+            while (aliasesEnum.hasMoreElements()) {
+                keyStore.deleteEntry(aliasesEnum.nextElement())
+            }
+        } catch (e: KeyStoreException) {
+            throw RuntimeException(e)
+        }
     }
 
     companion object {
@@ -262,30 +270,19 @@ class CryptographyManager {
         const val PROP_KEYSTORE: String = "keystore"
 
         /**
-         * Generate key pair using BouncyCastle library
+         * Generate key pair using standard JCA APIs.
          */
         @JvmStatic
-        @Throws(IOException::class, NoSuchAlgorithmException::class, InvalidKeySpecException::class)
+        @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
         fun generateKeyPair(keyLength: Int): Pair<ByteArray, ByteArray> {
-            val rsaKeyPairGenerator = RSAKeyPairGenerator()
+            val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+            keyPairGenerator.initialize(keyLength, SecureRandom())
 
-            rsaKeyPairGenerator.init(
-                RSAKeyGenerationParameters(
-                    BigInteger.valueOf(0x10001),
-                    SecureRandom(),
-                    keyLength,
-                    PrimeCertaintyCalculator.getDefaultCertainty(keyLength)
-                )
-            )
-
-            val asymmetricCipherKeyPair = rsaKeyPairGenerator.generateKeyPair()
-            val privateKeyMaterial = PrivateKeyInfoFactory
-                .createPrivateKeyInfo(asymmetricCipherKeyPair.private).encoded
-            val publicKeyMaterial = SubjectPublicKeyInfoFactory
-                .createSubjectPublicKeyInfo(asymmetricCipherKeyPair.public).encoded
+            val keyPair = keyPairGenerator.generateKeyPair()
+            val privateKeyMaterial = keyPair.private.encoded
+            val publicKeyMaterial = keyPair.public.encoded
 
             return Pair(publicKeyMaterial, privateKeyMaterial)
         }
     }
 }
-

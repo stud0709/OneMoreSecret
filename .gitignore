@@ -14,3 +14,20 @@
 .cxx
 local.properties
 Bluetooth specifications
+AGENTS.md
+agents.md
+.cosine/
+
+# Build Outputs
+/app/foss/release/
+/app/standard/release/
+
+# IDE Configs
+/.idea/AndroidProjectSystem.xml
+/.idea/inspectionProfiles/
+/.idea/markdown.xml
+/.idea/runConfigurations.xml
+
+# Local Gradle / Temp
+/gradle/gradle-daemon-jvm.properties
+gradlew.lf

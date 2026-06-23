@@ -7,6 +7,8 @@ import com.onemoresecret.bt.KeyboardUsage
  * Swiss keyboard layout.
  */
 class SwissLayout : GermanLayout() {
+    override val shortName: String = "DE-CH"
+
     init {
         layout['§'] = Stroke()
             .type(KeyboardUsage.KBD_GRAVE)

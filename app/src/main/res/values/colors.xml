@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
+    <!-- Dark Security Theme Colors -->
+    <color name="primary_cyan">#26C6DA</color>
+    <color name="primary_cyan_light">#5CE1E6</color>
+    <color name="primary_cyan_dark">#00838F</color>
+    <color name="bg_dark">#0C1116</color>
+    <color name="bg_card">#141A22</color>
+    <color name="border_color">#2B333E</color>
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_muted">#828C9A</color>
+    
+    <!-- Light Security Theme Colors -->
     <color name="white">#FFFFFFFF</color>
+    <color name="bg_light">#F8FAFC</color>
+    <color name="bg_card_light">#FFFFFF</color>
+    <color name="border_color_light">#E2E8F0</color>
+    <color name="text_primary_light">#0F172A</color>
+    <color name="text_muted_light">#475569</color>
+
+    <!-- Status Colors -->
+    <color name="success">#21C55D</color>
+    <color name="warning">#F59E0B</color>
+    <color name="destructive">#E11D48</color>
 </resources>

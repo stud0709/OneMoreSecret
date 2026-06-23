@@ -1,0 +1,297 @@
+package com.onemoresecret
+
+import android.content.Context
+import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Timelapse
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedFilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.onemoresecret.composable.OutputScreen
+import com.onemoresecret.composable.OutputViewModel
+import com.onemoresecret.composable.TotpCodeView
+import com.onemoresecret.crypto.AESUtil
+import com.onemoresecret.crypto.CryptographyManager
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.crypto.OneTimePassword
+import com.onemoresecret.crypto.RSAUtil
+import com.onemoresecret.crypto.TotpUriTransfer
+import kotlinx.coroutines.delay
+import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TotpManualEntryScreen() {
+    val context = LocalContext.current
+    val preferences = com.onemoresecret.OmsPreferences.get(context)
+
+    val outputViewModel: OutputViewModel = viewModel(
+        factory = OutputViewModel.Factory(preferences)
+    )
+
+    var secretText by remember { mutableStateOf("") }
+    var selectedAlgorithm by remember { mutableStateOf(OneTimePassword.ALGORITHM[0]) }
+    var selectedDigits by remember { mutableStateOf(OneTimePassword.DIGITS[0]) }
+    var selectedPeriod by remember { mutableIntStateOf(OneTimePassword.DEFAULT_PERIOD) }
+
+    var selectedAlias by remember { mutableStateOf<String?>(null) }
+    val cryptographyManager = remember { CryptographyManager() }
+
+    var totpCode by remember { mutableStateOf("-".repeat(selectedDigits.toInt())) }
+    var timerText by remember { mutableStateOf("") }
+    
+    var outputMessage by remember { mutableStateOf<String?>(null) }
+    
+    val strAppName = stringResource(R.string.app_name)
+
+    // Trigger regeneration when parameters change
+    var lastState by remember { mutableLongStateOf(-1L) }
+
+    LaunchedEffect(secretText, selectedAlgorithm, selectedDigits, selectedPeriod, selectedAlias) {
+        lastState = -1L // Force update output
+    }
+
+    LaunchedEffect(secretText, selectedAlgorithm, selectedDigits, selectedPeriod, selectedAlias) {
+        while (true) {
+            val builder = Uri.Builder()
+            builder.scheme(OneTimePassword.OTP_SCHEME)
+                .authority(OneTimePassword.TOTP)
+                .appendPath(strAppName)
+
+            builder.appendQueryParameter(OneTimePassword.SECRET_PARAM, secretText)
+
+            if (selectedPeriod != OneTimePassword.DEFAULT_PERIOD) {
+                builder.appendQueryParameter(OneTimePassword.PERIOD_PARAM, selectedPeriod.toString())
+            }
+            if (selectedDigits != OneTimePassword.DIGITS[0]) {
+                builder.appendQueryParameter(OneTimePassword.DIGITS_PARAM, selectedDigits)
+            }
+            if (selectedAlgorithm != OneTimePassword.ALGORITHM[0]) {
+                builder.appendQueryParameter(OneTimePassword.ALGORITHM_PARAM, selectedAlgorithm)
+            }
+
+            val uriString = builder.build().toString()
+
+            try {
+                val otp = OneTimePassword(uriString)
+                val otpState = otp.state
+                val code = otp.generateResponseCode(otpState.current)
+
+                totpCode = code
+                timerText = String.format(Locale.getDefault(),"...%02ds", otp.period - otpState.secondsUntilNext)
+
+                if (lastState != otpState.current) {
+                    if (selectedAlias == null) {
+                        outputMessage = code
+                        outputViewModel.setMessage(outputMessage, "One-Time-Password")
+                    } else {
+                        val keyStoreEntry = cryptographyManager.getByAlias(selectedAlias!!, preferences)
+                        if (keyStoreEntry != null) {
+                            val result = MessageComposer.encodeAsOmsText(
+                                TotpUriTransfer(
+                                    uriString.toByteArray(),
+                                    keyStoreEntry.public,
+                                    RSAUtil.getRsaTransformation(preferences),
+                                    AESUtil.getKeyLength(preferences),
+                                    AESUtil.getAesTransformation(preferences)
+                                ).message
+                            )
+                            outputMessage = result
+                            outputViewModel.setMessage(outputMessage, "TOTP Configuration (encrypted)")
+                        }
+                    }
+                    lastState = otpState.current
+                }
+            } catch (_: Exception) {
+                // Invalid secret
+                totpCode = "-".repeat(selectedDigits.toIntOrNull() ?: 6)
+                timerText = ""
+                outputMessage = null
+            }
+
+            delay(1000.milliseconds)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.totp_manual_entry), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                actions = {
+
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+            value = secretText,
+            onValueChange = { secretText = it.uppercase() },
+            label = { Text(stringResource(R.string.totp_secret)) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = selectedAlias == null,
+            textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                fontFamily = com.onemoresecret.composable.JetBrainsMono
+            )
+        )
+
+        Text(
+            text = stringResource(R.string.totp_parameters_optional),
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            var algorithmMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                ElevatedFilterChip(
+                    selected = true,
+                    onClick = { algorithmMenuExpanded = true },
+                    label = { Text(selectedAlgorithm) },
+                    leadingIcon = {
+                        Icon(androidx.compose.material.icons.Icons.Default.Category, contentDescription = null)
+                    },
+                    enabled = selectedAlias == null
+                )
+                DropdownMenu(
+                    expanded = algorithmMenuExpanded,
+                    onDismissRequest = { algorithmMenuExpanded = false }
+                ) {
+                    OneTimePassword.ALGORITHM.forEach { alg ->
+                        DropdownMenuItem(
+                            text = { Text(alg) },
+                            onClick = {
+                                selectedAlgorithm = alg
+                                algorithmMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            var digitsMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                ElevatedFilterChip(
+                    selected = true,
+                    onClick = { digitsMenuExpanded = true },
+                    label = { Text(selectedDigits) },
+                    leadingIcon = {
+                        Icon(androidx.compose.material.icons.Icons.Default.Password, contentDescription = null)
+                    },
+                    enabled = selectedAlias == null
+                )
+                DropdownMenu(
+                    expanded = digitsMenuExpanded,
+                    onDismissRequest = { digitsMenuExpanded = false }
+                ) {
+                    OneTimePassword.DIGITS.forEach { d ->
+                        DropdownMenuItem(
+                            text = { Text(d) },
+                            onClick = {
+                                selectedDigits = d
+                                digitsMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Period Selection. The original app used an AlertDialog with a NumberPicker.
+            // For simplicity, we can provide a dropdown with common values or a simple dialog.
+            var periodMenuExpanded by remember { mutableStateOf(false) }
+            Box {
+                ElevatedFilterChip(
+                    selected = true,
+                    onClick = { periodMenuExpanded = true },
+                    label = { Text("${selectedPeriod}s") },
+                    leadingIcon = {
+                        Icon(androidx.compose.material.icons.Icons.Default.Timelapse, contentDescription = null)
+                    },
+                    enabled = selectedAlias == null
+                )
+                DropdownMenu(
+                    expanded = periodMenuExpanded,
+                    onDismissRequest = { periodMenuExpanded = false }
+                ) {
+                    listOf(15, 30, 60, 120).forEach { p ->
+                        DropdownMenuItem(
+                            text = { Text("${p}s") },
+                            onClick = {
+                                selectedPeriod = p
+                                periodMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        TotpCodeView(
+            code = totpCode,
+            remaining = timerText
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = stringResource(R.string.encrypt_with))
+
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)) {
+            KeyStoreListScreen(
+                onSelectionChanged = { alias ->
+                    selectedAlias = alias
+                }
+            )
+        }
+
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()) {
+            OutputScreen(outputViewModel = outputViewModel)
+        }
+        }
+    }
+}
