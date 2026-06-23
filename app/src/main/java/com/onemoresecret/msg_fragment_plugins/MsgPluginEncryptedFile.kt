@@ -143,6 +143,9 @@ class MsgPluginEncryptedFile(
         }
     }
 
+    override val showVisibilityButton: Boolean
+        get() = false
+
     @Composable
     override fun MessageView(hiddenState: Boolean) {
         FileInfoScreen(fileInfo = fileInfo)

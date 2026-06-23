@@ -26,6 +26,8 @@ abstract class MessageFragmentPlugin(
     protected val preferences: SharedPreferences = com.onemoresecret.OmsPreferences.get(activity)
     protected var rsaTransformation: RsaTransformation? = null
     protected val TAG: String = javaClass.simpleName
+    open val showVisibilityButton: Boolean
+        get() = true
 
     @Composable
     abstract fun MessageView(hiddenState: Boolean)

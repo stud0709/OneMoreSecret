@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,9 +84,12 @@ open class MsgPluginKeyRequest(
         }
     }
 
+    override val showVisibilityButton: Boolean
+        get() = false
+
     @Composable
     override fun MessageView(hiddenState: Boolean) {
-        HiddenTextScreen(text = if (hiddenState) context.getString(R.string.hidden_text) else messageText)
+        HiddenTextScreen(text = messageText)
     }
 
     private val outputViewModel = com.onemoresecret.composable.OutputViewModel(preferences)
@@ -95,7 +97,7 @@ open class MsgPluginKeyRequest(
     @Composable
     override fun TopBarActions() {
         if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST && outputMessage.isNotEmpty()) {
-            androidx.compose.material3.IconButton(onClick = {
+            IconButton(onClick = {
                 val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 val clipData = android.content.ClipData.newPlainText("oneMoreSecret", outputMessage)
                 val persistableBundle = android.os.PersistableBundle().apply {
@@ -105,7 +107,7 @@ open class MsgPluginKeyRequest(
                 clipboardManager.setPrimaryClip(clipData)
                 Toast.makeText(context, context.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
             }) {
-                androidx.compose.material3.Icon(
+                Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.ContentCopy,
                     contentDescription = "Copy"
                 )
@@ -193,7 +195,6 @@ fun KeyRequestPairingScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     KeyRequestPairing(
         reply = replyState,

@@ -11,12 +11,12 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.function.Consumer
 
-class MLKitBarcodeAnalyzer : Analyzer {
+class Analyzer {
     private var barcodeScanner: BarcodeScanner? = null
     private var mlTask: Task<List<Barcode>>? = null
 
     @OptIn(ExperimentalGetImage::class)
-    override fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
+    fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
         if (mlTask != null) return
 
         val mediaImage = imageProxy.image

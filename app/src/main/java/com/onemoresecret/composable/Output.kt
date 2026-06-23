@@ -13,7 +13,6 @@ import android.os.PersistableBundle
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.Center
@@ -71,7 +70,6 @@ import com.onemoresecret.R
 import com.onemoresecret.bt.BluetoothController
 import com.onemoresecret.bt.KeyboardUsage
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutputScreen(
@@ -224,16 +222,20 @@ fun OutputScreen(
                     IconButton(onClick = {
                         val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clipData = ClipData.newPlainText("oneMoreSecret", message)
-                        val persistableBundle = PersistableBundle().apply {
-                            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val persistableBundle = PersistableBundle().apply {
+                                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                            }
+                            clipData.description.extras = persistableBundle
                         }
-                        clipData.description.extras = persistableBundle
                         clipboardManager.setPrimaryClip(clipData)
                         
                         // Verify in logcat that the flag is correctly set on the system clipboard
-                        val activeClip = clipboardManager.primaryClip
-                        val hasSensitiveFlag = activeClip?.description?.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) ?: false
-                        android.util.Log.d("OmsClipboard", "Clipboard updated. Extras: ${activeClip?.description?.extras}, Sensitive Flag: $hasSensitiveFlag")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val activeClip = clipboardManager.primaryClip
+                            val hasSensitiveFlag = activeClip?.description?.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) ?: false
+                            android.util.Log.d("OmsClipboard", "Clipboard updated. Extras: ${activeClip?.description?.extras}, Sensitive Flag: $hasSensitiveFlag")
+                        }
                         
                         Toast.makeText(context, copiedToClipboard, Toast.LENGTH_SHORT).show()
                     }) {

@@ -8,7 +8,7 @@ abstract class QRCodeAnalyzer : ImageAnalysis.Analyzer {
 
     override fun analyze(imageProxy: ImageProxy) {
         if (analyzer == null) {
-            analyzer = BarcodeAnalyzerFactory.createAnalyzer()
+            analyzer = Analyzer()
         }
 
         analyzer!!.analyze(imageProxy) { barcodeValue: String? ->

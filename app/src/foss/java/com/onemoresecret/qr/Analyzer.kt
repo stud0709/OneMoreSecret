@@ -11,8 +11,8 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 import java.util.function.Consumer
 
-class ZXingBarcodeAnalyzer : Analyzer {
-    override fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
+class Analyzer {
+    fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
         imageProxy.use { imageProxy ->
             if (imageProxy.format !in setOf(
                     ImageFormat.YUV_420_888,
