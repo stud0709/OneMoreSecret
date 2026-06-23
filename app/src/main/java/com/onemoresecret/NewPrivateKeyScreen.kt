@@ -1,7 +1,5 @@
 package com.onemoresecret
 
-import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
@@ -147,7 +145,7 @@ fun NewPrivateKeyScreen(
 
 @Composable
 fun NewPrivateKey(viewModel: NewPrivateKeyViewModel = viewModel()) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     NewPrivateKeyScreen(
         state = viewModel.state,
         onAction = viewModel::onAction,

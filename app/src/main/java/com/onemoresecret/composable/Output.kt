@@ -2,11 +2,19 @@ package com.onemoresecret.composable
 
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
+import android.os.PersistableBundle
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.foundation.layout.Column
@@ -16,14 +24,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.BluetoothSearching
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AssistChip
@@ -50,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -62,7 +69,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.onemoresecret.LocalOmsState
 import com.onemoresecret.R
 import com.onemoresecret.bt.BluetoothController
+import com.onemoresecret.bt.KeyboardUsage
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutputScreen(
@@ -73,6 +82,7 @@ fun OutputScreen(
     val omsState = LocalOmsState.current
     var showBluetoothDialog by remember { mutableStateOf(false) }
     var showKeyboardTestTool by remember { mutableStateOf(false) }
+    val copiedToClipboard = stringResource(R.string.copied_to_clipboard)
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
         outputViewModel.refreshBluetoothControls()
@@ -130,7 +140,7 @@ fun OutputScreen(
         ) {
             OutlinedButton(onClick = { showBluetoothDialog = true }) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Bluetooth,
+                    imageVector = Icons.Default.Bluetooth,
                     contentDescription = stringResource(R.string.bluetooth_target)
                 )
             }
@@ -146,7 +156,7 @@ fun OutputScreen(
             ) {
                 Row(
                     verticalAlignment = CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Center,
                     modifier = Modifier
                         .combinedClickable(
                             onClick = {
@@ -157,10 +167,10 @@ fun OutputScreen(
                                 if (strokes.contains(null)) {
                                     val unmappedIndices = strokes.indices.filter { strokes[it] == null }
                                     val unmappedChars = unmappedIndices.map { messageToType[it] }.distinct().joinToString()
-                                    android.widget.Toast.makeText(
+                                    Toast.makeText(
                                         context,
                                         "Cannot type: unsupported characters: $unmappedChars",
-                                        android.widget.Toast.LENGTH_LONG
+                                        Toast.LENGTH_LONG
                                     ).show()
                                     return@combinedClickable
                                 }
@@ -210,21 +220,44 @@ fun OutputScreen(
             val message = state.message
             val shareTitle = state.typingText
             if (message != null) {
-                IconButton(onClick = {
-                    omsState.isAutoLockDisarmed = true
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, message)
-                        putExtra(Intent.EXTRA_TITLE, shareTitle)
-                        type = "text/plain"
+                Row {
+                    IconButton(onClick = {
+                        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clipData = ClipData.newPlainText("oneMoreSecret", message)
+                        val persistableBundle = PersistableBundle().apply {
+                            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                        }
+                        clipData.description.extras = persistableBundle
+                        clipboardManager.setPrimaryClip(clipData)
+                        
+                        // Verify in logcat that the flag is correctly set on the system clipboard
+                        val activeClip = clipboardManager.primaryClip
+                        val hasSensitiveFlag = activeClip?.description?.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) ?: false
+                        android.util.Log.d("OmsClipboard", "Clipboard updated. Extras: ${activeClip?.description?.extras}, Sensitive Flag: $hasSensitiveFlag")
+                        
+                        Toast.makeText(context, copiedToClipboard, Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(android.R.string.copy)
+                        )
                     }
-                    val shareIntent = Intent.createChooser(sendIntent, null)
-                    context.startActivity(shareIntent)
-                }) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
+                    IconButton(onClick = {
+                        omsState.isAutoLockDisarmed = true
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, message)
+                            putExtra(Intent.EXTRA_TITLE, shareTitle)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
+                    }
                 }
             } else {
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(96.dp))
             }
         }
     }
@@ -307,11 +340,11 @@ fun OutputScreen(
                     Text(text = "Keyboard Test Tool", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(16.dp))
                     androidx.compose.foundation.lazy.LazyColumn {
-                        items(com.onemoresecret.bt.KeyboardUsage.values().size) { index ->
-                            val usage = com.onemoresecret.bt.KeyboardUsage.values()[index]
+                        items(KeyboardUsage.entries.size) { index ->
+                            val usage = KeyboardUsage.entries[index]
                             androidx.compose.material3.TextButton(
                                 onClick = {
-                                    android.widget.Toast.makeText(context, usage.name, android.widget.Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, usage.name, Toast.LENGTH_SHORT).show()
                                     outputViewModel.sendTestKeystroke(usage)
                                 },
                                 modifier = Modifier.fillMaxWidth()
