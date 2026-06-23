@@ -13,7 +13,7 @@ import java.util.function.Consumer
 
 class ZXingBarcodeAnalyzer : Analyzer {
     override fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
-        try {
+        imageProxy.use { imageProxy ->
             if (imageProxy.format !in setOf(
                     ImageFormat.YUV_420_888,
                     ImageFormat.YUV_422_888,
@@ -42,8 +42,6 @@ class ZXingBarcodeAnalyzer : Analyzer {
             } catch (_: ChecksumException) {
             } catch (_: NotFoundException) {
             }
-        } finally {
-            imageProxy.close()
         }
     }
 }

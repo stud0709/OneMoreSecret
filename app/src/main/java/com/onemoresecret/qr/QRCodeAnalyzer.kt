@@ -2,36 +2,17 @@ package com.onemoresecret.qr
 
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import com.onemoresecret.BuildConfig
-import com.onemoresecret.Util
 
 abstract class QRCodeAnalyzer : ImageAnalysis.Analyzer {
     private var analyzer: Analyzer? = null
 
     override fun analyze(imageProxy: ImageProxy) {
-        try {
-            if (BuildConfig.FLAVOR == Util.FLAVOR_FOSS) {
-                if (analyzer == null || analyzer !is ZXingBarcodeAnalyzer) {
-                    analyzer = ZXingBarcodeAnalyzer()
-                }
-            } else {
-                if (analyzer == null || analyzer?.javaClass?.simpleName != ML_KIT_CLASSNAME) {
-                    analyzer = Class.forName(ML_KIT_CLASSNAME).getDeclaredConstructor().newInstance() as Analyzer?
-                }
-            }
+        if (analyzer == null) {
+            analyzer = BarcodeAnalyzerFactory.createAnalyzer()
+        }
 
-            analyzer!!.analyze(
-                imageProxy
-            ) { barcodeValue: String? -> this.onQRCodeFound(barcodeValue) }
-        } catch (ex: ClassNotFoundException) {
-            ex.printStackTrace()
-            imageProxy.close()
-        } catch (ex: IllegalAccessException) {
-            ex.printStackTrace()
-            imageProxy.close()
-        } catch (ex: InstantiationException) {
-            ex.printStackTrace()
-            imageProxy.close()
+        analyzer!!.analyze(imageProxy) { barcodeValue: String? ->
+            this.onQRCodeFound(barcodeValue)
         }
     }
 
@@ -39,7 +20,5 @@ abstract class QRCodeAnalyzer : ImageAnalysis.Analyzer {
 
     companion object {
         private val TAG: String = QRCodeAnalyzer::class.java.simpleName
-
-        private const val ML_KIT_CLASSNAME = "com.onemoresecret.qr.MLKitBarcodeAnalyzer"
     }
 }
