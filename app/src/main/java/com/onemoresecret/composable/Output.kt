@@ -61,6 +61,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
@@ -192,7 +193,8 @@ fun OutputScreen(
                 layouts = state.keyboardLayouts,
                 selectedClassName = state.selectedKeyboardLayoutClassName,
                 enabled = state.keyboardLayoutEnabled,
-                onSelected = outputViewModel::onKeyboardLayoutSelected
+                onSelected = outputViewModel::onKeyboardLayoutSelected,
+                modifier = Modifier.weight(1f, fill = false)
             )
         }
 
@@ -212,7 +214,9 @@ fun OutputScreen(
                 text = state.typingText,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             val context = LocalContext.current
             val message = state.message
@@ -367,21 +371,28 @@ private fun KeyboardLayoutSelector(
     layouts: List<OutputViewModel.KeyboardLayoutItem>,
     selectedClassName: String?,
     enabled: Boolean,
-    onSelected: (String) -> Unit
+    onSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLayout = layouts.firstOrNull { it.className == selectedClassName }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { if (enabled) expanded = !expanded }
+        onExpandedChange = { if (enabled) expanded = !expanded },
+        modifier = modifier
     ) {
         OutlinedButton(
             onClick = {}, // handled by ExposedDropdownMenuBox
             enabled = enabled,
             modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled)
         ) {
-            Text(selectedLayout?.shortName ?: "")
+            Text(
+                text = selectedLayout?.shortName ?: "",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
             Spacer(modifier = Modifier.padding(horizontal = 2.dp))
             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
         }
