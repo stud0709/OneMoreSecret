@@ -118,7 +118,7 @@ open class MsgPluginKeyRequest(
     @Composable
     override fun OutputView() {
         if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
-            Oms4WebUnlockScreen(message = outputMessage)
+            Oms4WebUnlockScreen(message = outputMessage, onNavigateBack = onNavigateBack)
         } else if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST_PAIRING) {
             KeyRequestPairingScreen(replyState = replyState, onNavigateBack = onNavigateBack)
         } else {
@@ -237,7 +237,7 @@ fun KeyRequestPairing(
 }
 
 @Composable
-fun Oms4WebUnlockScreen(message: String?) {
+fun Oms4WebUnlockScreen(message: String?, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val strOms4webCallbackUrl = androidx.compose.ui.res.stringResource(R.string.oms4web_callback_url)
 
@@ -250,8 +250,8 @@ fun Oms4WebUnlockScreen(message: String?) {
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
+                onNavigateBack()
                 context.startActivity(intent)
-                (context as? ComponentActivity)?.finish()
             }
         }
     )

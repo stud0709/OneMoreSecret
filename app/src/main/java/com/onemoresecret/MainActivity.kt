@@ -111,6 +111,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            intent = null
+        }
         Thread.setDefaultUncaughtExceptionHandler(OmsUncaughtExceptionHandler(this))
         preferences = OmsPreferences.get(this)
 
