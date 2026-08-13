@@ -12,13 +12,11 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Preserve line number information so crash reports from release builds are readable.
+# Deobfuscate them with build/outputs/mapping/<variant>/mapping.txt (retrace).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
 -keep class fr.acinq.secp256k1.** { *; }
 
 # ML Kit ('standard' flavor) discovers its components by reflectively calling the no-arg
