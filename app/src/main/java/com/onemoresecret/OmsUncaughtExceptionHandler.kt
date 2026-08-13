@@ -9,7 +9,7 @@ class OmsUncaughtExceptionHandler(private val activity: Activity) :
     private val existingHandler = Thread.getDefaultUncaughtExceptionHandler()
 
     override fun uncaughtException(t: Thread, e: Throwable) {
-        val crashReportData = CrashReportData(e)
+        val crashReportData = CrashReportData(e, LOGCAT_TAIL_LINES)
         val intent = Intent(activity.applicationContext, CrashReportActivity::class.java).apply{
             putExtra(EXTRA_CRASH_REPORT, crashReportData)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -25,5 +25,6 @@ class OmsUncaughtExceptionHandler(private val activity: Activity) :
 
     companion object {
         const val EXTRA_CRASH_REPORT: String = "CRASH_REPORT"
+        private const val LOGCAT_TAIL_LINES = 2000
     }
 }
