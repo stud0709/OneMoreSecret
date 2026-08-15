@@ -17,8 +17,6 @@ import androidx.fragment.app.FragmentActivity
 import com.onemoresecret.MainActivity
 import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.R
-import com.onemoresecret.composable.OutputScreen
-import com.onemoresecret.composable.OutputViewModel
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.nostr.NostrConnectionManager
 import java.io.ByteArrayInputStream
@@ -33,8 +31,6 @@ class MsgPluginWiFiPairing(
     private var responseCode by mutableStateOf("")
     private var onStartClick: (() -> Unit)? by mutableStateOf(null)
 
-    private val outputViewModel = OutputViewModel(preferences)
-
     init {
         try {
             OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
@@ -44,12 +40,10 @@ class MsgPluginWiFiPairing(
                 val relays = (0 until relayCount).map { dataInputStream.readString() }
 
                 requestId = if (topic.length > 8) topic.take(8) + "..." else topic
-                responseCode = "Nostr Pairing Session"
+                responseCode = "Ready to connect"
 
                 context.mainExecutor.execute {
                     onStartClick = {
-                        outputViewModel.setMessage(topic, "Nostr Topic")
-                        
                         // Instantiate and start connection manager
                         val connectionManager = NostrConnectionManager(
                             context = context,
@@ -72,7 +66,7 @@ class MsgPluginWiFiPairing(
                                 context.mainExecutor.execute {
                                     when (state) {
                                         NostrConnectionManager.State.CONNECTED -> {
-                                            responseCode = "Connected"
+                                            responseCode = "Connected!"
                                             Toast.makeText(context, "Nostr Connection Established!", Toast.LENGTH_SHORT).show()
                                         }
                                         NostrConnectionManager.State.DISCONNECTED -> {
@@ -112,11 +106,6 @@ class MsgPluginWiFiPairing(
 
     @Composable
     override fun TopBarActions() {
-    }
-
-    @Composable
-    override fun OutputView() {
-        OutputScreen(outputViewModel = outputViewModel)
     }
 
     override fun showBiometricPromptForDecryption() {
@@ -159,7 +148,7 @@ fun WiFiPairing(
         ) {
             if (accepted) {
                 Text(
-                    text = stringResource(id = R.string.pairing_info_response),
+                    text = "Nostr Pairing Session Status:",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)

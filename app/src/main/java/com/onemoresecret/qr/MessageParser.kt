@@ -84,6 +84,7 @@ abstract class MessageParser {
             Log.d(TAG, "All chunks have been received")
             //remove line breaks
             val msg = chunks.joinToString("").replace("[\\r\\n]".toRegex(), "")
+            Log.d(TAG, "Reassembled message (len=${msg.length}): $msg")
             transactionId = null
             onMessage(msg)
         }

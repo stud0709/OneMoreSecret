@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:okhttp:5.4.0'
     implementation 'androidx.navigation:navigation-compose:2.9.8'
     implementation 'com.google.android.material:material:1.14.0'
     implementation 'androidx.biometric:biometric:1.1.0'
@@ -76,22 +76,22 @@ dependencies {
 
     implementation 'com.google.zxing:core:3.5.4'
 
-    implementation 'fr.acinq.secp256k1:secp256k1-kmp:0.23.0'
-    implementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.23.0'
-    testImplementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-jvm:0.23.0'
+    implementation 'fr.acinq.secp256k1:secp256k1-kmp:0.24.0'
+    implementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.24.0'
+    testImplementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-jvm:0.24.0'
     implementation 'androidx.core:core-ktx:1.19.0'
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0'
 
     //Jetpack Compose
-    implementation platform('androidx.compose:compose-bom:2026.06.00')
+    implementation platform('androidx.compose:compose-bom:2026.08.00')
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.material3:material3'
-    implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
+    implementation "androidx.constraintlayout:constraintlayout-compose:1.1.2"
     implementation("androidx.compose.material:material-icons-extended")
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0"
-    implementation 'androidx.compose.runtime:runtime:1.11.3'
-    implementation 'androidx.compose.foundation:foundation:1.11.3'
+    implementation 'androidx.compose.runtime:runtime:1.12.0'
+    implementation 'androidx.compose.foundation:foundation:1.12.0'
     debugImplementation "androidx.compose.ui:ui-tooling"
     implementation "androidx.compose.ui:ui-tooling-preview"
     implementation "androidx.activity:activity-compose:1.13.0"

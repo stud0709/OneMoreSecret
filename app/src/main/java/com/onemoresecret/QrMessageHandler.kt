@@ -41,11 +41,16 @@ class QrMessageHandler(
     }
 
     fun onMessage(message: String, callSetRecent: Boolean, popBackStack: Boolean = false) {
-        if (callbacks.messageReceived.get()) return
+        Log.d(TAG, "onMessage entered. Message (len=${message.length}): $message")
+        if (callbacks.messageReceived.get()) {
+            Log.d(TAG, "onMessage: callbacks.messageReceived is already true, returning")
+            return
+        }
         callbacks.messageReceived.set(true)
 
         val bArr = MessageComposer.decode(message)
         if (bArr == null) {
+            Log.e(TAG, "MessageComposer.decode returned null for message!")
             Toast.makeText(
                 callbacks.context,
                 callbacks.context.getString(R.string.could_not_decode),
@@ -95,6 +100,29 @@ class QrMessageHandler(
                                     },
                                     onCancel = {
                                         callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
+                                        callbacks.messageReceived.set(false)
+                                    },
+                                    evaluateNextPinRequestTimestamp = true
+                                )
+                            }
+                            MessageComposer.APPLICATION_WIFI_PAIRING -> {
+                                closeSocketWaitingForReply = false
+                                callbacks.runPinProtected(
+                                    onSuccess = {
+                                        Log.d(TAG, "calling MessageScreen for Nostr pairing")
+                                        val payload = ByteArray(dataInputStream.available())
+                                        dataInputStream.read(payload)
+                                        bundle.putByteArray(QRScreen.ARG_MESSAGE, payload)
+
+                                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
+                                            it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE))
+                                            it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID))
+                                        }
+                                        callbacks.navController.navigate(
+                                            com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack)
+                                        )
+                                    },
+                                    onCancel = {
                                         callbacks.messageReceived.set(false)
                                     },
                                     evaluateNextPinRequestTimestamp = true
@@ -289,14 +317,6 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_ENCRYPTED_OTP,
                             MessageComposer.APPLICATION_TOTP_URI -> {
                                 bundle.putByteArray(QRScreen.ARG_MESSAGE, dataInputStream.readByteArray())
-                                Log.d(TAG, "calling " + "MessageScreen")
-                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
-                            }
-                            MessageComposer.APPLICATION_WIFI_PAIRING -> {
-                                val bArr = ByteArray(dataInputStream.available())
-                                dataInputStream.read(bArr)
-                                bundle.putByteArray(QRScreen.ARG_MESSAGE, bArr)
-
                                 Log.d(TAG, "calling " + "MessageScreen")
                                 callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
                             }
