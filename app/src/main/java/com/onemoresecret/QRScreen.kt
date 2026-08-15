@@ -538,13 +538,13 @@ if (showPinEntry) {
                             )
                             if (activity.isWiFiCommSet) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.clear_wifi_pairing)) },
+                                    text = { Text("Disconnect Nostr Session") },
                                     onClick = {
                                         expanded = false
                                         currentMenuLevel = "MAIN"
-                                        activity.setWiFiComm(null, null)
+                                        activity.destroyWiFiListener()
                                         activity.mainExecutor.execute {
-                                            Toast.makeText(context, "WiFi Pairing cleared", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, "Nostr Session Disconnected", Toast.LENGTH_LONG).show()
                                         }
                                         showPairingIndicator = activity.isWiFiCommSet
                                     }
