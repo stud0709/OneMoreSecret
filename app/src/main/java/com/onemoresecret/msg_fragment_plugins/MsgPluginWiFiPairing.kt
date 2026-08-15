@@ -1,23 +1,13 @@
 package com.onemoresecret.msg_fragment_plugins
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.wifi.WifiInfo
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,15 +19,9 @@ import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.R
 import com.onemoresecret.composable.OutputScreen
 import com.onemoresecret.composable.OutputViewModel
-import com.onemoresecret.crypto.Base58
+import com.onemoresecret.crypto.MessageComposer
+import com.onemoresecret.nostr.NostrConnectionManager
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.net.Inet4Address
-import java.net.ServerSocket
-import java.nio.ByteBuffer
-import java.util.Arrays
-
 
 class MsgPluginWiFiPairing(
     activity: FragmentActivity,
@@ -52,27 +36,67 @@ class MsgPluginWiFiPairing(
     private val outputViewModel = OutputViewModel(preferences)
 
     init {
-        OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
-            requestId = dataInputStream.readString()
-            val rsaPublicKeyMaterial = dataInputStream.readByteArray()
-            val rsaPrivateKeyMaterial = dataInputStream.readByteArray()
+        try {
+            OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
+                val topic = dataInputStream.readString()
+                val ttl = dataInputStream.readUnsignedShort()
+                val relayCount = dataInputStream.readUnsignedShort()
+                val relays = (0 until relayCount).map { dataInputStream.readString() }
 
-            val ipAndPort = getIpAndPort(context)
+                requestId = if (topic.length > 8) topic.take(8) + "..." else topic
+                responseCode = "Nostr Pairing Session"
 
-            context.mainExecutor.execute {
-                responseCode = Base58.encode(ipAndPort.responseCode)
-                onStartClick = {
-                    outputViewModel.setMessage(responseCode, "Response Code")
-                    (context as MainActivity).setWiFiComm(
-                        MainActivity.WiFiComm(
-                            ipAndPort.ipAddress,
-                            ipAndPort.port,
-                            rsaPublicKeyMaterial,
-                            System.currentTimeMillis() + TTL_DEFAULT
-                        ),
-                        rsaPrivateKeyMaterial
-                    )
+                context.mainExecutor.execute {
+                    onStartClick = {
+                        outputViewModel.setMessage(topic, "Nostr Topic")
+                        
+                        // Instantiate and start connection manager
+                        val connectionManager = NostrConnectionManager(
+                            context = context,
+                            topic = topic,
+                            relayUrls = relays,
+                            ttlSeconds = ttl,
+                            messageConsumer = { rawPayload ->
+                                context.mainExecutor.execute {
+                                    val msgStr = MessageComposer.encodeAsOmsText(rawPayload)
+                                    val mainActivity = context as MainActivity
+                                    val consumer = mainActivity.messageConsumer
+                                    if (consumer != null) {
+                                        consumer.accept(msgStr)
+                                    } else {
+                                        Log.e("NostrPairing", "MainActivity messageConsumer is null!")
+                                    }
+                                }
+                            },
+                            onStateChanged = { state ->
+                                context.mainExecutor.execute {
+                                    when (state) {
+                                        NostrConnectionManager.State.CONNECTED -> {
+                                            responseCode = "Connected"
+                                            Toast.makeText(context, "Nostr Connection Established!", Toast.LENGTH_SHORT).show()
+                                        }
+                                        NostrConnectionManager.State.DISCONNECTED -> {
+                                            responseCode = "Disconnected"
+                                            Toast.makeText(context, "Nostr Session Terminated", Toast.LENGTH_SHORT).show()
+                                        }
+                                        NostrConnectionManager.State.CONNECTING -> {
+                                            responseCode = "Connecting to relays..."
+                                        }
+                                    }
+                                }
+                            }
+                        )
+
+                        (context as MainActivity).activeNostrConnection = connectionManager
+                        connectionManager.start()
+                    }
                 }
+            }
+        } catch (e: Exception) {
+            Log.e("NostrPairing", "Error initializing pairing: ${e.message}", e)
+            context.mainExecutor.execute {
+                Toast.makeText(context, "Failed to parse pairing QR: ${e.message}", Toast.LENGTH_LONG).show()
+                onNavigateBack()
             }
         }
     }
@@ -88,7 +112,6 @@ class MsgPluginWiFiPairing(
 
     @Composable
     override fun TopBarActions() {
-
     }
 
     @Composable
@@ -98,55 +121,7 @@ class MsgPluginWiFiPairing(
 
     override fun showBiometricPromptForDecryption() {
     }
-
-    data class IpAndPort(val ipAddress: ByteArray, val port: Int, val responseCode: ByteArray)
-
-    companion object {
-        private const val TTL_DEFAULT = 12L * 3600_000L //12 hours
-        private val TAG = MsgPluginWiFiPairing::class.java.simpleName
-
-        @Throws(IOException::class)
-        fun getIpAndPort(context: Context): IpAndPort {
-            val connectivityManager =
-                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-            val network = connectivityManager.activeNetwork
-                ?: throw IOException(context.getString(R.string.no_network))
-            val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
-                ?: throw IOException(context.getString(R.string.not_on_wifi_network))
-            val transportInfo = networkCapabilities.transportInfo
-            if (transportInfo !is WifiInfo) {
-                throw IOException(context.getString(R.string.not_on_wifi_network))
-            }
-
-            val linkProperties = connectivityManager.getLinkProperties(network)
-            if (linkProperties != null) {
-                for (linkAddress in linkProperties.linkAddresses) {
-                    val inetAddress = linkAddress.address
-                    if (inetAddress !is Inet4Address) continue
-
-                    val ipAddress = inetAddress.address
-                    Log.d(TAG, "IP: " + inetAddress.hostAddress + " = " + Arrays.toString(ipAddress))
-
-                    ByteArrayOutputStream().use { baos ->
-                        ServerSocket(0).use { serverSocket ->
-                            val port = serverSocket.localPort
-                            baos.write(ipAddress)
-                            val iArr = ByteBuffer.allocate(4).putInt(port).array()
-                            baos.write(Arrays.copyOfRange(iArr, 2, iArr.size))
-                            val bArr = baos.toByteArray()
-                            return IpAndPort(ipAddress, port, bArr)
-                        }
-                    }
-                }
-            }
-
-            throw IOException("Unsupported network (not IP4)")
-        }
-    }
 }
-
-
 
 @Composable
 fun WiFiPairingScreen(
@@ -200,7 +175,7 @@ fun WiFiPairing(
                 )
             } else {
                 Text(
-                    text = stringResource(id = R.string.pairing_info_request),
+                    text = "A remote connection is requested via Nostr. Verify the topic prefix matches:",
                     modifier = Modifier.fillMaxWidth()
                 )
 

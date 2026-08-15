@@ -66,8 +66,11 @@ class MainActivity : FragmentActivity() {
     private var socketWaitingForReply: Socket? = null
     private lateinit var preferences: SharedPreferences
 
+    var activeMessageSender: OmsMessageSender? = null
+    var activeNostrConnection: com.onemoresecret.nostr.NostrConnectionManager? = null
+
     val isWiFiCommSet: Boolean
-        @Synchronized get() = wiFiComm != null
+        @Synchronized get() = activeNostrConnection != null
 
     @Synchronized
     fun setWiFiComm(wiFiComm: WiFiComm?, rsaPrivateKeyMaterial: ByteArray?) {
@@ -154,159 +157,27 @@ class MainActivity : FragmentActivity() {
 
     @Synchronized
     fun sendReplyViaSocket(data: ByteArray, closeSocket: Boolean) {
-        var shouldClose = closeSocket
-        Log.d(TAG, "sendReplyViaSocket: ENTERED. Data size: ${data.size}, closeSocket: $closeSocket, Caller: ${Thread.currentThread().stackTrace[3]}")
-        if (socketWaitingForReply == null || socketWaitingForReply!!.isClosed) {
-            Log.w(TAG, "sendReplyViaSocket: Socket waiting for reply not set or closed")
-            return
-        }
-        try {
-            val comm = getWiFiComm()
-            if (comm == null) {
-                Log.e(TAG, "sendReplyViaSocket: getWiFiComm() returned null! Aborting without sending.")
-                return
-            }
-            Log.d(TAG, "sendReplyViaSocket: Comm is valid. Creating envelope...")
-            val reply = MessageComposer.createRsaAesEnvelope(
-                comm.publicKey,
-                RSAUtil.getRsaTransformation(preferences),
-                AESUtil.getKeyLength(preferences),
-                AESUtil.getAesTransformation(preferences),
-                data
-            )
-            Log.d(TAG, "sendReplyViaSocket: Envelope created. Size: ${reply.size}")
-
-            val outputStream = socketWaitingForReply!!.getOutputStream()
-            outputStream.write(reply)
-            outputStream.flush()
-            Log.d(TAG, "sendReplyViaSocket: Successfully wrote envelope to output stream.")
-        } catch (ex: Exception) {
-            Log.e(TAG, "sendReplyViaSocket: EXCEPTION THROWN: ${ex.message}", ex)
-            Util.printStackTrace(ex)
-            shouldClose = true
-        } finally {
-            Log.d(TAG, "sendReplyViaSocket: FINALLY block. shouldClose = $shouldClose")
-            if (shouldClose) {
-                try {
-                    socketWaitingForReply?.close()
-                    Log.d(TAG, "sendReplyViaSocket: socketWaitingForReply closed.")
-                } catch (ignored: IOException) {
-                    Log.e(TAG, "sendReplyViaSocket: Exception while closing socket", ignored)
-                } finally {
-                    socketWaitingForReply = null
-                }
-            }
+        Log.d(TAG, "sendReplyViaSocket: Delegating to activeMessageSender. Data size: ${data.size}, closeSocket: $closeSocket")
+        val sender = activeMessageSender
+        if (sender != null) {
+            sender.sendReply(data, closeSocket)
+        } else {
+            Log.e(TAG, "sendReplyViaSocket: activeMessageSender is null! Cannot send reply.")
         }
     }
 
     @Synchronized
     fun destroyWiFiListener() {
-        if (wiFiListenerShutdown == null) return
-        wiFiListenerShutdown?.run()
-        wiFiListenerShutdown = null
+        Log.d(TAG, "destroyWiFiListener: closing active Nostr connection")
+        activeNostrConnection?.disconnect()
+        activeNostrConnection = null
     }
+
+    var messageConsumer: Consumer<String>? = null
 
     fun startWiFiListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                ServerSocket().use { serverSocket ->
-                    synchronized(MainActivity::class.java) {
-                        if (socketWaitingForReply != null && !socketWaitingForReply!!.isClosed) {
-                            sendReplyViaSocket(ByteArray(0), true)
-                        }
-
-                        destroyWiFiListener()
-
-                        val comm = getWiFiComm() ?: return@launch
-
-                        wiFiListenerShutdown = Runnable {
-                            try {
-                                serverSocket.close()
-                            } catch (e: IOException) {
-                                Util.printStackTrace(e)
-                            }
-                        }
-
-                        serverSocket.reuseAddress = true
-
-                        serverSocket.bind(
-                            InetSocketAddress(
-                                Inet4Address.getByAddress(comm.ipAdr),
-                                comm.port
-                            )
-                        )
-                        onSuccess.run()
-                    }
-
-                    while (isActive) {
-                        try {
-                            val socket = serverSocket.accept()
-                            onWiFiConnection(socket, messageConsumer)
-                        } catch (ex: Exception) {
-                            Util.printStackTrace(ex)
-                            break
-                        }
-                    }
-                }
-            } catch (ex: Exception) {
-                Util.printStackTrace(ex)
-                setWiFiComm(null, null)
-                runOnUiThread {
-                    AlertDialog.Builder(this@MainActivity)
-                        .setTitle(R.string.wifi_pairing_error)
-                        .setMessage(R.string.wifi_pairing_error_message)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .create()
-                        .show()
-                }
-            }
-        }
-    }
-
-    private fun onWiFiConnection(socket: Socket, messageConsumer: Consumer<String>) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val dataInputStream = OmsDataInputStream(socket.getInputStream())
-                val envelope = MessageComposer.readRsaAesEnvelope(dataInputStream)
-                val encryptedMessage = dataInputStream.readByteArray()
-
-                val rsaPrivateKeyMaterial = getWiFiComm()!!.getRsaPrivateKeyMaterial(preferences)
-                val aesSecretKeyData = RSAUtil.process(
-                    Cipher.DECRYPT_MODE,
-                    rsaPrivateKeyMaterial,
-                    envelope.rsaTransformation,
-                    envelope.encryptedAesSecretKey
-                )
-                Arrays.fill(rsaPrivateKeyMaterial, 0.toByte())
-
-                val decryptedMessage = AESUtil.process(
-                    Cipher.DECRYPT_MODE,
-                    encryptedMessage,
-                    aesSecretKeyData,
-                    envelope.iv,
-                    envelope.aesTransformation
-                )
-                Arrays.fill(aesSecretKeyData, 0.toByte())
-
-                synchronized(MainActivity::class.java) {
-                    socketWaitingForReply = socket
-                }
-
-                messageConsumer.accept(MessageComposer.encodeAsOmsText(decryptedMessage))
-            } catch (ex: Exception) {
-                Util.printStackTrace(ex)
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        ex.message ?: ex.javaClass.name,
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                try {
-                    socket.close()
-                } catch (_: IOException) {}
-            }
-        }
+        this.messageConsumer = messageConsumer
+        onSuccess.run()
     }
 
     companion object {
