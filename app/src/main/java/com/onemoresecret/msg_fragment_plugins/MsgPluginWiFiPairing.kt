@@ -18,6 +18,7 @@ import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.R
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.nostr.NostrConnectionManager
+import com.onemoresecret.nostr.NostrCrypto
 import java.io.ByteArrayInputStream
 
 class MsgPluginWiFiPairing(
@@ -41,12 +42,19 @@ class MsgPluginWiFiPairing(
 
                 context.mainExecutor.execute {
                     onStartClick = {
+                        val privateKey = NostrCrypto.generatePrivateKey()
+                        val expiryTime = System.currentTimeMillis() + (ttl * 1000L)
+                        
+                        // Save session parameters for durability across suspends
+                        NostrConnectionManager.saveSession(context, topic, ttl, relays, privateKey, expiryTime)
+
                         // Instantiate and start connection manager
                         val connectionManager = NostrConnectionManager(
                             context = context,
                             topic = topic,
                             relayUrls = relays,
                             ttlSeconds = ttl,
+                            privateKey = privateKey,
                             messageConsumer = { rawPayload ->
                                 context.mainExecutor.execute {
                                     val msgStr = MessageComposer.encodeAsOmsText(rawPayload)
@@ -66,10 +74,9 @@ class MsgPluginWiFiPairing(
                                             Toast.makeText(context, "Nostr Connection Established!", Toast.LENGTH_SHORT).show()
                                         }
                                         NostrConnectionManager.State.DISCONNECTED -> {
-                                            Toast.makeText(context, "Nostr Session Terminated", Toast.LENGTH_SHORT).show()
+                                            // Managed transparently
                                         }
                                         NostrConnectionManager.State.CONNECTING -> {
-                                            // Optional debug logs
                                         }
                                     }
                                 }

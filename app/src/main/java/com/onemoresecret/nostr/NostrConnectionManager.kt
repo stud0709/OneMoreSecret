@@ -5,6 +5,8 @@ import android.util.Base64
 import android.util.Log
 import com.onemoresecret.MainActivity
 import com.onemoresecret.OmsMessageSender
+import com.onemoresecret.OmsPreferences
+import com.onemoresecret.crypto.MessageComposer
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -16,6 +18,7 @@ class NostrConnectionManager(
     private val topic: String,
     private val relayUrls: List<String>,
     private val ttlSeconds: Int,
+    val privateKey: ByteArray,
     private val messageConsumer: (ByteArray) -> Unit,
     private val onStateChanged: (State) -> Unit
 ) {
@@ -35,6 +38,39 @@ class NostrConnectionManager(
 
     companion object {
         private const val TAG = "NostrConnectionManager"
+        private const val PROP_NOSTR_TOPIC = "nostr_session_topic"
+        private const val PROP_NOSTR_TTL = "nostr_session_ttl"
+        private const val PROP_NOSTR_RELAYS = "nostr_session_relays"
+        private const val PROP_NOSTR_PRIVKEY = "nostr_session_privkey"
+        private const val PROP_NOSTR_EXPIRY = "nostr_session_expiry"
+
+        fun saveSession(context: Context, topic: String, ttlSeconds: Int, relays: List<String>, privateKey: ByteArray, expiryTime: Long) {
+            val preferences = OmsPreferences.get(context)
+            preferences.edit()
+                .putString(PROP_NOSTR_TOPIC, topic)
+                .putInt(PROP_NOSTR_TTL, ttlSeconds)
+                .putString(PROP_NOSTR_RELAYS, relays.joinToString(","))
+                .putString(PROP_NOSTR_PRIVKEY, Base64.encodeToString(privateKey, Base64.NO_WRAP))
+                .putLong(PROP_NOSTR_EXPIRY, expiryTime)
+                .apply()
+        }
+
+        fun clearSession(context: Context) {
+            val preferences = OmsPreferences.get(context)
+            preferences.edit()
+                .remove(PROP_NOSTR_TOPIC)
+                .remove(PROP_NOSTR_TTL)
+                .remove(PROP_NOSTR_RELAYS)
+                .remove(PROP_NOSTR_PRIVKEY)
+                .remove(PROP_NOSTR_EXPIRY)
+                .apply()
+        }
+
+        fun hasValidSession(context: Context): Boolean {
+            val preferences = OmsPreferences.get(context)
+            val expiry = preferences.getLong(PROP_NOSTR_EXPIRY, 0)
+            return System.currentTimeMillis() < expiry && preferences.contains(PROP_NOSTR_TOPIC)
+        }
     }
 
     fun start() {
@@ -42,7 +78,7 @@ class NostrConnectionManager(
         sessionExpiryTime = System.currentTimeMillis() + (ttlSeconds * 1000L)
         onStateChanged(State.CONNECTING)
 
-        nostrClient = NostrClient(relayUrls, topic) { event ->
+        nostrClient = NostrClient(relayUrls, topic, privateKey) { event ->
             handleNostrEvent(event)
         }
         nostrClient?.connect()
@@ -68,8 +104,8 @@ class NostrConnectionManager(
                 delay(1000)
                 val now = System.currentTimeMillis()
                 if (isConnected.get() && now - lastPongTime > 30000L) {
-                    Log.w(TAG, "No pong received for 30s. Disconnecting.")
-                    disconnect()
+                    Log.w(TAG, "No pong received for 30s. Suspending/Disconnecting WebSockets.")
+                    suspendConnection()
                     break
                 }
             }
@@ -129,17 +165,38 @@ class NostrConnectionManager(
         }
     }
 
-    fun disconnect() {
-        if (nostrClient == null) return
-        Log.d(TAG, "Disconnecting NostrConnectionManager")
-        nostrClient?.publish("disconnect", "{\"type\":\"disconnect\"}", sessionExpiryTime / 1000L)
-        isConnected.set(false)
+    fun suspendConnection() {
+        Log.d(TAG, "Suspending NostrConnectionManager (closing WebSockets without sending disconnect event)")
         pingJob?.cancel()
         monitorJob?.cancel()
         scope.cancel()
         nostrClient?.close()
         nostrClient = null
+        isConnected.set(false)
         onStateChanged(State.DISCONNECTED)
         (context as? MainActivity)?.activeMessageSender = null
+    }
+
+    fun disconnect() {
+        Log.d(TAG, "Disconnecting NostrConnectionManager permanently")
+        pingJob?.cancel()
+        monitorJob?.cancel()
+        scope.cancel()
+        
+        // Publish disconnect event to notify the peer
+        try {
+            nostrClient?.publish("disconnect", "{\"type\":\"disconnect\"}", sessionExpiryTime / 1000L)
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not send disconnect event: ${e.message}")
+        }
+        
+        nostrClient?.close()
+        nostrClient = null
+        isConnected.set(false)
+        onStateChanged(State.DISCONNECTED)
+        (context as? MainActivity)?.activeMessageSender = null
+
+        // Clear saved session parameters from storage
+        clearSession(context)
     }
 }

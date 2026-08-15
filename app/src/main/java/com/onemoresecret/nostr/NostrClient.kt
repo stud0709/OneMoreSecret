@@ -122,11 +122,11 @@ object NostrCrypto {
 class NostrClient(
     private val relayUrls: List<String>,
     private val topic: String,
+    val privateKey: ByteArray = NostrCrypto.generatePrivateKey(),
     private val onEventReceived: (NostrEvent) -> Unit
 ) {
     private val client = OkHttpClient()
     private val webSockets = ConcurrentHashMap<String, WebSocket>()
-    private val privateKey = NostrCrypto.generatePrivateKey()
     private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>())
     private var isClosed = false
 
