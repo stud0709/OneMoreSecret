@@ -2,7 +2,6 @@ package com.onemoresecret.msg_fragment_plugins
 
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +27,6 @@ class MsgPluginWiFiPairing(
 ) : MessageFragmentPlugin(activity, onNavigateBack) {
 
     private var requestId by mutableStateOf("")
-    private var responseCode by mutableStateOf("")
     private var onStartClick: (() -> Unit)? by mutableStateOf(null)
 
     init {
@@ -40,7 +38,6 @@ class MsgPluginWiFiPairing(
                 val relays = (0 until relayCount).map { dataInputStream.readString() }
 
                 requestId = if (topic.length > 8) topic.take(8) + "..." else topic
-                responseCode = "Ready to connect"
 
                 context.mainExecutor.execute {
                     onStartClick = {
@@ -66,15 +63,13 @@ class MsgPluginWiFiPairing(
                                 context.mainExecutor.execute {
                                     when (state) {
                                         NostrConnectionManager.State.CONNECTED -> {
-                                            responseCode = "Connected!"
                                             Toast.makeText(context, "Nostr Connection Established!", Toast.LENGTH_SHORT).show()
                                         }
                                         NostrConnectionManager.State.DISCONNECTED -> {
-                                            responseCode = "Disconnected"
                                             Toast.makeText(context, "Nostr Session Terminated", Toast.LENGTH_SHORT).show()
                                         }
                                         NostrConnectionManager.State.CONNECTING -> {
-                                            responseCode = "Connecting to relays..."
+                                            // Optional debug logs
                                         }
                                     }
                                 }
@@ -83,6 +78,9 @@ class MsgPluginWiFiPairing(
 
                         (context as MainActivity).activeNostrConnection = connectionManager
                         connectionManager.start()
+                        
+                        // Immediately navigate back to the previous screen
+                        onNavigateBack()
                     }
                 }
             }
@@ -99,7 +97,6 @@ class MsgPluginWiFiPairing(
     override fun MessageView(hiddenState: Boolean) {
         WiFiPairingScreen(
             requestId = requestId,
-            responseCode = if (hiddenState) "●".repeat(responseCode.length) else responseCode,
             onStartClick = onStartClick
         )
     }
@@ -115,17 +112,11 @@ class MsgPluginWiFiPairing(
 @Composable
 fun WiFiPairingScreen(
     requestId: String,
-    responseCode: String,
     onStartClick: (() -> Unit)?
 ) {
-    var isPairingAccepted by remember { mutableStateOf(false) }
-
     WiFiPairing(
         requestId = requestId,
-        responseCode = responseCode,
-        isPairingAccepted = isPairingAccepted,
         onConfirm = {
-            isPairingAccepted = true
             onStartClick?.invoke()
         }
     )
@@ -134,60 +125,38 @@ fun WiFiPairingScreen(
 @Composable
 fun WiFiPairing(
     requestId: String,
-    responseCode: String,
-    isPairingAccepted: Boolean,
     onConfirm: () -> Unit
 ) {
-    AnimatedContent(targetState = isPairingAccepted, label = "pairingStateAnimation") { accepted ->
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = "A remote connection is requested via Nostr. Verify the topic prefix matches:",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Text(
+            text = requestId,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+
+        Button(
+            onClick = onConfirm,
+            modifier = Modifier.padding(top = 8.dp)
         ) {
-            if (accepted) {
-                Text(
-                    text = "Nostr Pairing Session Status:",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+            Text(
+                text = stringResource(
+                    id = R.string.accept_pairing
                 )
-
-                Text(
-                    text = responseCode,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                Text(
-                    text = "A remote connection is requested via Nostr. Verify the topic prefix matches:",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(
-                    text = requestId,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
-                )
-
-                Button(
-                    onClick = onConfirm,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    Text(
-                        text = stringResource(
-                            id = R.string.accept_pairing
-                        )
-                    )
-                }
-            }
+            )
         }
     }
 }
