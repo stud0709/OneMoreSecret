@@ -361,6 +361,17 @@ class OutputViewModel(private val prefs: SharedPreferences) : ViewModel() {
                     }
                 }
             }
+            
+            // Ensure all keys are released (especially if cancelled)
+            try {
+                bluetoothController?.bluetoothHidDevice?.sendReport(
+                    bluetoothDevice,
+                    0,
+                    com.onemoresecret.bt.KeyboardReport(com.onemoresecret.bt.KeyboardUsage.KBD_NONE).report
+                )
+            } catch (ex: Exception) {
+                printStackTrace(ex)
+            }
 
             typing.set(false)
             refreshBluetoothControls()
