@@ -220,9 +220,9 @@ fun KeyRequestPairing(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 8.dp),
-        contentAlignment = Alignment.BottomCenter
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
         Button(
             onClick = onSendKeyClicked,
@@ -260,26 +260,22 @@ fun Oms4webUnlock(
     message: String?,
     onUnlock: () -> Unit
 ) {
-    ConstraintLayout(
-        modifier = Modifier.fillMaxSize()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
-        val btnUnlock = createRef()
-
         Button(
             onClick = onUnlock,
-            enabled = message != null,
-            modifier = Modifier.constrainAs(btnUnlock) {
-                bottom.linkTo(parent.bottom, margin = 32.dp)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-            }
+            enabled = message != null
         ) {
             Icon(
                 imageVector = androidx.compose.material.icons.Icons.Default.VpnKey,
                 contentDescription = null
             )
             Spacer(Modifier.width(8.dp))
-            Text(text = stringResource(id = R.string.unlock))
+            Text(text = androidx.compose.ui.res.stringResource(id = R.string.unlock))
         }
     }
 }
