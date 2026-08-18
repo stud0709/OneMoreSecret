@@ -123,6 +123,7 @@ class NostrClient(
     private val relayUrls: List<String>,
     private val topic: String,
     val privateKey: ByteArray = NostrCrypto.generatePrivateKey(),
+    private val onRelayConnected: ((String) -> Unit)? = null,
     private val onEventReceived: (NostrEvent) -> Unit
 ) {
     private val client = OkHttpClient()
@@ -153,6 +154,7 @@ class NostrClient(
                 Log.d(TAG, "Connected to relay: $url")
                 webSockets[url] = webSocket
                 sendSubscription(webSocket)
+                onRelayConnected?.invoke(url)
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {

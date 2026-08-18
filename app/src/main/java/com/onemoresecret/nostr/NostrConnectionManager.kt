@@ -79,22 +79,30 @@ class NostrConnectionManager(
         sessionExpiryTime = System.currentTimeMillis() + (ttlSeconds * 1000L)
         onStateChanged(State.CONNECTING)
 
-        nostrClient = NostrClient(relayUrls, topic, privateKey) { event ->
-            handleNostrEvent(event)
-        }
+        nostrClient = NostrClient(
+            relayUrls = relayUrls,
+            topic = topic,
+            privateKey = privateKey,
+            onRelayConnected = { relayUrl ->
+                Log.d(TAG, "Relay connected ($relayUrl) - publishing instant initial ping")
+                publishPing()
+            },
+            onEventReceived = { event ->
+                handleNostrEvent(event)
+            }
+        )
         nostrClient?.connect()
 
         // Periodically send ping (every 30 seconds)
         pingJob = scope.launch {
             while (isActive) {
+                delay(30000) // Every 30 seconds
                 if (System.currentTimeMillis() > sessionExpiryTime) {
                     Log.d(TAG, "Session TTL expired")
                     disconnect()
                     break
                 }
-                // Send Ping
-                nostrClient?.publish("ping", "{\"type\":\"ping\"}", sessionExpiryTime / 1000L)
-                delay(30000) // Every 30 seconds
+                publishPing()
             }
         }
 
@@ -112,6 +120,10 @@ class NostrConnectionManager(
                 }
             }
         }
+    }
+
+    fun publishPing() {
+        nostrClient?.publish("ping", "{\"type\":\"ping\"}", sessionExpiryTime / 1000L)
     }
 
     private fun refreshActivity() {
