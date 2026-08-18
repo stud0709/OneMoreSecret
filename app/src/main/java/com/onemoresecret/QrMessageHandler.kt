@@ -99,7 +99,7 @@ class QrMessageHandler(
                                         )
                                     },
                                     onCancel = {
-                                        callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
+                                        callbacks.activity.sendReply(ByteArray(0), true)
                                         callbacks.messageReceived.set(false)
                                     },
                                     evaluateNextPinRequestTimestamp = true
@@ -148,7 +148,7 @@ class QrMessageHandler(
                                         )
                                     },
                                     onCancel = {
-                                        callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
+                                        callbacks.activity.sendReply(ByteArray(0), true)
                                         callbacks.messageReceived.set(false)
                                     },
                                     evaluateNextPinRequestTimestamp = true
@@ -158,7 +158,7 @@ class QrMessageHandler(
                         }
 
                         if (closeSocketWaitingForReply) {
-                            callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
+                            callbacks.activity.sendReply(ByteArray(0), true)
                         }
                     }
                 }
@@ -166,7 +166,7 @@ class QrMessageHandler(
         } catch (ex: Exception) {
             Util.printStackTrace(ex)
             callbacks.messageReceived.set(false)
-            callbacks.activity.sendReplyViaSocket(ByteArray(0), true)
+            callbacks.activity.sendReply(ByteArray(0), true)
         }
     }
 
@@ -229,7 +229,7 @@ class QrMessageHandler(
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 callbacks.messageReceived.set(false)
                 val activity = callbacks.activity
-                activity.lifecycleScope.launch(Dispatchers.IO) { activity.sendReplyViaSocket(ByteArray(0), true) }
+                activity.lifecycleScope.launch(Dispatchers.IO) { activity.sendReply(ByteArray(0), true) }
                 callbacks.nextPinRequestTimestamp = 0
                 activity.lifecycleScope.launch(Dispatchers.IO) { OmsFileProvider.purgeTmp(callbacks.context) }
                 Log.d(TAG, String.format("Authentication failed: %s (%s)", errString, errorCode))

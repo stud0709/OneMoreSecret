@@ -21,7 +21,7 @@ class MainActivity : FragmentActivity() {
     var activeMessageSender: OmsMessageSender? = null
     var activeNostrConnection: com.onemoresecret.nostr.NostrConnectionManager? = null
 
-    val isWiFiCommSet: Boolean
+    val isNostrCommSet: Boolean
         @Synchronized get() = activeNostrConnection != null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,17 +46,17 @@ class MainActivity : FragmentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         OmsFileProvider.purgeTmp(this)
-        destroyWiFiListener()
+        destroyNostrListener()
     }
 
     override fun onPause() {
         super.onPause()
-        suspendWiFiListener()
+        suspendNostrListener()
     }
 
     override fun onResume() {
         super.onResume()
-        resumeWiFiListener()
+        resumeNostrListener()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -73,27 +73,27 @@ class MainActivity : FragmentActivity() {
     }
 
     @Synchronized
-    fun sendReplyViaSocket(data: ByteArray, closeSocket: Boolean) {
-        Log.d(TAG, "sendReplyViaSocket: Delegating to activeMessageSender. Data size: ${data.size}, closeSocket: $closeSocket")
+    fun sendReply(data: ByteArray, shouldClose: Boolean) {
+        Log.d(TAG, "sendReply: Delegating to activeMessageSender. Data size: ${data.size}, shouldClose: $shouldClose")
         val sender = activeMessageSender
         if (sender != null) {
-            sender.sendReply(data, closeSocket)
+            sender.sendReply(data, shouldClose)
         } else {
-            Log.e(TAG, "sendReplyViaSocket: activeMessageSender is null! Cannot send reply.")
+            Log.e(TAG, "sendReply: activeMessageSender is null! Cannot send reply.")
         }
     }
 
     @Synchronized
-    fun suspendWiFiListener() {
-        Log.d(TAG, "suspendWiFiListener: suspending active Nostr connection")
+    fun suspendNostrListener() {
+        Log.d(TAG, "suspendNostrListener: suspending active Nostr connection")
         activeNostrConnection?.suspendConnection()
         activeNostrConnection = null
     }
 
     @Synchronized
-    fun resumeWiFiListener() {
+    fun resumeNostrListener() {
         if (com.onemoresecret.nostr.NostrConnectionManager.hasValidSession(this)) {
-            Log.d(TAG, "resumeWiFiListener: Resuming persistent Nostr session")
+            Log.d(TAG, "resumeNostrListener: Resuming persistent Nostr session")
             val pref = OmsPreferences.get(this)
             val topic = pref.getString("nostr_session_topic", "") ?: return
             val ttl = pref.getInt("nostr_session_ttl", 60)
@@ -145,8 +145,8 @@ class MainActivity : FragmentActivity() {
     }
 
     @Synchronized
-    fun destroyWiFiListener() {
-        Log.d(TAG, "destroyWiFiListener: closing active Nostr connection permanently")
+    fun destroyNostrListener() {
+        Log.d(TAG, "destroyNostrListener: closing active Nostr connection permanently")
         activeNostrConnection?.disconnect()
         activeNostrConnection = null
         com.onemoresecret.nostr.NostrConnectionManager.clearSession(this)
@@ -154,7 +154,7 @@ class MainActivity : FragmentActivity() {
 
     var messageConsumer: Consumer<String>? = null
 
-    fun startWiFiListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
+    fun startNostrListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
         this.messageConsumer = messageConsumer
         onSuccess.run()
     }

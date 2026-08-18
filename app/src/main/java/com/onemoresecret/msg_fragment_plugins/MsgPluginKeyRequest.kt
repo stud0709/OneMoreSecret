@@ -205,9 +205,7 @@ fun KeyRequestPairingScreen(
             }
             val activity = ctx as? MainActivity
             replyState?.let { replyData ->
-                Thread {
-                    activity?.sendReplyViaSocket(replyData, true)
-                }.start()
+                activity?.sendReply(replyData, true)
             }
             onNavigateBack()
         }

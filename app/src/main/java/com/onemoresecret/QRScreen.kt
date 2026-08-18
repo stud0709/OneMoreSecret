@@ -408,20 +408,20 @@ fun QRScreen(navController: NavController) {
                 messageReceived.set(false)
                 showPairingIndicator = false
 
-                activity.startWiFiListener(
+                activity.startNostrListener(
                     { msg -> messageHandler.onMessage(msg, true) },
-                    { activity.mainExecutor.execute { showPairingIndicator = activity.isWiFiCommSet } }
+                    { activity.mainExecutor.execute { showPairingIndicator = activity.isNostrCommSet } }
                 )
 
                 recentEntries = QrRecentManager.getRecentEntries(preferences)
             } else if (event == Lifecycle.Event.ON_PAUSE) {
-                activity.suspendWiFiListener()
+                activity.suspendNostrListener()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            activity.suspendWiFiListener()
+            activity.suspendNostrListener()
         }
     }
 
@@ -536,17 +536,17 @@ if (showPinEntry) {
                                 text = { Text(stringResource(R.string.encrypt_text)) },
                                 onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(EncryptTextRoute()) }
                             )
-                            if (activity.isWiFiCommSet) {
+                            if (activity.isNostrCommSet) {
                                 DropdownMenuItem(
                                     text = { Text("Disconnect Nostr Session") },
                                     onClick = {
                                         expanded = false
                                         currentMenuLevel = "MAIN"
-                                        activity.destroyWiFiListener()
+                                        activity.destroyNostrListener()
                                         activity.mainExecutor.execute {
                                             Toast.makeText(context, "Nostr Session Disconnected", Toast.LENGTH_LONG).show()
                                         }
-                                        showPairingIndicator = activity.isWiFiCommSet
+                                        showPairingIndicator = activity.isNostrCommSet
                                     }
                                 )
                             }

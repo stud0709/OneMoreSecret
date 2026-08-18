@@ -87,8 +87,8 @@ abstract class MessageFragmentPlugin(
     override fun onAuthenticationFailed() {
         Log.d(TAG, "User biometrics rejected")
 
-        // close socket if WiFiPairing active
-        (context as MainActivity).sendReplyViaSocket(byteArrayOf(), true)
+        // close connection if active
+        (context as MainActivity).sendReply(byteArrayOf(), true)
 
         context.mainExecutor.execute {
             Toast.makeText(context, context.getString(R.string.auth_failed), Toast.LENGTH_SHORT).show()
