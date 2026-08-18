@@ -415,13 +415,13 @@ fun QRScreen(navController: NavController) {
 
                 recentEntries = QrRecentManager.getRecentEntries(preferences)
             } else if (event == Lifecycle.Event.ON_PAUSE) {
-                activity.destroyWiFiListener()
+                activity.suspendWiFiListener()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            activity.destroyWiFiListener()
+            activity.suspendWiFiListener()
         }
     }
 
