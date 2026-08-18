@@ -128,6 +128,7 @@ class QrMessageHandler(
                                     evaluateNextPinRequestTimestamp = true
                                 )
                             }
+                            MessageComposer.APPLICATION_ENCRYPTED_FILE,
                             MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                             MessageComposer.APPLICATION_TOTP_URI_DEPRECATED,
                             MessageComposer.APPLICATION_RSA_AES_GENERIC -> {

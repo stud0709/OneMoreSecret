@@ -113,11 +113,18 @@ class NostrConnectionManager(
         }
     }
 
+    private fun refreshActivity() {
+        sessionExpiryTime = System.currentTimeMillis() + (ttlSeconds * 1000L)
+        saveSession(context, topic, ttlSeconds, relayUrls, privateKey, sessionExpiryTime)
+    }
+
     private fun handleNostrEvent(event: NostrEvent) {
         if (event.pubkey.equals(myPubKeyHex, ignoreCase = true)) {
             Log.d(TAG, "Ignoring self-event (echoed from relay)")
             return
         }
+
+        refreshActivity()
 
         val typeTag = event.tags.find { it.size >= 2 && it[0] == "type" }?.get(1) ?: return
         Log.d(TAG, "Received Nostr event type: $typeTag")
@@ -150,6 +157,7 @@ class NostrConnectionManager(
                     // Register Nostr response sender
                     (context as? MainActivity)?.activeMessageSender = object : OmsMessageSender {
                         override fun sendReply(data: ByteArray, shouldClose: Boolean) {
+                            refreshActivity()
                             val replyB64 = Base64.encodeToString(data, Base64.NO_WRAP)
                             nostrClient?.publish("response", replyB64, sessionExpiryTime / 1000L)
                         }
