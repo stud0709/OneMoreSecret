@@ -100,7 +100,7 @@ class MainActivity : FragmentActivity() {
             Log.d(TAG, "resumeNostrListener: Resuming persistent Nostr session")
             val pref = OmsPreferences.get(this)
             val topic = pref.getString("nostr_session_topic", "") ?: return
-            val ttl = pref.getInt("nostr_session_ttl", 60)
+            val ttl = pref.getInt("nostr_session_ttl", 120)
             val relays = pref.getString("nostr_session_relays", "")?.split(",") ?: return
             val privKeyB64 = pref.getString("nostr_session_privkey", "") ?: return
             val privateKey = android.util.Base64.decode(privKeyB64, android.util.Base64.DEFAULT)
