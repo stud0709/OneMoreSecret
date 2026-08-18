@@ -84,7 +84,7 @@ class NostrConnectionManager(
         }
         nostrClient?.connect()
 
-        // Periodically send ping
+        // Periodically send ping (every 30 seconds)
         pingJob = scope.launch {
             while (isActive) {
                 if (System.currentTimeMillis() > sessionExpiryTime) {
@@ -94,7 +94,7 @@ class NostrConnectionManager(
                 }
                 // Send Ping
                 nostrClient?.publish("ping", "{\"type\":\"ping\"}", sessionExpiryTime / 1000L)
-                delay(10000) // Every 10 seconds
+                delay(30000) // Every 30 seconds
             }
         }
 
@@ -104,8 +104,9 @@ class NostrConnectionManager(
             while (isActive) {
                 delay(1000)
                 val now = System.currentTimeMillis()
-                if (isConnected.get() && now - lastPongTime > 30000L) {
-                    Log.w(TAG, "No pong received for 30s. Suspending/Disconnecting WebSockets.")
+                val timeoutThreshold = maxOf(90000L, ttlSeconds * 1000L)
+                if (isConnected.get() && now - lastPongTime > timeoutThreshold) {
+                    Log.w(TAG, "No pong received for ${timeoutThreshold / 1000}s. Suspending/Disconnecting WebSockets.")
                     suspendConnection()
                     break
                 }
