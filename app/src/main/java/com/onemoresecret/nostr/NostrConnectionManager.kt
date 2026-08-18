@@ -152,9 +152,6 @@ class NostrConnectionManager(
                         override fun sendReply(data: ByteArray, shouldClose: Boolean) {
                             val replyB64 = Base64.encodeToString(data, Base64.NO_WRAP)
                             nostrClient?.publish("response", replyB64, sessionExpiryTime / 1000L)
-                            if (shouldClose) {
-                                disconnect()
-                            }
                         }
                     }
 
