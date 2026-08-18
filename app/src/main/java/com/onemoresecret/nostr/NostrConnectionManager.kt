@@ -35,6 +35,7 @@ class NostrConnectionManager(
     private var lastPongTime = 0L
     private val isConnected = AtomicBoolean(false)
     private var sessionExpiryTime = 0L
+    private val myPubKeyHex = NostrCrypto.bytesToHex(NostrCrypto.getXOnlyPublicKey(privateKey))
 
     companion object {
         private const val TAG = "NostrConnectionManager"
@@ -113,6 +114,11 @@ class NostrConnectionManager(
     }
 
     private fun handleNostrEvent(event: NostrEvent) {
+        if (event.pubkey.equals(myPubKeyHex, ignoreCase = true)) {
+            Log.d(TAG, "Ignoring self-event (echoed from relay)")
+            return
+        }
+
         val typeTag = event.tags.find { it.size >= 2 && it[0] == "type" }?.get(1) ?: return
         Log.d(TAG, "Received Nostr event type: $typeTag")
 
