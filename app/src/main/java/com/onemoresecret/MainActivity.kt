@@ -22,7 +22,7 @@ class MainActivity : FragmentActivity() {
     var activeNostrConnection: com.onemoresecret.nostr.NostrConnectionManager? = null
 
     val isNostrCommSet: Boolean
-        @Synchronized get() = activeNostrConnection != null
+        @Synchronized get() = activeNostrConnection != null || com.onemoresecret.nostr.NostrConnectionManager.hasValidSession(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,6 +92,10 @@ class MainActivity : FragmentActivity() {
 
     @Synchronized
     fun resumeNostrListener() {
+        if (activeNostrConnection != null) {
+            Log.d(TAG, "resumeNostrListener: Nostr connection is already active")
+            return
+        }
         if (com.onemoresecret.nostr.NostrConnectionManager.hasValidSession(this)) {
             Log.d(TAG, "resumeNostrListener: Resuming persistent Nostr session")
             val pref = OmsPreferences.get(this)
@@ -156,6 +160,9 @@ class MainActivity : FragmentActivity() {
 
     fun startNostrListener(messageConsumer: Consumer<String>, onSuccess: Runnable) {
         this.messageConsumer = messageConsumer
+        if (activeNostrConnection == null && com.onemoresecret.nostr.NostrConnectionManager.hasValidSession(this)) {
+            resumeNostrListener()
+        }
         onSuccess.run()
     }
 

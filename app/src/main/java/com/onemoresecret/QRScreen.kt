@@ -406,7 +406,7 @@ fun QRScreen(navController: NavController) {
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 Log.d("QRScreen", "resuming...")
                 messageReceived.set(false)
-                showPairingIndicator = false
+                showPairingIndicator = activity.isNostrCommSet
 
                 activity.startNostrListener(
                     { msg -> messageHandler.onMessage(msg, true) },
@@ -414,14 +414,18 @@ fun QRScreen(navController: NavController) {
                 )
 
                 recentEntries = QrRecentManager.getRecentEntries(preferences)
-            } else if (event == Lifecycle.Event.ON_PAUSE) {
-                activity.suspendNostrListener()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        
+        // Ensure listener and pairing indicator are active upon composition
+        activity.startNostrListener(
+            { msg -> messageHandler.onMessage(msg, true) },
+            { activity.mainExecutor.execute { showPairingIndicator = activity.isNostrCommSet } }
+        )
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            activity.suspendNostrListener()
         }
     }
 
