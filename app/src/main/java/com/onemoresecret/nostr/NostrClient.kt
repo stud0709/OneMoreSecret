@@ -123,14 +123,13 @@ class NostrClient(
     private val relayUrls: List<String>,
     private val topic: String,
     val privateKey: ByteArray = NostrCrypto.generatePrivateKey(),
-    initialProcessedEventIds: Set<String> = emptySet(),
+    private val minCreatedAt: Long = 0L,
     private val onRelayConnected: ((String) -> Unit)? = null,
-    private val onEventProcessed: ((String) -> Unit)? = null,
     private val onEventReceived: (NostrEvent) -> Unit
 ) {
     private val client = OkHttpClient()
     private val webSockets = ConcurrentHashMap<String, WebSocket>()
-    private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>(initialProcessedEventIds))
+    private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>())
     private var isClosed = false
 
     companion object {
@@ -167,13 +166,16 @@ class NostrClient(
                         if (subId == "oms_sub") {
                             val eventObj = jsonArray[2]
                             val event = Json.decodeFromJsonElement<NostrEvent>(eventObj)
+                            if (event.createdAt < minCreatedAt) {
+                                Log.d(TAG, "Ignoring stale event created at ${event.createdAt} (minCreatedAt: $minCreatedAt)")
+                                return
+                            }
                             if (NostrCrypto.verifyEvent(event)) {
                                 if (processedEventIds.add(event.id)) {
                                     // Limit size of processed set
-                                    if (processedEventIds.size > 1000) {
+                                    if (processedEventIds.size > 200) {
                                         processedEventIds.remove(processedEventIds.first())
                                     }
-                                    onEventProcessed?.invoke(event.id)
                                     onEventReceived(event)
                                 }
                             } else {

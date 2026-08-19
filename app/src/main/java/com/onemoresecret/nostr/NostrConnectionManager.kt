@@ -44,7 +44,7 @@ class NostrConnectionManager(
         private const val PROP_NOSTR_RELAYS = "nostr_session_relays"
         private const val PROP_NOSTR_PRIVKEY = "nostr_session_privkey"
         private const val PROP_NOSTR_EXPIRY = "nostr_session_expiry"
-        private const val PROP_NOSTR_PROCESSED_EVENT_IDS = "nostr_processed_event_ids"
+        private const val PROP_NOSTR_LAST_TIMESTAMP = "nostr_session_last_timestamp"
 
         fun saveSession(context: Context, topic: String, ttlSeconds: Int, relays: List<String>, privateKey: ByteArray, expiryTime: Long) {
             val preferences = OmsPreferences.get(context)
@@ -57,18 +57,6 @@ class NostrConnectionManager(
                 .apply()
         }
 
-        fun recordProcessedEventId(context: Context, eventId: String) {
-            val pref = OmsPreferences.get(context)
-            val existing = pref.getStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, emptySet())?.toMutableSet() ?: mutableSetOf()
-            existing.add(eventId)
-            if (existing.size > 200) {
-                val trimmed = existing.toList().takeLast(100).toSet()
-                pref.edit().putStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, trimmed).apply()
-            } else {
-                pref.edit().putStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, existing).apply()
-            }
-        }
-
         fun clearSession(context: Context) {
             val preferences = OmsPreferences.get(context)
             preferences.edit()
@@ -77,7 +65,7 @@ class NostrConnectionManager(
                 .remove(PROP_NOSTR_RELAYS)
                 .remove(PROP_NOSTR_PRIVKEY)
                 .remove(PROP_NOSTR_EXPIRY)
-                .remove(PROP_NOSTR_PROCESSED_EVENT_IDS)
+                .remove(PROP_NOSTR_LAST_TIMESTAMP)
                 .apply()
         }
 
@@ -94,19 +82,16 @@ class NostrConnectionManager(
         onStateChanged(State.CONNECTING)
 
         val pref = OmsPreferences.get(context)
-        val savedEventIds = pref.getStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, emptySet())?.toSet() ?: emptySet()
+        val lastTimestamp = pref.getLong(PROP_NOSTR_LAST_TIMESTAMP, 0L)
 
         nostrClient = NostrClient(
             relayUrls = relayUrls,
             topic = topic,
             privateKey = privateKey,
-            initialProcessedEventIds = savedEventIds,
+            minCreatedAt = lastTimestamp,
             onRelayConnected = { relayUrl ->
                 Log.d(TAG, "Relay connected ($relayUrl) - publishing instant initial ping")
                 publishPing()
-            },
-            onEventProcessed = { eventId ->
-                recordProcessedEventId(context, eventId)
             },
             onEventReceived = { event ->
                 handleNostrEvent(event)
@@ -159,6 +144,12 @@ class NostrConnectionManager(
         }
 
         refreshActivity()
+
+        val pref = OmsPreferences.get(context)
+        val currentLast = pref.getLong(PROP_NOSTR_LAST_TIMESTAMP, 0L)
+        if (event.createdAt > currentLast) {
+            pref.edit().putLong(PROP_NOSTR_LAST_TIMESTAMP, event.createdAt).apply()
+        }
 
         val typeTag = event.tags.find { it.size >= 2 && it[0] == "type" }?.get(1) ?: return
         Log.d(TAG, "Received Nostr event type: $typeTag")
