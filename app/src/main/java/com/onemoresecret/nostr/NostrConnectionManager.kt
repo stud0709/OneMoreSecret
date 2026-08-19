@@ -44,6 +44,7 @@ class NostrConnectionManager(
         private const val PROP_NOSTR_RELAYS = "nostr_session_relays"
         private const val PROP_NOSTR_PRIVKEY = "nostr_session_privkey"
         private const val PROP_NOSTR_EXPIRY = "nostr_session_expiry"
+        private const val PROP_NOSTR_PROCESSED_EVENT_IDS = "nostr_processed_event_ids"
 
         fun saveSession(context: Context, topic: String, ttlSeconds: Int, relays: List<String>, privateKey: ByteArray, expiryTime: Long) {
             val preferences = OmsPreferences.get(context)
@@ -56,6 +57,18 @@ class NostrConnectionManager(
                 .apply()
         }
 
+        fun recordProcessedEventId(context: Context, eventId: String) {
+            val pref = OmsPreferences.get(context)
+            val existing = pref.getStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, emptySet())?.toMutableSet() ?: mutableSetOf()
+            existing.add(eventId)
+            if (existing.size > 200) {
+                val trimmed = existing.toList().takeLast(100).toSet()
+                pref.edit().putStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, trimmed).apply()
+            } else {
+                pref.edit().putStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, existing).apply()
+            }
+        }
+
         fun clearSession(context: Context) {
             val preferences = OmsPreferences.get(context)
             preferences.edit()
@@ -64,6 +77,7 @@ class NostrConnectionManager(
                 .remove(PROP_NOSTR_RELAYS)
                 .remove(PROP_NOSTR_PRIVKEY)
                 .remove(PROP_NOSTR_EXPIRY)
+                .remove(PROP_NOSTR_PROCESSED_EVENT_IDS)
                 .apply()
         }
 
@@ -79,13 +93,20 @@ class NostrConnectionManager(
         sessionExpiryTime = System.currentTimeMillis() + (ttlSeconds * 1000L)
         onStateChanged(State.CONNECTING)
 
+        val pref = OmsPreferences.get(context)
+        val savedEventIds = pref.getStringSet(PROP_NOSTR_PROCESSED_EVENT_IDS, emptySet())?.toSet() ?: emptySet()
+
         nostrClient = NostrClient(
             relayUrls = relayUrls,
             topic = topic,
             privateKey = privateKey,
+            initialProcessedEventIds = savedEventIds,
             onRelayConnected = { relayUrl ->
                 Log.d(TAG, "Relay connected ($relayUrl) - publishing instant initial ping")
                 publishPing()
+            },
+            onEventProcessed = { eventId ->
+                recordProcessedEventId(context, eventId)
             },
             onEventReceived = { event ->
                 handleNostrEvent(event)

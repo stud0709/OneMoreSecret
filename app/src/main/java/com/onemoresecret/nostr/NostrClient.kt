@@ -123,12 +123,14 @@ class NostrClient(
     private val relayUrls: List<String>,
     private val topic: String,
     val privateKey: ByteArray = NostrCrypto.generatePrivateKey(),
+    initialProcessedEventIds: Set<String> = emptySet(),
     private val onRelayConnected: ((String) -> Unit)? = null,
+    private val onEventProcessed: ((String) -> Unit)? = null,
     private val onEventReceived: (NostrEvent) -> Unit
 ) {
     private val client = OkHttpClient()
     private val webSockets = ConcurrentHashMap<String, WebSocket>()
-    private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>())
+    private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>(initialProcessedEventIds))
     private var isClosed = false
 
     companion object {
@@ -171,6 +173,7 @@ class NostrClient(
                                     if (processedEventIds.size > 1000) {
                                         processedEventIds.remove(processedEventIds.first())
                                     }
+                                    onEventProcessed?.invoke(event.id)
                                     onEventReceived(event)
                                 }
                             } else {
