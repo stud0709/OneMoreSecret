@@ -120,8 +120,8 @@ class MainActivity : FragmentActivity() {
                                 Log.e(TAG, "MainActivity messageConsumer is null!")
                             }
                         } else {
-                            Log.d(TAG, "QRScreen is not visible. Queuing latest Nostr message.")
-                            pendingNostrMessage = msgStr
+                            Log.d(TAG, "QRScreen is not visible. Queuing latest Nostr message with 60s TTL.")
+                            pendingNostrMessage = QueuedNostrMessage(msgStr, System.currentTimeMillis())
                         }
                     }
                 },
@@ -153,13 +153,24 @@ class MainActivity : FragmentActivity() {
         com.onemoresecret.nostr.NostrConnectionManager.clearSession(this)
     }
 
-    var isQrScreenVisible: Boolean = false
-    var pendingNostrMessage: String? = null
+    data class QueuedNostrMessage(
+        val text: String,
+        val timestampMs: Long = System.currentTimeMillis()
+    )
 
-    fun consumePendingNostrMessage(): String? {
-        val msg = pendingNostrMessage
+    var isQrScreenVisible: Boolean = false
+    var pendingNostrMessage: QueuedNostrMessage? = null
+
+    fun consumePendingNostrMessage(maxAgeMs: Long = 60_000L): String? {
+        val queued = pendingNostrMessage
         pendingNostrMessage = null
-        return msg
+        if (queued == null) return null
+        val ageMs = System.currentTimeMillis() - queued.timestampMs
+        if (ageMs > maxAgeMs) {
+            Log.d(TAG, "Queued Nostr message expired (age: ${ageMs / 1000}s > ${maxAgeMs / 1000}s). Discarding.")
+            return null
+        }
+        return queued.text
     }
 
     var messageConsumer: Consumer<String>? = null

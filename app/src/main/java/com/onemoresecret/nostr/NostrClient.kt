@@ -170,6 +170,11 @@ class NostrClient(
                                 Log.d(TAG, "Ignoring stale event created at ${event.createdAt} (minCreatedAt: $minCreatedAt)")
                                 return
                             }
+                            val nowSec = System.currentTimeMillis() / 1000L
+                            if (event.createdAt < (nowSec - 60L)) {
+                                Log.d(TAG, "Ignoring expired event created at ${event.createdAt} (now: $nowSec, age: ${nowSec - event.createdAt}s > 60s)")
+                                return
+                            }
                             if (NostrCrypto.verifyEvent(event)) {
                                 if (processedEventIds.add(event.id)) {
                                     // Limit size of processed set
