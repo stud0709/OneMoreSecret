@@ -231,7 +231,7 @@ class NostrClient(
         }
     }
 
-    fun publish(type: String, content: String, expirationSec: Long? = null) {
+    fun publish(type: String, content: String, expirationSec: Long? = null, extraTags: List<List<String>> = emptyList()) {
         val tags = mutableListOf(
             listOf("t", topic),
             listOf("type", type)
@@ -239,6 +239,7 @@ class NostrClient(
         if (expirationSec != null) {
             tags.add(listOf("expiration", expirationSec.toString()))
         }
+        tags.addAll(extraTags)
 
         val event = NostrCrypto.signEvent(
             privateKey = privateKey,

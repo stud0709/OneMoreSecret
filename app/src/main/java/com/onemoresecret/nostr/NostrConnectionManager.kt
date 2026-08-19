@@ -159,6 +159,7 @@ class NostrConnectionManager(
             }
             "request" -> {
                 try {
+                    val reqId = event.tags.find { it.size >= 2 && it[0] == "req_id" }?.get(1)
                     val rawPayload = if (event.content.trim().startsWith("{")) {
                         val root = Json.parseToJsonElement(event.content).jsonObject
                         val payloadB64 = root["payload"]?.jsonPrimitive?.content ?: return
@@ -172,7 +173,8 @@ class NostrConnectionManager(
                         override fun sendReply(data: ByteArray, shouldClose: Boolean) {
                             refreshActivity()
                             val replyB64 = Base64.encodeToString(data, Base64.NO_WRAP)
-                            nostrClient?.publish("response", replyB64, sessionExpiryTime / 1000L)
+                            val extraTags = if (reqId != null) listOf(listOf("reply_to", reqId)) else emptyList()
+                            nostrClient?.publish("response", replyB64, sessionExpiryTime / 1000L, extraTags)
                         }
                     }
 
