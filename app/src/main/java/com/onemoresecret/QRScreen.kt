@@ -27,6 +27,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -42,17 +43,21 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Timelapse
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import com.onemoresecret.composable.JetBrainsMono
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -117,7 +122,7 @@ fun QRScreen(navController: NavController) {
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
 
-    var showPairingIndicator by remember { mutableStateOf(false) }
+    var nostrTopic by remember { mutableStateOf("") }
     var remainingCodes by remember { mutableStateOf("") }
     var recentEntries by remember { mutableStateOf<List<RecentEntry>>(emptyList()) }
     var showPinEntry by remember { mutableStateOf(false) }
@@ -364,14 +369,19 @@ fun QRScreen(navController: NavController) {
     fun panic() {
         OmsFileProvider.purgeTmp(context)
         cryptographyManager.deleteAndroidKeystoreEntries()
+        activity.destroyNostrListener()
         preferences.edit {
             PinSetupViewModel.clearPinSetup(this)
             remove(QRScreen.PROP_RECENT_ENTRIES)
             remove(QRScreen.PROP_PRESETS)
             remove(CryptographyManager.PROP_KEYSTORE)
             remove(CryptographyManager.MASTER_KEY_ALIAS)
+            com.onemoresecret.nostr.NostrConnectionManager.clearSession(context)
         }
-        activity.mainExecutor.execute { recentEntries = emptyList() }
+        activity.mainExecutor.execute {
+            recentEntries = emptyList()
+            nostrTopic = ""
+        }
         showPinEntry = false
     }
 
@@ -394,6 +404,15 @@ fun QRScreen(navController: NavController) {
         }
     }
 
+    fun updateNostrTopic() {
+        val topic = if (com.onemoresecret.nostr.NostrConnectionManager.hasValidSession(context)) {
+            preferences.getString("nostr_session_topic", "") ?: ""
+        } else {
+            ""
+        }
+        nostrTopic = topic
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
@@ -406,11 +425,11 @@ fun QRScreen(navController: NavController) {
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 Log.d("QRScreen", "resuming...")
                 messageReceived.set(false)
-                showPairingIndicator = activity.isNostrCommSet
+                updateNostrTopic()
 
                 activity.startNostrListener(
                     { msg -> messageHandler.onMessage(msg, true) },
-                    { activity.mainExecutor.execute { showPairingIndicator = activity.isNostrCommSet } }
+                    { activity.mainExecutor.execute { updateNostrTopic() } }
                 )
 
                 recentEntries = QrRecentManager.getRecentEntries(preferences)
@@ -418,10 +437,10 @@ fun QRScreen(navController: NavController) {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         
-        // Ensure listener and pairing indicator are active upon composition
+        // Ensure listener and pairing status are active upon composition
         activity.startNostrListener(
             { msg -> messageHandler.onMessage(msg, true) },
-            { activity.mainExecutor.execute { showPairingIndicator = activity.isNostrCommSet } }
+            { activity.mainExecutor.execute { updateNostrTopic() } }
         )
 
         onDispose {
@@ -540,9 +559,9 @@ if (showPinEntry) {
                                 text = { Text(stringResource(R.string.encrypt_text)) },
                                 onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(EncryptTextRoute()) }
                             )
-                            if (activity.isNostrCommSet) {
+                            if (nostrTopic.isNotEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text("Disconnect Nostr Session") },
+                                    text = { Text("Disconnect Nostr (${if (nostrTopic.length > 8) nostrTopic.take(8) + "..." else nostrTopic})") },
                                     onClick = {
                                         expanded = false
                                         currentMenuLevel = "MAIN"
@@ -550,7 +569,7 @@ if (showPinEntry) {
                                         activity.mainExecutor.execute {
                                             Toast.makeText(context, "Nostr Session Disconnected", Toast.LENGTH_LONG).show()
                                         }
-                                        showPairingIndicator = activity.isNostrCommSet
+                                        nostrTopic = ""
                                     }
                                 )
                             }
@@ -730,16 +749,6 @@ if (showPinEntry) {
                 },
                 modifier = Modifier.fillMaxSize()
             )
-
-            if (showPairingIndicator) {
-                Image(
-                    painter = painterResource(id = R.drawable.leak_add),
-                    contentDescription = "Wi-Fi Pairing Active",
-                    modifier = Modifier
-                        .size(128.dp)
-                        .align(Alignment.Center)
-                )
-            }
         }
 
         Column(
@@ -775,7 +784,7 @@ if (showPinEntry) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(recentEntries) { entry ->
-                        androidx.compose.material3.OutlinedButton(
+                        OutlinedButton(
                             onClick = { messageHandler.onMessage(entry.message, false) }
                         ) {
                             Icon(
@@ -789,6 +798,50 @@ if (showPinEntry) {
                                 },
                                 contentDescription = "Recent Message"
                             )
+                        }
+                    }
+                }
+            }
+
+            if (nostrTopic.isNotEmpty()) {
+                val displayTopic = if (nostrTopic.length > 8) nostrTopic.take(8) + "..." else nostrTopic
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Nostr Pairing Active",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = displayTopic,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = JetBrainsMono
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activity.destroyNostrListener()
+                                activity.mainExecutor.execute {
+                                    Toast.makeText(context, "Nostr Session Cleared", Toast.LENGTH_SHORT).show()
+                                }
+                                nostrTopic = ""
+                            }
+                        ) {
+                            Text("Clear")
                         }
                     }
                 }

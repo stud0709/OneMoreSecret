@@ -43,17 +43,15 @@ class MsgPluginWiFiPairing(
                 context.mainExecutor.execute {
                     onStartClick = {
                         val privateKey = NostrCrypto.generatePrivateKey()
-                        val expiryTime = System.currentTimeMillis() + (ttl * 1000L)
                         
                         // Save session parameters for durability across suspends
-                        NostrConnectionManager.saveSession(context, topic, ttl, relays, privateKey, expiryTime)
+                        NostrConnectionManager.saveSession(context, topic, relays, privateKey)
 
                         // Instantiate and start connection manager
                         val connectionManager = NostrConnectionManager(
                             context = context,
                             topic = topic,
                             relayUrls = relays,
-                            ttlSeconds = ttl,
                             privateKey = privateKey,
                             messageConsumer = { rawPayload ->
                                 context.mainExecutor.execute {

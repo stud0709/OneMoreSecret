@@ -100,23 +100,14 @@ class MainActivity : FragmentActivity() {
             Log.d(TAG, "resumeNostrListener: Resuming persistent Nostr session")
             val pref = OmsPreferences.get(this)
             val topic = pref.getString("nostr_session_topic", "") ?: return
-            val ttl = pref.getInt("nostr_session_ttl", 120)
             val relays = pref.getString("nostr_session_relays", "")?.split(",") ?: return
             val privKeyB64 = pref.getString("nostr_session_privkey", "") ?: return
             val privateKey = android.util.Base64.decode(privKeyB64, android.util.Base64.DEFAULT)
-            val expiry = pref.getLong("nostr_session_expiry", 0)
-
-            val remainingTtl = ((expiry - System.currentTimeMillis()) / 1000).toInt()
-            if (remainingTtl <= 0) {
-                com.onemoresecret.nostr.NostrConnectionManager.clearSession(this)
-                return
-            }
 
             val connectionManager = com.onemoresecret.nostr.NostrConnectionManager(
                 context = this,
                 topic = topic,
                 relayUrls = relays,
-                ttlSeconds = remainingTtl,
                 privateKey = privateKey,
                 messageConsumer = { rawPayload ->
                     this.mainExecutor.execute {
