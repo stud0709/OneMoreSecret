@@ -93,6 +93,8 @@ abstract class MessageComposer {
         const val APPLICATION_BITCOIN_ADDRESS: Int = 7
         const val APPLICATION_ENCRYPTED_MESSAGE: Int = 8
         const val APPLICATION_TOTP_URI: Int = 9
+        const val APPLICATION_NOSTR_PAIRING: Int = 10
+        @Deprecated("Use APPLICATION_NOSTR_PAIRING instead")
         const val APPLICATION_WIFI_PAIRING: Int = 10
         const val APPLICATION_KEY_REQUEST_PAIRING: Int = 11
         const val APPLICATION_ENCRYPTED_OTP = 12

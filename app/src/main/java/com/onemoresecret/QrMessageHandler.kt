@@ -105,7 +105,7 @@ class QrMessageHandler(
                                     evaluateNextPinRequestTimestamp = true
                                 )
                             }
-                            MessageComposer.APPLICATION_WIFI_PAIRING -> {
+                            MessageComposer.APPLICATION_NOSTR_PAIRING -> {
                                 closeSocketWaitingForReply = false
                                 callbacks.runPinProtected(
                                     onSuccess = {

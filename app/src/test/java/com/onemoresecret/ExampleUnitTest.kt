@@ -16,7 +16,7 @@ class ExampleUnitTest {
         // 1. Serialize on the simulated desktop/web client side
         val baos = ByteArrayOutputStream()
         val dos = OmsDataOutputStream(baos)
-        dos.writeUnsignedShort(MessageComposer.APPLICATION_WIFI_PAIRING) // 10
+        dos.writeUnsignedShort(MessageComposer.APPLICATION_NOSTR_PAIRING) // 10
         dos.writeString(topic)
         dos.writeUnsignedShort(ttl)
         dos.writeUnsignedShort(relays.size)
@@ -37,7 +37,7 @@ class ExampleUnitTest {
         val dis = OmsDataInputStream(bais)
         
         val parsedAppId = dis.readUnsignedShort()
-        assertEquals(MessageComposer.APPLICATION_WIFI_PAIRING, parsedAppId)
+        assertEquals(MessageComposer.APPLICATION_NOSTR_PAIRING, parsedAppId)
 
         val parsedTopic = dis.readString()
         assertEquals(topic, parsedTopic)

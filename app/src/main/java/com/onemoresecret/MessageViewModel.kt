@@ -50,7 +50,7 @@ class MessageViewModel(
                 MessageComposer.APPLICATION_BITCOIN_ADDRESS ->
                     MsgPluginCryptoCurrencyAddress(activity, messageData, onNavigateBack)
 
-                MessageComposer.APPLICATION_WIFI_PAIRING ->
+                MessageComposer.APPLICATION_NOSTR_PAIRING ->
                     MsgPluginWiFiPairing(activity, messageData, onNavigateBack)
 
                 else -> throw IllegalArgumentException("Wrong application id: $applicationId")
