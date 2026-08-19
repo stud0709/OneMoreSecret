@@ -428,7 +428,7 @@ fun QRScreen(navController: NavController) {
                 updateNostrTopic()
 
                 activity.startNostrListener(
-                    { msg -> messageHandler.onMessage(msg, true) },
+                    { msg -> messageHandler.onMessage(msg, true, popBackStack = false, isFromNostr = true) },
                     { activity.mainExecutor.execute { updateNostrTopic() } }
                 )
 
@@ -439,7 +439,7 @@ fun QRScreen(navController: NavController) {
         
         // Ensure listener and pairing status are active upon composition
         activity.startNostrListener(
-            { msg -> messageHandler.onMessage(msg, true) },
+            { msg -> messageHandler.onMessage(msg, true, popBackStack = false, isFromNostr = true) },
             { activity.mainExecutor.execute { updateNostrTopic() } }
         )
 
@@ -832,7 +832,7 @@ if (showPinEntry) {
                 ) {
                     items(recentEntries) { entry ->
                         OutlinedButton(
-                            onClick = { messageHandler.onMessage(entry.message, false) }
+                            onClick = { messageHandler.onMessage(entry.message, false, popBackStack = false, isFromNostr = true) }
                         ) {
                             Icon(
                                 imageVector = when (entry.applicationId) {

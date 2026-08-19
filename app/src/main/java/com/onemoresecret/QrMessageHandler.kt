@@ -40,9 +40,9 @@ class QrMessageHandler(
         private val TAG = QrMessageHandler::class.java.simpleName
     }
 
-    fun onMessage(message: String, callSetRecent: Boolean, popBackStack: Boolean = false) {
-        Log.d(TAG, "onMessage entered. Message (len=${message.length}): $message")
-        if (callbacks.messageReceived.get()) {
+    fun onMessage(message: String, callSetRecent: Boolean, popBackStack: Boolean = false, isFromNostr: Boolean = false) {
+        Log.d(TAG, "onMessage entered. isFromNostr=$isFromNostr, Message (len=${message.length}): $message")
+        if (!isFromNostr && callbacks.messageReceived.get()) {
             Log.d(TAG, "onMessage: callbacks.messageReceived is already true, returning")
             return
         }
@@ -72,7 +72,7 @@ class QrMessageHandler(
 
                     if (OneTimePassword(message).valid) {
                         Log.d(TAG, "calling TotpImportScreen")
-                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.TotpImportRoute(popBackStack = popBackStack))
+                        navigateToTotpImport(bundle, popBackStack)
                     } else {
                         Log.d(TAG, String.format("Application-ID: %d", applicationId))
 
@@ -81,10 +81,7 @@ class QrMessageHandler(
                         when (applicationId) {
                             MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER -> {
                                 Log.d(TAG, "calling KeyImportScreen")
-                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }
-                                callbacks.navController.navigate(
-                                    com.onemoresecret.navigation.KeyImportRoute(popBackStack = popBackStack)
-                                )
+                                navigateToKeyImport(bundle, popBackStack)
                             }
                             MessageComposer.APPLICATION_KEY_REQUEST,
                             MessageComposer.APPLICATION_KEY_REQUEST_PAIRING,
@@ -93,10 +90,7 @@ class QrMessageHandler(
                                 callbacks.runPinProtected(
                                     onSuccess = {
                                         Log.d(TAG, "calling " + "MessageScreen")
-                                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }
-                                        callbacks.navController.navigate(
-                                            com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack)
-                                        )
+                                        navigateToMessage(bundle, popBackStack)
                                     },
                                     onCancel = {
                                         callbacks.activity.sendReply(ByteArray(0), true)
@@ -114,13 +108,7 @@ class QrMessageHandler(
                                         dataInputStream.read(payload)
                                         bundle.putByteArray(QRScreen.ARG_MESSAGE, payload)
 
-                                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
-                                            it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE))
-                                            it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID))
-                                        }
-                                        callbacks.navController.navigate(
-                                            com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack)
-                                        )
+                                        navigateToMessage(bundle, popBackStack)
                                     },
                                     onCancel = {
                                         callbacks.messageReceived.set(false)
@@ -318,8 +306,8 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_ENCRYPTED_OTP,
                             MessageComposer.APPLICATION_TOTP_URI -> {
                                 bundle.putByteArray(QRScreen.ARG_MESSAGE, dataInputStream.readByteArray())
-                                Log.d(TAG, "calling " + "MessageScreen")
-                                callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
+                                Log.d(TAG, "calling MessageScreen")
+                                navigateToMessage(bundle, popBackStack)
                             }
                             else -> throw IllegalArgumentException(
                                 "No processor defined for application ID " + Integer.toHexString(rsaAesEnvelope.applicationId)
@@ -329,8 +317,8 @@ class QrMessageHandler(
                     MessageComposer.APPLICATION_ENCRYPTED_MESSAGE_DEPRECATED,
                     MessageComposer.APPLICATION_TOTP_URI_DEPRECATED -> {
                         bundle.putInt(QRScreen.ARG_APPLICATION_ID, rsaAesEnvelope.applicationId)
-                        Log.d(TAG, "calling " + "MessageScreen")
-                        callbacks.navController.currentBackStackEntry?.savedStateHandle?.let { it.set(QRScreen.ARG_MESSAGE, bundle.getByteArray(QRScreen.ARG_MESSAGE)); it.set(QRScreen.ARG_APPLICATION_ID, bundle.getInt(QRScreen.ARG_APPLICATION_ID)) }; callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
+                        Log.d(TAG, "calling MessageScreen")
+                        navigateToMessage(bundle, popBackStack)
                     }
                     else -> throw IllegalArgumentException(
                         "No processor defined for application ID " + Integer.toHexString(rsaAesEnvelope.applicationId)
@@ -348,6 +336,54 @@ class QrMessageHandler(
                     applicationId
                 )
             }
+        }
+    }
+
+    private fun navigateToMessage(bundle: Bundle, popBackStack: Boolean) {
+        try {
+            val qrEntry = callbacks.navController.getBackStackEntry<com.onemoresecret.navigation.QrRoute>()
+            qrEntry.savedStateHandle[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+            qrEntry.savedStateHandle[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            callbacks.navController.popBackStack<com.onemoresecret.navigation.QrRoute>(inclusive = false)
+            callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
+        } catch (_: Exception) {
+            callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
+                it[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+                it[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            }
+            callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
+        }
+    }
+
+    private fun navigateToTotpImport(bundle: Bundle, popBackStack: Boolean) {
+        try {
+            val qrEntry = callbacks.navController.getBackStackEntry<com.onemoresecret.navigation.QrRoute>()
+            qrEntry.savedStateHandle[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+            qrEntry.savedStateHandle[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            callbacks.navController.popBackStack<com.onemoresecret.navigation.QrRoute>(inclusive = false)
+            callbacks.navController.navigate(com.onemoresecret.navigation.TotpImportRoute(popBackStack = popBackStack))
+        } catch (_: Exception) {
+            callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
+                it[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+                it[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            }
+            callbacks.navController.navigate(com.onemoresecret.navigation.TotpImportRoute(popBackStack = popBackStack))
+        }
+    }
+
+    private fun navigateToKeyImport(bundle: Bundle, popBackStack: Boolean) {
+        try {
+            val qrEntry = callbacks.navController.getBackStackEntry<com.onemoresecret.navigation.QrRoute>()
+            qrEntry.savedStateHandle[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+            qrEntry.savedStateHandle[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            callbacks.navController.popBackStack<com.onemoresecret.navigation.QrRoute>(inclusive = false)
+            callbacks.navController.navigate(com.onemoresecret.navigation.KeyImportRoute(popBackStack = popBackStack))
+        } catch (_: Exception) {
+            callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
+                it[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
+                it[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
+            }
+            callbacks.navController.navigate(com.onemoresecret.navigation.KeyImportRoute(popBackStack = popBackStack))
         }
     }
 }
