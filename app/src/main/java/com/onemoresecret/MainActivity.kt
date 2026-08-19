@@ -112,11 +112,16 @@ class MainActivity : FragmentActivity() {
                 messageConsumer = { rawPayload ->
                     this.mainExecutor.execute {
                         val msgStr = MessageComposer.encodeAsOmsText(rawPayload)
-                        val consumer = messageConsumer
-                        if (consumer != null) {
-                            consumer.accept(msgStr)
+                        if (isQrScreenVisible) {
+                            val consumer = messageConsumer
+                            if (consumer != null) {
+                                consumer.accept(msgStr)
+                            } else {
+                                Log.e(TAG, "MainActivity messageConsumer is null!")
+                            }
                         } else {
-                            Log.e("NostrPairing", "MainActivity messageConsumer is null!")
+                            Log.d(TAG, "QRScreen is not visible. Queuing latest Nostr message.")
+                            pendingNostrMessage = msgStr
                         }
                     }
                 },
@@ -142,9 +147,19 @@ class MainActivity : FragmentActivity() {
     @Synchronized
     fun destroyNostrListener() {
         Log.d(TAG, "destroyNostrListener: closing active Nostr connection permanently")
+        pendingNostrMessage = null
         activeNostrConnection?.disconnect()
         activeNostrConnection = null
         com.onemoresecret.nostr.NostrConnectionManager.clearSession(this)
+    }
+
+    var isQrScreenVisible: Boolean = false
+    var pendingNostrMessage: String? = null
+
+    fun consumePendingNostrMessage(): String? {
+        val msg = pendingNostrMessage
+        pendingNostrMessage = null
+        return msg
     }
 
     var messageConsumer: Consumer<String>? = null

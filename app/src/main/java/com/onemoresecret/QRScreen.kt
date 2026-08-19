@@ -424,6 +424,7 @@ fun QRScreen(navController: NavController) {
                 }
             } else if (event == Lifecycle.Event.ON_RESUME) {
                 Log.d("QRScreen", "resuming...")
+                activity.isQrScreenVisible = true
                 messageReceived.set(false)
                 updateNostrTopic()
 
@@ -432,7 +433,16 @@ fun QRScreen(navController: NavController) {
                     { activity.mainExecutor.execute { updateNostrTopic() } }
                 )
 
+                val queued = activity.consumePendingNostrMessage()
+                if (queued != null) {
+                    Log.d("QRScreen", "Processing queued Nostr message on resume")
+                    messageHandler.onMessage(queued, true, popBackStack = false, isFromNostr = true)
+                }
+
                 recentEntries = QrRecentManager.getRecentEntries(preferences)
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                Log.d("QRScreen", "pausing...")
+                activity.isQrScreenVisible = false
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -444,6 +454,7 @@ fun QRScreen(navController: NavController) {
         )
 
         onDispose {
+            activity.isQrScreenVisible = false
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
