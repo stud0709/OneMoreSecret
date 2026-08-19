@@ -208,4 +208,7 @@
     <string name="key_management">Key Management</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="public_key">Public Key</string>
+    <string name="nostr_session_cleared">Nostr Session Cleared</string>
+    <string name="nostr_pairing_active">Nostr Pairing Active</string>
+    <string name="clear">Clear</string>
 </resources>

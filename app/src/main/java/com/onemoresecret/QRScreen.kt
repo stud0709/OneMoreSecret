@@ -68,7 +68,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -115,6 +114,7 @@ fun QRScreen(navController: NavController) {
     val errorStartingCameraMsg = stringResource(id = R.string.error_starting_camera)
     val contactEmailMsg = stringResource(id = R.string.contact_email)
     val feedbackPromptMsg = stringResource(id = R.string.feedback_prompt)
+    val nostrSessionCleared = stringResource(R.string.nostr_session_cleared)
 
 
     val activity = context as MainActivity
@@ -749,6 +749,52 @@ if (showPinEntry) {
                 },
                 modifier = Modifier.fillMaxSize()
             )
+
+            if (nostrTopic.isNotEmpty()) {
+                val displayTopic = if (nostrTopic.length > 8) nostrTopic.take(8) + "..." else nostrTopic
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.nostr_pairing_active),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = displayTopic,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = JetBrainsMono
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                activity.destroyNostrListener()
+                                activity.mainExecutor.execute {
+                                    Toast.makeText(context,
+                                        nostrSessionCleared, Toast.LENGTH_SHORT).show()
+                                }
+                                nostrTopic = ""
+                            }
+                        ) {
+                            Text(stringResource(R.string.clear))
+                        }
+                    }
+                }
+            }
         }
 
         Column(
@@ -757,6 +803,7 @@ if (showPinEntry) {
                 .weight(1f)
                 .padding(8.dp)
         ) {
+            
             Text(
                 text = stringResource(id = R.string.remaining_codes),
                 style = MaterialTheme.typography.bodyMedium,
@@ -798,50 +845,6 @@ if (showPinEntry) {
                                 },
                                 contentDescription = "Recent Message"
                             )
-                        }
-                    }
-                }
-            }
-
-            if (nostrTopic.isNotEmpty()) {
-                val displayTopic = if (nostrTopic.length > 8) nostrTopic.take(8) + "..." else nostrTopic
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Nostr Pairing Active",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = displayTopic,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontFamily = JetBrainsMono
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                activity.destroyNostrListener()
-                                activity.mainExecutor.execute {
-                                    Toast.makeText(context, "Nostr Session Cleared", Toast.LENGTH_SHORT).show()
-                                }
-                                nostrTopic = ""
-                            }
-                        ) {
-                            Text("Clear")
                         }
                     }
                 }
