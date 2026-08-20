@@ -11,7 +11,7 @@ import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedFile
 import com.onemoresecret.msg_fragment_plugins.MsgPluginEncryptedMessage
 import com.onemoresecret.msg_fragment_plugins.MsgPluginKeyRequest
 import com.onemoresecret.msg_fragment_plugins.MsgPluginTotp
-import com.onemoresecret.msg_fragment_plugins.MsgPluginWiFiPairing
+import com.onemoresecret.msg_fragment_plugins.MsgPluginNostrPairing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -51,7 +51,7 @@ class MessageViewModel(
                     MsgPluginCryptoCurrencyAddress(activity, messageData, onNavigateBack)
 
                 MessageComposer.APPLICATION_NOSTR_PAIRING ->
-                    MsgPluginWiFiPairing(activity, messageData, onNavigateBack)
+                    MsgPluginNostrPairing(activity, messageData, onNavigateBack)
 
                 else -> throw IllegalArgumentException("Wrong application id: $applicationId")
             }

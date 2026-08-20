@@ -119,6 +119,32 @@ object NostrCrypto {
     }
 }
 
+object NostrPskCrypto {
+    private const val GCM_IV_LENGTH_BYTES = 12
+    private const val GCM_TAG_LENGTH_BITS = 128
+    private val secureRandom = SecureRandom()
+
+    fun encrypt(plaintext: ByteArray, psk: ByteArray): ByteArray {
+        val iv = ByteArray(GCM_IV_LENGTH_BYTES)
+        secureRandom.nextBytes(iv)
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, javax.crypto.spec.SecretKeySpec(psk, "AES"), javax.crypto.spec.GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val ciphertext = cipher.doFinal(plaintext)
+        return iv + ciphertext // 12-byte IV prepended to ciphertext + 16-byte GCM tag
+    }
+
+    fun decrypt(encryptedData: ByteArray, psk: ByteArray): ByteArray {
+        if (encryptedData.size < GCM_IV_LENGTH_BYTES + 16) {
+            throw IllegalArgumentException("Encrypted data too short for AES-GCM")
+        }
+        val iv = encryptedData.copyOfRange(0, GCM_IV_LENGTH_BYTES)
+        val ciphertext = encryptedData.copyOfRange(GCM_IV_LENGTH_BYTES, encryptedData.size)
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.DECRYPT_MODE, javax.crypto.spec.SecretKeySpec(psk, "AES"), javax.crypto.spec.GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        return cipher.doFinal(ciphertext)
+    }
+}
+
 class NostrClient(
     private val relayUrls: List<String>,
     private val topic: String,
@@ -241,14 +267,10 @@ class NostrClient(
         }
     }
 
-    fun publish(type: String, content: String, expirationSec: Long? = null, extraTags: List<List<String>> = emptyList()) {
+    fun publish(content: String, extraTags: List<List<String>> = emptyList()) {
         val tags = mutableListOf(
-            listOf("t", topic),
-            listOf("type", type)
+            listOf("t", topic)
         )
-        if (expirationSec != null) {
-            tags.add(listOf("expiration", expirationSec.toString()))
-        }
         tags.addAll(extraTags)
 
         val event = NostrCrypto.signEvent(

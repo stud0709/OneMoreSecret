@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class NostrConnectionManager(
     private val context: Context,
     private val topic: String,
+    private val psk: ByteArray,
     private val relayUrls: List<String>,
     val privateKey: ByteArray,
     private val messageConsumer: (ByteArray) -> Unit,
@@ -33,14 +34,16 @@ class NostrConnectionManager(
     companion object {
         private const val TAG = "NostrConnectionManager"
         private const val PROP_NOSTR_TOPIC = "nostr_session_topic"
+        private const val PROP_NOSTR_PSK = "nostr_session_psk"
         private const val PROP_NOSTR_RELAYS = "nostr_session_relays"
         private const val PROP_NOSTR_PRIVKEY = "nostr_session_privkey"
         private const val PROP_NOSTR_LAST_TIMESTAMP = "nostr_session_last_timestamp"
 
-        fun saveSession(context: Context, topic: String, relays: List<String>, privateKey: ByteArray) {
+        fun saveSession(context: Context, topic: String, psk: ByteArray, relays: List<String>, privateKey: ByteArray) {
             val preferences = OmsPreferences.get(context)
             preferences.edit()
                 .putString(PROP_NOSTR_TOPIC, topic)
+                .putString(PROP_NOSTR_PSK, Base64.encodeToString(psk, Base64.NO_WRAP))
                 .putString(PROP_NOSTR_RELAYS, relays.joinToString(","))
                 .putString(PROP_NOSTR_PRIVKEY, Base64.encodeToString(privateKey, Base64.NO_WRAP))
                 .apply()
@@ -50,6 +53,7 @@ class NostrConnectionManager(
             val preferences = OmsPreferences.get(context)
             preferences.edit()
                 .remove(PROP_NOSTR_TOPIC)
+                .remove(PROP_NOSTR_PSK)
                 .remove(PROP_NOSTR_RELAYS)
                 .remove(PROP_NOSTR_PRIVKEY)
                 .remove(PROP_NOSTR_LAST_TIMESTAMP)
@@ -59,7 +63,8 @@ class NostrConnectionManager(
         fun hasValidSession(context: Context): Boolean {
             val preferences = OmsPreferences.get(context)
             val topic = preferences.getString(PROP_NOSTR_TOPIC, "")
-            return !topic.isNullOrEmpty()
+            val psk = preferences.getString(PROP_NOSTR_PSK, "")
+            return !topic.isNullOrEmpty() && !psk.isNullOrEmpty()
         }
     }
 
@@ -76,8 +81,11 @@ class NostrConnectionManager(
             privateKey = privateKey,
             minCreatedAt = lastTimestamp,
             onRelayConnected = { relayUrl ->
-                Log.d(TAG, "Relay connected ($relayUrl) - publishing initial greeting ping")
-                publishPing()
+                Log.d(TAG, "Relay connected ($relayUrl) - publishing paired acknowledgment")
+                publishPairedAck()
+                if (isConnected.compareAndSet(false, true)) {
+                    onStateChanged(State.CONNECTED)
+                }
             },
             onEventReceived = { event ->
                 handleNostrEvent(event)
@@ -86,13 +94,33 @@ class NostrConnectionManager(
         nostrClient?.connect()
     }
 
-    fun publishPing() {
-        nostrClient?.publish("ping", "{\"type\":\"ping\"}")
+    fun publishEncrypted(innerJson: String, extraTags: List<List<String>> = emptyList()) {
+        try {
+            val encryptedBytes = NostrPskCrypto.encrypt(innerJson.toByteArray(Charsets.UTF_8), psk)
+            val encryptedB64 = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+            nostrClient?.publish(encryptedB64, extraTags)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error encrypting Nostr payload with PSK: ${e.message}", e)
+        }
+    }
+
+    fun publishPairedAck() {
+        publishEncrypted("{\"type\":\"paired\"}")
     }
 
     private fun handleNostrEvent(event: NostrEvent) {
         if (event.pubkey.equals(myPubKeyHex, ignoreCase = true)) {
             Log.d(TAG, "Ignoring self-event (echoed from relay)")
+            return
+        }
+
+        // Authenticate & Decrypt payload with PSK
+        val decryptedJsonStr = try {
+            val encryptedBytes = Base64.decode(event.content, Base64.DEFAULT)
+            val plaintextBytes = NostrPskCrypto.decrypt(encryptedBytes, psk)
+            String(plaintextBytes, Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.w(TAG, "Dropped unauthenticated Nostr event (wrong PSK or corrupt): ${e.message}")
             return
         }
 
@@ -102,42 +130,36 @@ class NostrConnectionManager(
             pref.edit().putLong(PROP_NOSTR_LAST_TIMESTAMP, event.createdAt).apply()
         }
 
-        val typeTag = event.tags.find { it.size >= 2 && it[0] == "type" }?.get(1) ?: return
-        Log.d(TAG, "Received Nostr event type: $typeTag")
+        val root = try {
+            Json.parseToJsonElement(decryptedJsonStr).jsonObject
+        } catch (e: Exception) {
+            Log.e(TAG, "Invalid JSON in decrypted Nostr event: $decryptedJsonStr", e)
+            return
+        }
 
-        when (typeTag) {
-            "ping" -> {
-                // Respond with pong
-                nostrClient?.publish("pong", "{\"type\":\"pong\"}")
-                if (isConnected.compareAndSet(false, true)) {
-                    onStateChanged(State.CONNECTED)
-                }
-            }
-            "pong" -> {
-                if (isConnected.compareAndSet(false, true)) {
-                    onStateChanged(State.CONNECTED)
-                }
-            }
+        val type = root["type"]?.jsonPrimitive?.content ?: return
+        Log.d(TAG, "Received authenticated Nostr event type: $type")
+
+        when (type) {
             "request" -> {
                 try {
                     if (isConnected.compareAndSet(false, true)) {
                         onStateChanged(State.CONNECTED)
                     }
-                    val reqId = event.tags.find { it.size >= 2 && it[0] == "req_id" }?.get(1)
-                    val rawPayload = if (event.content.trim().startsWith("{")) {
-                        val root = Json.parseToJsonElement(event.content).jsonObject
-                        val payloadB64 = root["payload"]?.jsonPrimitive?.content ?: return
-                        Base64.decode(payloadB64, Base64.DEFAULT)
-                    } else {
-                        Base64.decode(event.content, Base64.DEFAULT)
-                    }
+                    val reqId = root["req_id"]?.jsonPrimitive?.content
+                    val payloadB64 = root["payload"]?.jsonPrimitive?.content ?: return
+                    val rawPayload = Base64.decode(payloadB64, Base64.DEFAULT)
 
                     // Register Nostr response sender
                     (context as? MainActivity)?.activeMessageSender = object : OmsMessageSender {
                         override fun sendReply(data: ByteArray, shouldClose: Boolean) {
                             val replyB64 = Base64.encodeToString(data, Base64.NO_WRAP)
-                            val extraTags = if (reqId != null) listOf(listOf("reply_to", reqId)) else emptyList()
-                            nostrClient?.publish("response", replyB64, extraTags = extraTags)
+                            val responseJson = if (reqId != null) {
+                                "{\"type\":\"response\",\"reply_to\":\"$reqId\",\"payload\":\"$replyB64\"}"
+                            } else {
+                                "{\"type\":\"response\",\"payload\":\"$replyB64\"}"
+                            }
+                            publishEncrypted(responseJson)
                         }
                     }
 
@@ -148,7 +170,7 @@ class NostrConnectionManager(
                 }
             }
             "disconnect" -> {
-                Log.d(TAG, "Disconnect command received from remote client")
+                Log.d(TAG, "Authenticated disconnect command received from remote client")
                 disconnect()
             }
         }
@@ -168,7 +190,7 @@ class NostrConnectionManager(
         
         // Publish disconnect event to notify the peer
         try {
-            nostrClient?.publish("disconnect", "{\"type\":\"disconnect\"}")
+            publishEncrypted("{\"type\":\"disconnect\"}")
         } catch (e: Exception) {
             Log.e(TAG, "Could not send disconnect event: ${e.message}")
         }

@@ -21,7 +21,7 @@ import com.onemoresecret.nostr.NostrConnectionManager
 import com.onemoresecret.nostr.NostrCrypto
 import java.io.ByteArrayInputStream
 
-class MsgPluginWiFiPairing(
+class MsgPluginNostrPairing(
     activity: FragmentActivity,
     messageData: ByteArray,
     onNavigateBack: () -> Unit
@@ -34,6 +34,7 @@ class MsgPluginWiFiPairing(
         try {
             OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
                 val topic = dataInputStream.readString()
+                val psk = dataInputStream.readByteArray()
                 val ttl = dataInputStream.readUnsignedShort()
                 val relayCount = dataInputStream.readUnsignedShort()
                 val relays = (0 until relayCount).map { dataInputStream.readString() }
@@ -43,14 +44,15 @@ class MsgPluginWiFiPairing(
                 context.mainExecutor.execute {
                     onStartClick = {
                         val privateKey = NostrCrypto.generatePrivateKey()
-                        
+
                         // Save session parameters for durability across suspends
-                        NostrConnectionManager.saveSession(context, topic, relays, privateKey)
+                        NostrConnectionManager.saveSession(context, topic, psk, relays, privateKey)
 
                         // Instantiate and start connection manager
                         val connectionManager = NostrConnectionManager(
                             context = context,
                             topic = topic,
+                            psk = psk,
                             relayUrls = relays,
                             privateKey = privateKey,
                             messageConsumer = { rawPayload ->
@@ -83,7 +85,7 @@ class MsgPluginWiFiPairing(
 
                         (context as MainActivity).activeNostrConnection = connectionManager
                         connectionManager.start()
-                        
+
                         // Immediately navigate back to the previous screen
                         onNavigateBack()
                     }
@@ -100,7 +102,7 @@ class MsgPluginWiFiPairing(
 
     @Composable
     override fun MessageView(hiddenState: Boolean) {
-        WiFiPairingScreen(
+        NostrPairingScreen(
             requestId = requestId,
             onStartClick = onStartClick
         )
@@ -115,11 +117,11 @@ class MsgPluginWiFiPairing(
 }
 
 @Composable
-fun WiFiPairingScreen(
+fun NostrPairingScreen(
     requestId: String,
     onStartClick: (() -> Unit)?
 ) {
-    WiFiPairing(
+    NostrPairing(
         requestId = requestId,
         onConfirm = {
             onStartClick?.invoke()
@@ -128,7 +130,7 @@ fun WiFiPairingScreen(
 }
 
 @Composable
-fun WiFiPairing(
+fun NostrPairing(
     requestId: String,
     onConfirm: () -> Unit
 ) {
