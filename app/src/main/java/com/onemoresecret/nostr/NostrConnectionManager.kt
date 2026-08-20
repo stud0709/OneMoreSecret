@@ -147,7 +147,7 @@ class NostrConnectionManager(
                     Log.e(TAG, "Error handling request payload: ${e.message}", e)
                 }
             }
-            "disconnect", "bye" -> {
+            "disconnect" -> {
                 Log.d(TAG, "Disconnect command received from remote client")
                 disconnect()
             }
