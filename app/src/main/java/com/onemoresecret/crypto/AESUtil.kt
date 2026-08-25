@@ -59,10 +59,15 @@ object AESUtil {
         aesTransformation: AesTransformation
     ): ByteArray {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
+        val paramSpec = if (aesTransformation == AesTransformation.AES_GCM_NO_PADDING) {
+            javax.crypto.spec.GCMParameterSpec(128, iv)
+        } else {
+            IvParameterSpec(iv)
+        }
         cipher.init(
             cipherMode,
             SecretKeySpec(aesKeyMaterial, "AES"),
-            IvParameterSpec(iv)
+            paramSpec
         )
 
         return cipher.doFinal(input)
@@ -89,13 +94,18 @@ object AESUtil {
         progressConsumer: Consumer<Int>? = null
     ) {
         val cipher = Cipher.getInstance(aesTransformation.transformation)
+        val paramSpec = if (aesTransformation == AesTransformation.AES_GCM_NO_PADDING) {
+            javax.crypto.spec.GCMParameterSpec(128, iv)
+        } else {
+            IvParameterSpec(iv)
+        }
         cipher.init(
             cipherMode,
             SecretKeySpec(
                 aesKeyMaterial,
                 "AES"
             ),
-            IvParameterSpec(iv)
+            paramSpec
         )
 
         val iArr = ByteArray(1024)

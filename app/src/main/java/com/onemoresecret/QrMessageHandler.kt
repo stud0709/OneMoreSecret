@@ -304,7 +304,8 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_BITCOIN_ADDRESS,
                             MessageComposer.APPLICATION_ENCRYPTED_MESSAGE,
                             MessageComposer.APPLICATION_ENCRYPTED_OTP,
-                            MessageComposer.APPLICATION_TOTP_URI -> {
+                            MessageComposer.APPLICATION_TOTP_URI,
+                            MessageComposer.APPLICATION_NOSTR_PAIRING -> {
                                 bundle.putByteArray(QRScreen.ARG_MESSAGE, dataInputStream.readByteArray())
                                 Log.d(TAG, "calling MessageScreen")
                                 navigateToMessage(bundle, popBackStack)
