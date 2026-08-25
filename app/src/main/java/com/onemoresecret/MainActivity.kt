@@ -143,7 +143,7 @@ class MainActivity : FragmentActivity() {
             )
 
             activeNostrConnection = connectionManager
-            connectionManager.start()
+            connectionManager.start(isNewPairing = false)
         }
     }
 

@@ -155,12 +155,17 @@ class NostrClient(
 ) {
     private val client = OkHttpClient()
     private val webSockets = ConcurrentHashMap<String, WebSocket>()
-    private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>())
     private var isClosed = false
 
     companion object {
         private const val TAG = "NostrClient"
         private const val KIND_EPHEMERAL = 25000
+        private const val MAX_PROCESSED_EVENTS = 500
+        private val processedEventIds = Collections.synchronizedSet(LinkedHashSet<String>())
+
+        fun clearProcessedEventCache() {
+            processedEventIds.clear()
+        }
     }
 
     fun connect() {
@@ -192,7 +197,14 @@ class NostrClient(
                         if (subId == "oms_sub") {
                             val eventObj = jsonArray[2]
                             val event = Json.decodeFromJsonElement<NostrEvent>(eventObj)
-                            if (event.createdAt < minCreatedAt) {
+                            
+                            // Early deduplication before costly crypto checks
+                            if (processedEventIds.contains(event.id)) {
+                                Log.d(TAG, "Ignoring duplicate Nostr event from $url (id: ${event.id})")
+                                return
+                            }
+
+                            if (minCreatedAt > 0L && event.createdAt <= minCreatedAt) {
                                 Log.d(TAG, "Ignoring stale event created at ${event.createdAt} (minCreatedAt: $minCreatedAt)")
                                 return
                             }
@@ -203,9 +215,13 @@ class NostrClient(
                             }
                             if (NostrCrypto.verifyEvent(event)) {
                                 if (processedEventIds.add(event.id)) {
-                                    // Limit size of processed set
-                                    if (processedEventIds.size > 200) {
-                                        processedEventIds.remove(processedEventIds.first())
+                                    // Limit size of processed set (LRU prune)
+                                    if (processedEventIds.size > MAX_PROCESSED_EVENTS) {
+                                        val iterator = processedEventIds.iterator()
+                                        if (iterator.hasNext()) {
+                                            iterator.next()
+                                            iterator.remove()
+                                        }
                                     }
                                     onEventReceived(event)
                                 }

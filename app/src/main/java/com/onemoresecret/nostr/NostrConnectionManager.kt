@@ -58,6 +58,7 @@ class NostrConnectionManager(
                 .remove(PROP_NOSTR_PRIVKEY)
                 .remove(PROP_NOSTR_LAST_TIMESTAMP)
                 .apply()
+            NostrClient.clearProcessedEventCache()
         }
 
         fun hasValidSession(context: Context): Boolean {
@@ -68,8 +69,10 @@ class NostrConnectionManager(
         }
     }
 
-    fun start() {
-        Log.d(TAG, "Starting NostrConnectionManager on topic: $topic")
+    private val hasSentPairedAck = AtomicBoolean(false)
+
+    fun start(isNewPairing: Boolean = false) {
+        Log.d(TAG, "Starting NostrConnectionManager on topic: $topic (isNewPairing=$isNewPairing)")
         onStateChanged(State.CONNECTING)
 
         val pref = OmsPreferences.get(context)
@@ -81,8 +84,10 @@ class NostrConnectionManager(
             privateKey = privateKey,
             minCreatedAt = lastTimestamp,
             onRelayConnected = { relayUrl ->
-                Log.d(TAG, "Relay connected ($relayUrl) - publishing paired acknowledgment")
-                publishPairedAck()
+                if (isNewPairing && hasSentPairedAck.compareAndSet(false, true)) {
+                    Log.d(TAG, "Relay connected ($relayUrl) - publishing initial one-shot paired acknowledgment")
+                    publishPairedAck()
+                }
                 if (isConnected.compareAndSet(false, true)) {
                     onStateChanged(State.CONNECTED)
                 }

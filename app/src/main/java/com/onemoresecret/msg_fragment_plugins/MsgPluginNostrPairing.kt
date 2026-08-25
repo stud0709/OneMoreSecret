@@ -84,7 +84,7 @@ class MsgPluginNostrPairing(
                         )
 
                         (context as MainActivity).activeNostrConnection = connectionManager
-                        connectionManager.start()
+                        connectionManager.start(isNewPairing = true)
 
                         // Immediately navigate back to the previous screen
                         onNavigateBack()
