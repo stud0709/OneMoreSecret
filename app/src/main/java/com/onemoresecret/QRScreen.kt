@@ -570,20 +570,6 @@ if (showPinEntry) {
                                 text = { Text(stringResource(R.string.encrypt_text)) },
                                 onClick = { expanded = false; currentMenuLevel = "MAIN"; navController.navigate(EncryptTextRoute()) }
                             )
-                            if (nostrTopic.isNotEmpty()) {
-                                DropdownMenuItem(
-                                    text = { Text("Disconnect Nostr (${if (nostrTopic.length > 8) nostrTopic.take(8) + "..." else nostrTopic})") },
-                                    onClick = {
-                                        expanded = false
-                                        currentMenuLevel = "MAIN"
-                                        activity.destroyNostrListener()
-                                        activity.mainExecutor.execute {
-                                            Toast.makeText(context, "Nostr Session Disconnected", Toast.LENGTH_LONG).show()
-                                        }
-                                        nostrTopic = ""
-                                    }
-                                )
-                            }
                             DropdownMenuItem(
                                 text = { Text("Settings ▸") },
                                 onClick = { currentMenuLevel = "SETTINGS" }
