@@ -38,14 +38,25 @@ class NostrConnectionManager(
         private const val PROP_NOSTR_RELAYS = "nostr_session_relays"
         private const val PROP_NOSTR_PRIVKEY = "nostr_session_privkey"
         private const val PROP_NOSTR_LAST_TIMESTAMP = "nostr_session_last_timestamp"
+        private const val PROP_NOSTR_EXPIRES_AT = "nostr_session_expires_at"
+        const val DEFAULT_SESSION_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
 
-        fun saveSession(context: Context, topic: String, psk: ByteArray, relays: List<String>, privateKey: ByteArray) {
+        fun saveSession(
+            context: Context,
+            topic: String,
+            psk: ByteArray,
+            relays: List<String>,
+            privateKey: ByteArray,
+            ttlMs: Long = DEFAULT_SESSION_TTL_MS
+        ) {
             val preferences = OmsPreferences.get(context)
+            val expiresAt = System.currentTimeMillis() + ttlMs
             preferences.edit()
                 .putString(PROP_NOSTR_TOPIC, topic)
                 .putString(PROP_NOSTR_PSK, Base64.encodeToString(psk, Base64.NO_WRAP))
                 .putString(PROP_NOSTR_RELAYS, relays.joinToString(","))
                 .putString(PROP_NOSTR_PRIVKEY, Base64.encodeToString(privateKey, Base64.NO_WRAP))
+                .putLong(PROP_NOSTR_EXPIRES_AT, expiresAt)
                 .apply()
         }
 
@@ -57,6 +68,7 @@ class NostrConnectionManager(
                 .remove(PROP_NOSTR_RELAYS)
                 .remove(PROP_NOSTR_PRIVKEY)
                 .remove(PROP_NOSTR_LAST_TIMESTAMP)
+                .remove(PROP_NOSTR_EXPIRES_AT)
                 .apply()
             NostrClient.clearProcessedEventCache()
         }
@@ -65,7 +77,16 @@ class NostrConnectionManager(
             val preferences = OmsPreferences.get(context)
             val topic = preferences.getString(PROP_NOSTR_TOPIC, "")
             val psk = preferences.getString(PROP_NOSTR_PSK, "")
-            return !topic.isNullOrEmpty() && !psk.isNullOrEmpty()
+            val expiresAt = preferences.getLong(PROP_NOSTR_EXPIRES_AT, 0L)
+            
+            if (topic.isNullOrEmpty() || psk.isNullOrEmpty()) return false
+            
+            if (expiresAt > 0L && System.currentTimeMillis() > expiresAt) {
+                Log.d(TAG, "Nostr pairing session expired after 24h. Clearing session.")
+                clearSession(context)
+                return false
+            }
+            return true
         }
     }
 

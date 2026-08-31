@@ -45,8 +45,9 @@ class MsgPluginNostrPairing(
                     onStartClick = {
                         val privateKey = NostrCrypto.generatePrivateKey()
 
-                        // Save session parameters for durability across suspends
-                        NostrConnectionManager.saveSession(context, topic, psk, relays, privateKey)
+                        // Save session parameters for durability across suspends (24-hour expiration)
+                        val ttlMs = if (ttl >= 86400) ttl * 1000L else NostrConnectionManager.DEFAULT_SESSION_TTL_MS
+                        NostrConnectionManager.saveSession(context, topic, psk, relays, privateKey, ttlMs)
 
                         // Instantiate and start connection manager
                         val connectionManager = NostrConnectionManager(

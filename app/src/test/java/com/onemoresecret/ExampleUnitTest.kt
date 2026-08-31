@@ -173,4 +173,15 @@ class ExampleUnitTest {
 
         println("Master RSA encrypted Nostr pairing QR code test passed successfully!")
     }
+
+    @Test
+    fun testSessionExpirationCalculation() {
+        val now = System.currentTimeMillis()
+        val defaultTtl = com.onemoresecret.nostr.NostrConnectionManager.DEFAULT_SESSION_TTL_MS
+        assertEquals(24 * 60 * 60 * 1000L, defaultTtl)
+
+        val expiresAt = now + defaultTtl
+        assertTrue(expiresAt > now)
+        assertTrue(expiresAt - now == 86400000L)
+    }
 }
