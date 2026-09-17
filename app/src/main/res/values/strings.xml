@@ -169,7 +169,7 @@
     <string name="share_encrypted_file_using">Share encrypted file using…</string>
     <string name="reference">Reference: %s</string>
     <string name="key_response">Key Response</string>
-    <string name="key_response_is_ready">Key response for file %s is ready.</string>
+    <string name="key_response_is_ready">Key response is ready. Reference:\n\n%s</string>
     <string name="support_amp_feedback"><![CDATA[Support & Feedback]]></string>
     <string name="logcat">Logcat</string>
     <string name="could_not_decode">Could not decode message</string>
