@@ -18,8 +18,13 @@ class OmsFileProvider : FileProvider() {
 
         @JvmStatic
         @Throws(IOException::class)
-        fun create(ctx: Context, filename: String?, deleteOnExit: Boolean): FileRecord {
-            val dir = File(ctx.cacheDir, "tmp")
+        fun create(
+            ctx: Context,
+            filename: String?,
+            deleteOnExit: Boolean,
+            subdir: String? = null
+        ): FileRecord {
+            val dir = if (subdir == null) File(ctx.cacheDir, "tmp") else File(ctx.cacheDir, "tmp/$subdir")
             assert(
                 dir.exists() || dir.mkdirs() //otherwise something went wrong
             )

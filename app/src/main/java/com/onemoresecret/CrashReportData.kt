@@ -10,8 +10,9 @@ import java.io.PrintWriter
 import java.io.Serializable
 import java.io.StringWriter
 
-class CrashReportData(private val throwable: Throwable?) : Serializable {
-    private val logcat: String? = getLogcat()
+class CrashReportData(throwable: Throwable?, logcatTailLines: Int? = null) : Serializable {
+    private val stackTrace: String? = throwable?.let { renderStackTrace(it) }
+    private val logcat: String? = getLogcat(logcatTailLines)
 
     fun toString(includeLogcat: Boolean): String? {
         try {
@@ -24,9 +25,9 @@ class CrashReportData(private val throwable: Throwable?) : Serializable {
                             BuildConfig.FLAVOR
                         )
                     )
-                    if (throwable != null) {
+                    if (stackTrace != null) {
                         pw.println("\n----- STACK TRACE -----")
-                        throwable.printStackTrace(pw)
+                        pw.println(stackTrace)
                     }
                     pw.println("\n----- DEVICE -----")
                     pw.println("Brand: " + Build.BRAND)
@@ -55,8 +56,19 @@ class CrashReportData(private val throwable: Throwable?) : Serializable {
     companion object {
         private val TAG: String = CrashReportData::class.java.simpleName
 
-        fun getLogcat(): String? {
-            return getProcessOutput("logcat", "-b", "all", "-d")
+        private fun renderStackTrace(t: Throwable): String = try {
+            StringWriter().use { sw ->
+                PrintWriter(sw).use { pw -> t.printStackTrace(pw) }
+                sw.toString()
+            }
+        } catch (_: Throwable) {
+            "(stack trace unavailable)"
+        }
+
+        fun getLogcat(tailLines: Int? = null): String? = if (tailLines == null) {
+            getProcessOutput("logcat", "-b", "all", "-d")
+        } else {
+            getProcessOutput("logcat", "-b", "all", "-d", "-t", tailLines.toString())
         }
 
         fun getProcessOutput(vararg sArr: String?): String? {

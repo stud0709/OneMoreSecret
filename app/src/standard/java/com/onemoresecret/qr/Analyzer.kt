@@ -17,36 +17,46 @@ class Analyzer {
 
     @OptIn(ExperimentalGetImage::class)
     fun analyze(imageProxy: ImageProxy, onQRCodeFound: Consumer<String?>) {
-        if (mlTask != null) return
+        if (mlTask != null) {
+            imageProxy.close()
+            return
+        }
 
         val mediaImage = imageProxy.image
 
-        if (mediaImage != null) {
-            if (barcodeScanner == null) {
-                barcodeScanner = BarcodeScanning.getClient(
-                    BarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                        .build()
+        if (mediaImage == null) {
+            imageProxy.close()
+        } else {
+            try {
+                if (barcodeScanner == null) {
+                    barcodeScanner = BarcodeScanning.getClient(
+                        BarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                            .build()
+                    )
+                }
+                val inputImage = InputImage.fromMediaImage(
+                    mediaImage,
+                    imageProxy.imageInfo.rotationDegrees
                 )
-            }
-            val inputImage = InputImage.fromMediaImage(
-                mediaImage,
-                imageProxy.imageInfo.rotationDegrees
-            )
 
-            mlTask = barcodeScanner!!.process(inputImage)
-                .addOnSuccessListener { barcodes ->
-                    mlTask = null
-                    imageProxy.close()
-                    for (barcode in barcodes) {
-                        onQRCodeFound.accept(barcode.rawValue)
+                mlTask = barcodeScanner!!.process(inputImage)
+                    .addOnSuccessListener { barcodes ->
+                        for (barcode in barcodes) {
+                            onQRCodeFound.accept(barcode.rawValue)
+                        }
                     }
-                }
-                .addOnFailureListener { e ->
-                    mlTask = null
-                    imageProxy.close()
-                    e.printStackTrace()
-                }
+                    .addOnFailureListener { e ->
+                        e.printStackTrace()
+                    }
+                    .addOnCompleteListener {
+                        mlTask = null
+                        imageProxy.close()
+                    }
+            } catch (t: Throwable) {
+                imageProxy.close()
+                throw t
+            }
         }
     }
 }

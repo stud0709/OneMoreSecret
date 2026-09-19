@@ -81,6 +81,7 @@
     <string name="similar">Similar…</string>
     <string name="encrypt_with">Encrypt With:</string>
     <string name="share">Share</string>
+    <string name="copy">Copy</string>
     <string name="decrypted_message">Decrypted Message</string>
     <string name="auth_successful">Authentication was successful</string>
     <string name="cannot_apply_layout_filter">Cannot apply layout filter - no layout selected</string>
@@ -201,7 +202,6 @@
     <string name="ready_to_unlock_oms4web">Ready to unlock oms4web</string>
     <string name="qr_banner">⚠️ this is a BETA version, see <a href="https://github.com/stud0709/OneMoreSecret/releases">Release Notes</a></string>
     <string name="qr_banner1">🚀 oms4web is <a href="https://stud0709.github.io/oms4web/">here</a>, give it a try!</string>
-    <string name="could_not_send_email">Could not send email</string>
     <string name="crash_email_body">The report file has been attached. Please share the steps to reproduce the issue.</string>
     <string name="crash_email_subject">OneMoreSecret crash report</string>
     <string name="rsa_key_length_4096_bit">4096 bit RSA</string>

@@ -1,8 +1,14 @@
 package com.onemoresecret
 
-import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.PersistableBundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,38 +20,43 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import com.onemoresecret.CrashReportData
-import com.onemoresecret.OmsFileProvider
-import com.onemoresecret.R
 import com.onemoresecret.composable.OneMoreSecretTheme
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import kotlin.system.exitProcess
 
+private const val MAX_INLINE_REPORT_LENGTH = 128 * 1024
 
 class CrashReportActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //prohibit screenshots
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         Thread { OmsFileProvider.purgeTmp(this) }.start()
 
         @Suppress("DEPRECATION")
         val crashReportData = intent.getSerializableExtra(OmsUncaughtExceptionHandler.EXTRA_CRASH_REPORT) as? CrashReportData
-        
+
+        if (crashReportData == null) {
+            finish()
+            return
+        }
+
         setContent {
             OneMoreSecretTheme {
-                if (crashReportData != null) {
-                    CrashReport(
-                        crashReportData = crashReportData,
-                        onDismiss = {
-                            finish()
-                            exitProcess(0)
-                        }
-                    )
-                }
+                CrashReport(
+                    crashReportData = crashReportData,
+                    onDismiss = {
+                        finish()
+                        exitProcess(0)
+                    }
+                )
             }
         }
     }
@@ -105,60 +116,64 @@ fun CrashReport(
                 Text("Dismiss")
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = {
-                sendEmail(context, crashReportData, includeLogcat, onDismiss)
+            TextButton(onClick = {
+                copyToClipboard(context, reportText)
             }) {
-                Text("Send")
+                Text(stringResource(R.string.copy))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = {
+                shareReport(context, reportText)
+            }) {
+                Text(stringResource(R.string.share))
             }
         }
     }
 }
 
-// Extracted logic for sending the email
-private fun sendEmail(
-    context: android.content.Context,
-    crashReportData: CrashReportData,
-    includeLogcat: Boolean,
-    onComplete: () -> Unit
-) {
-    val contactEmail = context.getString(R.string.contact_email)
+private fun copyToClipboard(context: Context, report: String) {
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipData = ClipData.newPlainText("oneMoreSecret", report)
 
-    fun createBaseIntent(action: String): Intent {
-        return Intent(action).apply {
-            data = "mailto:".toUri()
-            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.crash_email_subject))
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(contactEmail))
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        clipData.description.extras = PersistableBundle().apply {
+            putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
         }
     }
 
-    try {
-        val crashReport = crashReportData.toString(includeLogcat)
-        val fileRecord = OmsFileProvider.create(context, "crash_report.txt", false)
-        Files.write(fileRecord.path, crashReport!!.toByteArray(StandardCharsets.UTF_8))
+    clipboardManager.setPrimaryClip(clipData)
+    Toast.makeText(context, context.getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+}
 
-        val intentSend = createBaseIntent(Intent.ACTION_SEND).apply {
-            putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            putExtra(Intent.EXTRA_TEXT, context.getString(R.string.crash_email_body))
-        }
+// Extracted logic for sharing the report
+private fun shareReport(context: Context, report: String) {
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.crash_email_subject))
+        putExtra(Intent.EXTRA_TITLE, context.getString(R.string.crash_email_subject))
+        putExtra(Intent.EXTRA_EMAIL, arrayOf(context.getString(R.string.contact_email)))
+    }
 
-        try {
-            context.startActivity(intentSend)
-            onComplete()
-        } catch (_: ActivityNotFoundException) {
-            try {
-                val intentSendTo = createBaseIntent(Intent.ACTION_SENDTO).apply {
-                    putExtra(Intent.EXTRA_TEXT, crashReport)
-                }
-                context.startActivity(intentSendTo)
-                onComplete()
-            } catch (_: ActivityNotFoundException) {
-                Toast.makeText(context,
-                    context.getString(R.string.could_not_send_email), Toast.LENGTH_LONG).show()
-                onComplete()
-            }
-        }
+    val attached = try {
+        val fileRecord = OmsFileProvider.create(context, "crash_report.txt", false, "crash")
+        Files.write(fileRecord.path, report.toByteArray(StandardCharsets.UTF_8))
+        sendIntent.putExtra(Intent.EXTRA_STREAM, fileRecord.uri)
+        sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        true
     } catch (ex: IOException) {
-        ex.printStackTrace()
+        Util.printStackTrace(ex)
+        false
     }
+
+    val body = context.getString(R.string.crash_email_body)
+    sendIntent.putExtra(
+        Intent.EXTRA_TEXT,
+        when {
+            report.length <= MAX_INLINE_REPORT_LENGTH -> "$body\n\n$report"
+            attached -> body
+            else -> "$body\n\n" + report.take(MAX_INLINE_REPORT_LENGTH)
+        }
+    )
+
+    context.startActivity(Intent.createChooser(sendIntent, null))
 }
