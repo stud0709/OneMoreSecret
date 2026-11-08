@@ -1,5 +1,6 @@
 package com.onemoresecret.crypto
 
+import org.onemoresecret.protocol.OmsProtocol
 import android.util.Log
 import com.onemoresecret.OmsDataInputStream
 import com.onemoresecret.OmsDataOutputStream
@@ -49,7 +50,8 @@ abstract class MessageComposer {
         @JvmField val fingerprint: ByteArray,
         @JvmField val aesTransformation: AesTransformation,
         @JvmField val iv: ByteArray,
-        @JvmField val encryptedAesSecretKey: ByteArray
+        @JvmField val encryptedAesSecretKey: ByteArray,
+        @JvmField val protocolHeader: OmsProtocol.Header? = null
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -121,7 +123,7 @@ abstract class MessageComposer {
          */
         const val OMS_PREFIX: String = "oms00_"
 
-        const val OMS_FILE_TYPE: String = "oms00"
+        const val OMS_FILE_TYPE: String = "oms"
 
         /**
          * Text encoded OMS messages begin with omsXX_ with XX being the protocol
@@ -139,48 +141,14 @@ abstract class MessageComposer {
          */
         @JvmStatic
         fun encodeAsOmsText(message: ByteArray): String {
-            return OMS_PREFIX + Base64.getEncoder().encodeToString(message)
-        }
+            return OmsProtocol.encodeText(message)
+    }
 
         @JvmStatic
         fun decode(omsText: String): ByteArray? {
-            var omsText = omsText
-            val m: Matcher = OMS_PATTERN.matcher(omsText)
-
-            if (!m.find()) {
-                //TOTP?
-                if (OneTimePassword(omsText).valid) {
-                    //this is a time based OTP, pass unchanged
-                    return omsText.toByteArray()
-                }
-                // not a valid OMS message
-                return null
-            }
-
-            val result: ByteArray?
-
-            val version = m.group(1)!!.toInt()
-
-            // (1) remove prefix and line breaks
-            omsText = omsText.substring(m.end())
-            
-            // Extract only the base64 part, stopping at the first invalid character (e.g., punctuation or backticks)
-            val b64Matcher = Pattern.compile("^[A-Za-z0-9+/=\\s]+").matcher(omsText)
-            if (b64Matcher.find()) {
-                omsText = b64Matcher.group()
-            }
-            
-            omsText = omsText.replace("\\s+".toRegex(), "")
-
-            if (version == 0) {
-                // (2) convert to byte array
-                result = Base64.getDecoder().decode(omsText)
-            } else {
-                throw UnsupportedOperationException("Unsupported version: $version")
-            }
-
-            return result
-        }
+            OmsProtocol.decodeText(omsText)?.let { return it }
+            return if (OneTimePassword(omsText).valid) omsText.toByteArray() else null
+    }
 
         @JvmStatic
         @Throws(
@@ -224,38 +192,17 @@ abstract class MessageComposer {
             aesTransformation: AesTransformation,
             payload: ByteArray
         ): ByteArray {
-            try {
-                ByteArrayOutputStream().use { baos ->
-                    OmsDataOutputStream(baos).use { dataOutputStream ->
-                        val aesEncryptionParameters: AesEncryptionParameters =
-                            prepareRsaAesEnvelope(
-                                dataOutputStream,
-                                applicationId,
-                                rsaPublicKeyMaterial,
-                                rsaTransformation,
-                                aesKeyLength,
-                                aesTransformation
-                            )
-                        // (7) AES-encrypted message
-                        dataOutputStream.writeByteArray(
-                            process(
-                                Cipher.ENCRYPT_MODE,
-                                payload,
-                                aesEncryptionParameters.aesKeyMaterial,
-                                aesEncryptionParameters.iv,
-                                aesTransformation
-                            )
-                        )
-                        //wipe
-                        aesEncryptionParameters.aesKeyMaterial.fill(0)
-                        aesEncryptionParameters.iv.fill(0)
-                        return baos.toByteArray()
-                    }
+            val publicKey = RSAUtil.restorePublicKey(rsaPublicKeyMaterial)
+            if (applicationId == APPLICATION_RSA_AES_GENERIC) {
+                OmsDataInputStream(java.io.ByteArrayInputStream(payload)).use { input ->
+                    val innerId = input.readUnsignedShort()
+                    val innerBody = input.readByteArray()
+                    require(input.read() == -1) { "Trailing generic payload" }
+                    return OmsProtocol.seal(publicKey, innerId, innerBody)
                 }
-            } catch (ex: IOException) {
-                throw RuntimeException(ex)
             }
-        }
+            return OmsProtocol.seal(publicKey, applicationId, payload)
+    }
 
         @Throws(
             NoSuchAlgorithmException::class,
@@ -312,6 +259,12 @@ abstract class MessageComposer {
         fun readRsaAesEnvelope(dataInputStream: OmsDataInputStream): RsaAesEnvelope {
             //(1) Application ID
             val applicationId = dataInputStream.readUnsignedShort()
+            if (applicationId == 0x254f) {
+                val header = OmsProtocol.readHeader(dataInputStream, applicationId)
+                require(header.kind == OmsProtocol.RSA) { "Not an RSA envelope" }
+                return RsaAesEnvelope(APPLICATION_RSA_AES_GENERIC, RsaTransformation.entries[2],
+                    header.fingerprint, AesTransformation.AES_GCM_NO_PADDING, header.noncePrefix, header.wrappedKey, header)
+            }
 
             //(2) RSA transformation index
             val rsaTransformation =

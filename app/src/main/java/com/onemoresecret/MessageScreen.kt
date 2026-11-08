@@ -14,11 +14,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +32,13 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.onemoresecret.Util.openUrl
+import com.onemoresecret.crypto.SecretFormatUpgrade
+import com.onemoresecret.crypto.BTCAddress
+import com.onemoresecret.crypto.MessageComposer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +46,8 @@ fun MessageScreen(
     applicationId: Int?,
     messageData: ByteArray?,
     uri: Uri?,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    upgradePublicKey: ByteArray? = null
 ) {
     val context = LocalContext.current
     val activity = context as FragmentActivity
@@ -43,6 +56,9 @@ fun MessageScreen(
     )
     val hiddenState by viewModel.hiddenState.collectAsState()
     val plugin = viewModel.plugin
+    val scope = rememberCoroutineScope()
+    var updating by remember { mutableStateOf(false) }
+    var updatedMessage by remember { mutableStateOf<UpdatedSecret?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -54,12 +70,39 @@ fun MessageScreen(
         }
     }
 
+    updatedMessage?.let { result ->
+        UpdatedFormatScreen(result) { updatedMessage = null }
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.message_fragment_label), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 actions = {
                     plugin?.TopBarActions()
+                    if (uri == null && upgradePublicKey != null && messageData != null && SecretFormatUpgrade.supports(applicationId)) {
+                        TextButton(enabled = !updating, onClick = {
+                            updating = true
+                            scope.launch {
+                                val body = messageData.copyOf()
+                                try {
+                                    updatedMessage = withContext(Dispatchers.IO) {
+                                        UpdatedSecret(
+                                            encryptedMessage = SecretFormatUpgrade.encrypt(
+                                                upgradePublicKey, requireNotNull(applicationId), body
+                                            ),
+                                            bitcoinAddress = if (applicationId == MessageComposer.APPLICATION_BITCOIN_ADDRESS) {
+                                                BTCAddress.addressFromWif(body)
+                                            } else null
+                                        )
+                                    }
+                                } catch (ex: CancellationException) { throw ex }
+                                catch (ex: Exception) { Toast.makeText(context, ex.message, Toast.LENGTH_LONG).show() }
+                                finally { body.fill(0); updating = false }
+                            }
+                        }) { Text(stringResource(R.string.update_backup_format)) }
+                    }
                     if (plugin?.showVisibilityButton == true) {
                         IconButton(onClick = { viewModel.toggleVisibility() }) {
                             Icon(

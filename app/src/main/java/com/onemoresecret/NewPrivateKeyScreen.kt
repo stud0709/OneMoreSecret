@@ -2,8 +2,6 @@ package com.onemoresecret
 
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.Bitmap
-import android.text.Html
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +39,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.zxing.WriterException
 import com.onemoresecret.OmsFileProvider.Companion.create
 import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.printStackTrace
@@ -50,28 +47,19 @@ import com.onemoresecret.crypto.AESUtil.generateSalt
 import com.onemoresecret.crypto.AESUtil.getAesKeyAlgorithm
 import com.onemoresecret.crypto.AESUtil.getAesKeyMaterialFromPassword
 import com.onemoresecret.crypto.AESUtil.getAesTransformation
-import com.onemoresecret.crypto.AESUtil.getKeyLength
 import com.onemoresecret.crypto.AESUtil.getKeySpecIterations
-import com.onemoresecret.crypto.AESUtil.getSaltLength
 import com.onemoresecret.crypto.AesEncryptedPrivateKeyTransfer
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.CryptographyManager.Companion.generateKeyPair
-import com.onemoresecret.crypto.MessageComposer.Companion.encodeAsOmsText
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
-import com.onemoresecret.qr.QRUtil
-import com.onemoresecret.qr.QRUtil.getQrSequence
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.SecureRandom
 import java.util.Arrays
-import java.util.Base64
-import kotlin.math.min
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -328,10 +316,11 @@ class NewPrivateKeyViewModel(
                 val ivSize = getAesTransformation(preferences).ivLength
                 val iv = ByteArray(ivSize)
                 SecureRandom().nextBytes(iv)
-                val salt = generateSalt(getSaltLength(preferences))
-                val aesKeyLength = getKeyLength(preferences)
+                val salt = generateSalt(16)
+                val aesKeyLength = 256
                 val aesKeySpecIterations = getKeySpecIterations(preferences)
-                val aesKeyAlgorithm = getAesKeyAlgorithm(preferences).keyAlgorithm
+                require(aesKeySpecIterations in 1..org.onemoresecret.protocol.OmsProtocol.MAX_ITERATIONS) { "Unsupported PBKDF2 iteration count" }
+                val aesKeyAlgorithm = "PBKDF2WithHmacSHA256"
 
                 val aesKeyMaterial = getAesKeyMaterialFromPassword(
                     state.password.toCharArray(),
@@ -376,99 +365,19 @@ class NewPrivateKeyViewModel(
                 state = state.copy(isKeyCreated = true)
 
                 //share HTML file
-                val html = getKeyBackupHtml(state.alias, fingerprint, message)
+                val html = PrivateKeyBackupDocument.createHtml(preferences, state.alias, fingerprint, message)
                 val fingerprintString = byteArrayToHex(fingerprint).replace("\\s".toRegex(), "_")
 
                 val fileRecord = create(context, "pk_$fingerprintString.html", true)
                 Files.write(fileRecord.path, html.toByteArray(StandardCharsets.UTF_8))
                 fileRecord.path!!.toFile().deleteOnExit()
-                
+
                 _event.emit(Event.ShareFile(fileRecord.uri!!, state.alias))
             } catch (ex: Exception) {
                 printStackTrace(ex)
                 _event.emit(Event.ShowToast(ex.message ?: ex.toString()))
             }
         }
-    }
-
-    @Throws(WriterException::class, IOException::class)
-    private fun getKeyBackupHtml(
-        alias: String?, fingerprint: ByteArray, message: ByteArray
-    ): String = buildString {
-        val list = getQrSequence(
-            encodeAsOmsText(message),
-            QRUtil.getChunkSize(preferences),
-            QRUtil.getBarcodeSize(preferences)
-        )
-        append(
-            """
-            <html><body><h1>OneMoreSecret Private Key Backup</h1>            
-            <p><b>Keep this file / printout in a secure location</b></p><p>
-            This is a hard copy of your Private Key for OneMoreSecret. 
-            It can be used to import your Private Key into a new device or after a reset of OneMoreSecret App.
-            This document is encrypted with AES, you will need your TRANSPORT PASSWORD to complete the import procedure.</p>            
-            <h2>WARNING:</h2>            
-            <p>DO NOT share this document with other persons.<br>
-            DO NOT provide its content to untrusted apps, on the Internet etc.<br>
-            If you need to restore your Key, start OneMoreSecret App on your phone BY HAND and scan the codes. 
-            DO NOT trust unexpected prompts and pop-ups.<br>            
-            <b>THIS DOCUMENT IS THE ONLY WAY TO RESTORE YOUR PRIVATE KEY</b></p>            
-            <p><b>Key alias:&nbsp;${Html.escapeHtml(alias)}</b></p>            
-            <p><b>RSA Fingerprint:&nbsp;${byteArrayToHex(fingerprint)}</b></p>            
-            <p>Scan this with your OneMoreSecret App:</p><p>
-            """.trimIndent()
-        )
-
-        for (i in list.indices) {
-            val bitmap = list[i]
-            ByteArrayOutputStream().use { baos ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                baos.flush()
-                append(
-                    """
-                    <table style="display: inline-block;">                
-                    <tr style="vertical-align: bottom;">                
-                    <td>${(i + 1)}</td>                
-                    <td>                
-                    <img src="data:image/png;base64,${
-                        Base64.getEncoder().encodeToString(baos.toByteArray())
-                    }" style="width:200px;height:200px;">                    
-                    </td>                    
-                    </tr>                
-                    </table>
-                    """.trimIndent()
-                )
-            }
-        }
-        append(
-            """
-            </p>                
-            <h2>Long-Term Backup and Technical Details</h2>                
-            <p>Base64 Encoded Message:&nbsp;</p>                
-            <p style="font-family:monospace;">
-            """.trimIndent()
-        )
-
-        val messageAsUrl = encodeAsOmsText(message)
-        var offset = 0
-
-        while (offset < messageAsUrl.length) {
-            val s = messageAsUrl.substring(
-                offset, min(offset + Util.BASE64_LINE_LENGTH, messageAsUrl.length)
-            )
-            append(s).append("<br>")
-            offset += Util.BASE64_LINE_LENGTH
-        }
-
-        append(
-            """
-            </p>            
-            <p>Message format: oms00_[base64 encoded data]"</p>            
-            <p>Data format: see https://github.com/stud0709/OneMoreSecret/blob/master/app/src/main/java/com/onemoresecret/crypto/AesEncryptedPrivateKeyTransfer.java</p>
-            </body>            
-            </html>
-            """.trimIndent()
-        )
     }
 
     sealed class Action {

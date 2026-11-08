@@ -14,8 +14,8 @@ android {
         applicationId = "com.onemoresecret"
         minSdk = 31
         targetSdk = 37
-        versionCode = 44
-        versionName = "1.0"
+        versionCode = 45
+        versionName = "1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,6 +29,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
+    sourceSets { test.java.srcDir("$rootDir/protocol/test") }
+    testOptions { unitTests.all { systemProperty 'oms.fixtures', "$rootDir/protocol/test-vectors/fixtures.json" } }
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -61,8 +63,8 @@ android {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:5.5.0'
-    implementation 'androidx.navigation:navigation-compose:2.10.1'
+    implementation 'com.squareup.okhttp3:okhttp:5.5.1'
+    implementation 'androidx.navigation:navigation-compose:2.10.2'
     implementation 'com.google.android.material:material:1.14.0'
     implementation 'androidx.biometric:biometric:1.1.0'
     testImplementation 'junit:junit:4.13.2'
@@ -79,9 +81,9 @@ dependencies {
     implementation 'fr.acinq.secp256k1:secp256k1-kmp:0.24.0'
     implementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.24.0'
     testImplementation 'fr.acinq.secp256k1:secp256k1-kmp-jni-jvm:0.24.0'
-    implementation 'androidx.core:core-ktx:1.19.0'
+    implementation 'androidx.core:core-ktx:1.19.1'
 
-    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0'
 
     //Jetpack Compose
     implementation platform('androidx.compose:compose-bom:2026.09.00')

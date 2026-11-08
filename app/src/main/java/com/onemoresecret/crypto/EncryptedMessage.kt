@@ -15,13 +15,7 @@ open class EncryptedMessage(
     val message: ByteArray
 
     init {
-        this.message = MessageComposer.createRsaAesEnvelope(
-            rsaPublicKeyMaterial,
-            rsaTransformation,
-            aesKeyLength,
-            aesTransformation,
-            createPayload(this.applicationId, message)
-        )
+        this.message = org.onemoresecret.protocol.OmsProtocol.seal(RSAUtil.restorePublicKey(rsaPublicKeyMaterial), this.applicationId, message)
     }
 
     private fun createPayload(ai: Int, message: ByteArray): ByteArray {

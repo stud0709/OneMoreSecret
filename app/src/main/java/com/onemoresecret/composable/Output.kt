@@ -107,6 +107,7 @@ fun OutputScreen(
         outputViewModel.refreshBluetoothControls()
 
         onDispose {
+            outputViewModel.typing.set(false)
             applicationContext.unregisterReceiver(receiver)
             controller.destroy()
             outputViewModel.bluetoothController = null

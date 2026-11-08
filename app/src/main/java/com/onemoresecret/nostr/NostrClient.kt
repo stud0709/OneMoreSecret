@@ -198,36 +198,11 @@ class NostrClient(
                             val eventObj = jsonArray[2]
                             val event = Json.decodeFromJsonElement<NostrEvent>(eventObj)
                             
-                            // Early deduplication before costly crypto checks
-                            if (processedEventIds.contains(event.id)) {
-                                Log.d(TAG, "Ignoring duplicate Nostr event from $url (id: ${event.id})")
-                                return
-                            }
-
-                            if (minCreatedAt > 0L && event.createdAt <= minCreatedAt) {
-                                Log.d(TAG, "Ignoring stale event created at ${event.createdAt} (minCreatedAt: $minCreatedAt)")
-                                return
-                            }
                             val nowSec = System.currentTimeMillis() / 1000L
-                            if (event.createdAt < (nowSec - 60L)) {
-                                Log.d(TAG, "Ignoring expired event created at ${event.createdAt} (now: $nowSec, age: ${nowSec - event.createdAt}s > 60s)")
-                                return
-                            }
-                            if (NostrCrypto.verifyEvent(event)) {
-                                if (processedEventIds.add(event.id)) {
-                                    // Limit size of processed set (LRU prune)
-                                    if (processedEventIds.size > MAX_PROCESSED_EVENTS) {
-                                        val iterator = processedEventIds.iterator()
-                                        if (iterator.hasNext()) {
-                                            iterator.next()
-                                            iterator.remove()
-                                        }
-                                    }
-                                    onEventReceived(event)
-                                }
-                            } else {
-                                Log.w(TAG, "Received invalid Nostr event signature for id: ${event.id}")
-                            }
+                            if (event.kind != KIND_EPHEMERAL || event.tags.none { it.size >= 2 && it[0] == "t" && it[1] == topic }) return
+                            if (event.createdAt < nowSec - 60L || event.createdAt > nowSec + 30L || event.content.length > 1500000) return
+                            if (NostrCrypto.verifyEvent(event)) onEventReceived(event)
+
                         }
                     }
                 } catch (e: Exception) {
@@ -283,7 +258,7 @@ class NostrClient(
         }
     }
 
-    fun publish(content: String, extraTags: List<List<String>> = emptyList()) {
+    fun publish(content: String, extraTags: List<List<String>> = emptyList(), createdAt: Long = System.currentTimeMillis() / 1000L) {
         val tags = mutableListOf(
             listOf("t", topic)
         )
@@ -291,7 +266,7 @@ class NostrClient(
 
         val event = NostrCrypto.signEvent(
             privateKey = privateKey,
-            createdAt = System.currentTimeMillis() / 1000L,
+            createdAt = createdAt,
             kind = KIND_EPHEMERAL,
             tags = tags,
             content = content

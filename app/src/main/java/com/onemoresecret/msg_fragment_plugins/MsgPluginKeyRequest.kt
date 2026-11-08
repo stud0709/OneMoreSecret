@@ -58,9 +58,11 @@ open class MsgPluginKeyRequest(
     private var messageText by mutableStateOf("")
     private var outputMessage by mutableStateOf("")
     private var replyState by mutableStateOf<ByteArray?>(null)
+    private val v1Request = if (org.onemoresecret.protocol.OmsProtocol.hasMagic(messageData)) org.onemoresecret.protocol.OmsProtocol.readRequest(messageData) else null
+    private val responseSender = (activity as? MainActivity)?.activeMessageSender
 
     init {
-        ByteArrayInputStream(messageData).use { bais ->
+        ByteArrayInputStream(v1Request?.legacy ?: messageData).use { bais ->
             OmsDataInputStream(bais).use { dataInputStream ->
                 applicationId = dataInputStream.readUnsignedShort()
                 when (applicationId) {
@@ -79,6 +81,11 @@ open class MsgPluginKeyRequest(
                         rsaTransformation = RsaTransformation.entries[dataInputStream.readUnsignedShort()]
                         encryptedAesKey = dataInputStream.readByteArray()
                     }
+                }
+                require(dataInputStream.read() == -1) { "Trailing key request data" }
+                if (v1Request != null) {
+                    require(v1Request.targetProtocol == 0 || rsaTransformation == RsaTransformation.entries[2]) { "Invalid target RSA suite" }
+                    require(applicationId == 11 || rsaTransformationResponse == RsaTransformation.entries[2]) { "Invalid response RSA suite" }
                 }
             }
         }
@@ -120,7 +127,7 @@ open class MsgPluginKeyRequest(
         if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
             Oms4WebUnlockScreen(message = outputMessage, onNavigateBack = onNavigateBack)
         } else if (applicationId == MessageComposer.APPLICATION_KEY_REQUEST_PAIRING) {
-            KeyRequestPairingScreen(replyState = replyState, onNavigateBack = onNavigateBack)
+            KeyRequestPairingScreen(replyState = replyState, onNavigateBack = onNavigateBack, sendReply = { data -> responseSender?.sendReply(data, true) })
         } else {
             com.onemoresecret.composable.OutputScreen(outputViewModel = outputViewModel)
         }
@@ -137,14 +144,16 @@ open class MsgPluginKeyRequest(
             masterRsaCipher, keyStoreEntry, rsaTransformation!!, Cipher.DECRYPT_MODE
         )
 
+        var aesKeyMaterial: ByteArray? = null
         try {
-            val aesKeyMaterial = userRsaCipher.cipher.doFinal(encryptedAesKey)
-            userRsaCipher.wipe.invoke()
+            aesKeyMaterial = userRsaCipher.cipher.doFinal(encryptedAesKey)
 
             when (applicationId) {
                 MessageComposer.APPLICATION_KEY_REQUEST,
                 MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST -> {
-                    val rsaEncryptedAesKey = RSAUtil.process(
+                    val rsaEncryptedAesKey = if (v1Request != null) org.onemoresecret.protocol.OmsProtocol.rsa(
+                        Cipher.ENCRYPT_MODE, RSAUtil.restorePublicKey(rsaPublicKeyMaterial!!), aesKeyMaterial
+                    ) else RSAUtil.process(
                         Cipher.ENCRYPT_MODE, rsaPublicKeyMaterial!!, rsaTransformationResponse!!, aesKeyMaterial
                     )
                     Arrays.fill(aesKeyMaterial, 0.toByte())
@@ -153,7 +162,8 @@ open class MsgPluginKeyRequest(
                         OmsDataOutputStream(baos).use { dataOutputStream ->
                             dataOutputStream.writeUnsignedShort(MessageComposer.APPLICATION_KEY_RESPONSE)
                             dataOutputStream.writeByteArray(rsaEncryptedAesKey)
-                            val base64Message = Base64.getEncoder().encodeToString(baos.toByteArray())
+                            val bytes = v1Request?.let { org.onemoresecret.protocol.OmsProtocol.reply(it.id, false, rsaEncryptedAesKey) } ?: baos.toByteArray()
+                            val base64Message = Base64.getEncoder().encodeToString(bytes)
 
                             if (applicationId == MessageComposer.APPLICATION_OMS4WEB_CALLBACK_REQUEST) {
                                 messageText = context.getString(R.string.ready_to_unlock_oms4web)
@@ -171,8 +181,8 @@ open class MsgPluginKeyRequest(
                     ByteArrayOutputStream().use { baos ->
                         OmsDataOutputStream(baos).use { dataOutputStream ->
                             dataOutputStream.writeByteArray(aesKeyMaterial)
+                            replyState = v1Request?.let { org.onemoresecret.protocol.OmsProtocol.reply(it.id, true, aesKeyMaterial) } ?: baos.toByteArray()
                             Arrays.fill(aesKeyMaterial, 0.toByte())
-                            replyState = baos.toByteArray()
                         }
                     }
                 }
@@ -183,6 +193,9 @@ open class MsgPluginKeyRequest(
                 Toast.makeText(context, e.message ?: "Auth failed", Toast.LENGTH_SHORT).show()
                 onNavigateBack()
             }
+        } finally {
+            aesKeyMaterial?.fill(0)
+            userRsaCipher.wipe.invoke()
         }
     }
 }
@@ -192,7 +205,8 @@ open class MsgPluginKeyRequest(
 @Composable
 fun KeyRequestPairingScreen(
     replyState: ByteArray?,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    sendReply: (ByteArray) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -205,7 +219,7 @@ fun KeyRequestPairingScreen(
             }
             val activity = ctx as? MainActivity
             replyState?.let { replyData ->
-                activity?.sendReply(replyData, true)
+                sendReply(replyData)
             }
             onNavigateBack()
         }

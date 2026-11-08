@@ -104,6 +104,7 @@ object QRScreen {
 
     const val ARG_URI = "URI"
     const val ARG_MESSAGE = "MESSAGE"
+    const val ARG_UPGRADE_PUBLIC_KEY = "UPGRADE_PUBLIC_KEY"
     const val ARG_APPLICATION_ID = "AI"
 }
 
@@ -301,7 +302,12 @@ fun QRScreen(navController: NavController) {
 
     fun onUri(uri: Uri, popBackStack: Boolean = false) {
         val fileInfo = Util.getFileInfo(context, uri)
-        if (fileInfo.filename.endsWith(".${MessageComposer.OMS_FILE_TYPE}")) {
+        val encrypted = context.contentResolver.openInputStream(uri)?.use { input ->
+            val prefix = ByteArray(5); var count = 0
+            while (count < prefix.size) { val n = input.read(prefix, count, prefix.size - count); if (n <= 0) break; count += n }
+            org.onemoresecret.protocol.OmsProtocol.hasMagic(prefix)
+        } ?: false
+        if (encrypted || fileInfo.filename.endsWith(".oms") || fileInfo.filename.endsWith(".oms00")) {
             navController.navigate(MessageRoute(uriString = uri.toString(), popBackStack = popBackStack))
         } else {
             navController.navigate(FileEncryptionRoute(uriString = uri.toString(), popBackStack = popBackStack))

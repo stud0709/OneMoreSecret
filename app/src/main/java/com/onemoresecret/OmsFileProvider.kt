@@ -20,13 +20,13 @@ class OmsFileProvider : FileProvider() {
         @Throws(IOException::class)
         fun create(ctx: Context, filename: String?, deleteOnExit: Boolean): FileRecord {
             val dir = File(ctx.cacheDir, "tmp")
-            assert(
-                dir.exists() || dir.mkdirs() //otherwise something went wrong
-            )
-
-            val p = dir.toPath().resolve(filename)
+            require(dir.exists() || dir.mkdirs()) { "Cannot create temporary directory" }
+            val name = requireNotNull(filename)
+            require(name.isNotBlank() && name != "." && name != ".." && !name.contains('/') && !name.contains('\\')) { "Unsafe filename" }
+            val root = dir.toPath().toAbsolutePath().normalize()
+            val p = root.resolve(name).normalize()
+            require(p.parent == root) { "Unsafe output path" }
             val f = p.toFile()
-            if (Files.exists(p)) Files.delete(p)
             if (deleteOnExit) f.deleteOnExit()
 
             return FileRecord(p, getUriForFile(ctx, "com.onemoresecret.fileprovider", f))

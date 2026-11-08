@@ -1,6 +1,7 @@
 package com.onemoresecret
 
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -42,20 +43,20 @@ import com.onemoresecret.Util.byteArrayToHex
 import com.onemoresecret.Util.openUrl
 import com.onemoresecret.Util.printStackTrace
 import com.onemoresecret.composable.PasswordField
-import com.onemoresecret.crypto.AESUtil.getAesKeyMaterialFromPassword
-import com.onemoresecret.crypto.AESUtil.process
 import com.onemoresecret.crypto.AesKeyAlgorithm
 import com.onemoresecret.crypto.AesTransformation
+import com.onemoresecret.crypto.PrivateKeyBackup
 import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil.getFingerprint
 import com.onemoresecret.crypto.RSAUtil.restorePublicKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.file.Files
+import java.util.UUID
 import java.io.ByteArrayInputStream
-import java.util.Arrays
-import javax.crypto.Cipher
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +68,7 @@ fun KeyImportScreen(
 ) {
     val context = LocalContext.current
     val strUnknownDecryptFirst = stringResource(R.string.unknown_decrypt_first)
+    val strBackupFile = stringResource(R.string.backup_file)
 
     LaunchedEffect(message) {
         try {
@@ -104,13 +106,24 @@ fun KeyImportScreen(
             },
             warning = viewModel.warning,
             saveEnabled = viewModel.saveEnabled,
+            isBusy = viewModel.isBusy,
             onAliasChange = {
                 viewModel.keyAlias = it
                 viewModel.validateAlias(context, viewModel.decryptedFingerprintBytes)
             },
             onPassphraseChange = { viewModel.passphrase = it },
             onDecrypt = { viewModel.onDecryptClicked(context) },
-            onSave = { viewModel.onSaveClicked(context, onImportCompleted) }
+            onSave = { viewModel.onSaveClicked(context, onImportCompleted) },
+            onUpdateFormat = {
+                viewModel.onUpdateFormatClicked(context) { uri, alias ->
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        type = "text/html"
+                    }
+                    context.startActivity(Intent.createChooser(intent, String.format(strBackupFile, alias)))
+                }
+            }
         )
     }
 }
@@ -123,15 +136,27 @@ class KeyImportViewModel : ViewModel() {
     var fingerprint by mutableStateOf("")
     var warning by mutableStateOf("")
     var saveEnabled by mutableStateOf(false)
+    var isBusy by mutableStateOf(false)
+        private set
 
     var decryptedPrivateKeyMaterial: ByteArray? = null
     var decryptedPublicKeyMaterial: ByteArray? = null
     var decryptedFingerprintBytes: ByteArray? = null
     private var encryptedPayload: EncryptedPayload? = null
+    private var originalBackup = ByteArray(0)
+    private var protocolHeader: org.onemoresecret.protocol.OmsProtocol.Header? = null
 
     fun init(message: ByteArray) {
         if (encryptedPayload != null) return
+        originalBackup = message.copyOf()
         OmsDataInputStream(ByteArrayInputStream(message)).use { dataInputStream ->
+            if (org.onemoresecret.protocol.OmsProtocol.hasMagic(message)) {
+                val h = org.onemoresecret.protocol.OmsProtocol.readHeader(dataInputStream)
+                require(h.kind == org.onemoresecret.protocol.OmsProtocol.PASSWORD) { "Not a key backup" }
+                protocolHeader = h
+                encryptedPayload = EncryptedPayload(h.salt, h.noncePrefix, dataInputStream.readBytes(), AesTransformation.AES_GCM_NO_PADDING, "PBKDF2WithHmacSHA256", 256, h.iterations)
+                return
+            }
             val applicationId = dataInputStream.readUnsignedShort()
             require(applicationId == MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER) { "wrong applicationId: $applicationId" }
 
@@ -158,55 +183,86 @@ class KeyImportViewModel : ViewModel() {
     }
 
     fun onDecryptClicked(context: Context) {
-        val payload = encryptedPayload ?: return
+        if (encryptedPayload == null || isBusy) return
+        isBusy = true
+        saveEnabled = false
+        val password = passphrase.toCharArray()
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val aesKeyMaterial = getAesKeyMaterialFromPassword(
-                    passphrase.toCharArray(),
-                    payload.salt,
-                    payload.keyAlg,
-                    payload.keyLength,
-                    payload.iterations
-                )
-
-                val bArr = process(
-                    Cipher.DECRYPT_MODE,
-                    payload.cipherText,
-                    aesKeyMaterial,
-                    payload.iv,
-                    payload.aesTransformation
-                )
-
-                Arrays.fill(aesKeyMaterial, 0.toByte())
-
-                OmsDataInputStream(ByteArrayInputStream(bArr)).use { dataInputStream ->
-                    val privateKeyMaterial = dataInputStream.readByteArray()
-                    val publicKeyMaterial = dataInputStream.readByteArray()
-
-                    val publicKey = restorePublicKey(publicKeyMaterial)
-                    val fingerprintBytes = getFingerprint(publicKey)
-                    val fingerprintString = byteArrayToHex(fingerprintBytes)
-
-                    withContext(Dispatchers.Main) {
-                        decryptedPrivateKeyMaterial = privateKeyMaterial
-                        decryptedPublicKeyMaterial = publicKeyMaterial
-                        decryptedFingerprintBytes = fingerprintBytes
-                        fingerprint = fingerprintString
-                        saveEnabled = true
-                        validateAlias(context, fingerprintBytes)
-                    }
+                val result = org.onemoresecret.protocol.BackupCodec.open(originalBackup, password)
+                val fingerprintBytes = getFingerprint(restorePublicKey(result.publicKey))
+                withContext(Dispatchers.Main) {
+                    keyAlias = result.alias
+                    decryptedPrivateKeyMaterial?.fill(0)
+                    decryptedPrivateKeyMaterial = result.privateKey
+                    decryptedPublicKeyMaterial = result.publicKey
+                    decryptedFingerprintBytes = fingerprintBytes
+                    fingerprint = byteArrayToHex(fingerprintBytes)
+                    saveEnabled = true
+                    validateAlias(context, fingerprintBytes)
                 }
             } catch (ex: Exception) {
+                withContext(Dispatchers.Main) { Toast.makeText(context, "Could not decrypt or validate key backup. Wrong passphrase?", Toast.LENGTH_LONG).show() }
+            } finally {
+                password.fill('\u0000')
+                withContext(kotlinx.coroutines.NonCancellable + Dispatchers.Main) { isBusy = false }
+            }
+        }
+    }
+
+    fun onUpdateFormatClicked(context: Context, onBackupReady: (android.net.Uri, String) -> Unit) {
+        if (!saveEnabled || isBusy) return
+        val alias = keyAlias.trim()
+        if (alias.isEmpty()) {
+            Toast.makeText(context, R.string.key_alias_may_not_be_empty, Toast.LENGTH_LONG).show()
+            return
+        }
+        // Snapshot the validated pair before background work; screen disposal clears the originals.
+        val privateKey = decryptedPrivateKeyMaterial?.copyOf() ?: return
+        val publicKey = decryptedPublicKeyMaterial?.copyOf() ?: run { privateKey.fill(0); return }
+        val password = passphrase.toCharArray()
+        isBusy = true
+        viewModelScope.launch {
+            var output: java.nio.file.Path? = null
+            var shared = false
+            try {
+                val record = withContext(Dispatchers.IO) {
+                    val preferences = OmsPreferences.get(context)
+                    val message = PrivateKeyBackup.create(alias, privateKey, publicKey, password,
+                        com.onemoresecret.crypto.AESUtil.getKeySpecIterations(preferences))
+                    val fingerprint = getFingerprint(restorePublicKey(publicKey))
+                    val html = PrivateKeyBackupDocument.createHtml(preferences, alias, fingerprint, message)
+                    val fingerprintText = byteArrayToHex(fingerprint).replace(" ", "_")
+                    val file = OmsFileProvider.create(context, "pk_" + fingerprintText + "_" + UUID.randomUUID() + ".html", true)
+                    output = requireNotNull(file.path)
+                    Files.write(output, html.toByteArray(Charsets.UTF_8))
+                    file
+                }
+                onBackupReady(requireNotNull(record.uri), alias)
+                shared = true
+            } catch (ex: CancellationException) {
+                throw ex
+            } catch (ex: Exception) {
                 printStackTrace(ex)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context,
-                        "Could not decrypt. Wrong passphrase?",
-                        Toast.LENGTH_LONG
-                    ).show()
+                Toast.makeText(context, ex.message ?: context.getString(R.string.could_not_update_backup), Toast.LENGTH_LONG).show()
+            } finally {
+                privateKey.fill(0)
+                publicKey.fill(0)
+                password.fill('\u0000')
+                isBusy = false
+                if (!shared) {
+                    try { output?.let { Files.deleteIfExists(it) } }
+                    catch (ex: java.io.IOException) { printStackTrace(ex) }
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        decryptedPrivateKeyMaterial?.fill(0)
+        originalBackup.fill(0)
+        passphrase = ""
+        super.onCleared()
     }
 
     fun validateAlias(context: Context, fingerprintNew: ByteArray?) {
@@ -240,7 +296,7 @@ class KeyImportViewModel : ViewModel() {
     }
 
     fun onSaveClicked(context: Context, onImportCompleted: () -> Unit) {
-        if (!saveEnabled) return
+        if (!saveEnabled || isBusy) return
 
         val fingerprintBytes = decryptedFingerprintBytes ?: return
         val privateKeyMaterial = decryptedPrivateKeyMaterial ?: return
@@ -250,17 +306,7 @@ class KeyImportViewModel : ViewModel() {
             try {
                 val preferences = com.onemoresecret.OmsPreferences.get(context)
 
-                val sameFingerprint = cryptographyManager.getByFingerprint(
-                    fingerprintBytes,
-                    preferences
-                )
-                if (sameFingerprint != null) {
-                    cryptographyManager.deleteKey(sameFingerprint.alias, preferences)
-                }
-
-                val alias = keyAlias.trim { it <= ' ' }
-
-                cryptographyManager.deleteKey(alias, preferences)
+                val alias = keyAlias.trim()
 
                 cryptographyManager.importRsaKey(
                     preferences,
@@ -337,10 +383,12 @@ fun KeyImportUI(
     fingerprint: String,
     warning: String,
     saveEnabled: Boolean,
+    isBusy: Boolean,
     onAliasChange: (String) -> Unit,
     onPassphraseChange: (String) -> Unit,
     onDecrypt: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onUpdateFormat: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -354,6 +402,7 @@ fun KeyImportUI(
         OutlinedTextField(
             value = alias,
             onValueChange = onAliasChange,
+            enabled = !isBusy,
             label = { Text(stringResource(R.string.key_alias)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -364,7 +413,7 @@ fun KeyImportUI(
                 Text(text = stringResource(R.string.transport_passphrase_required))
                 PasswordField(
                     value = passphrase,
-                    enabled = !saveEnabled,
+                    enabled = !saveEnabled && !isBusy,
                     onValueChange = onPassphraseChange,
                     label = stringResource(R.string.passphrase),
                     modifier = Modifier.fillMaxWidth()
@@ -372,7 +421,7 @@ fun KeyImportUI(
 
                 Button(
                     onClick = onDecrypt,
-                    enabled = !saveEnabled,
+                    enabled = !saveEnabled && !isBusy,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.decrypt))
@@ -400,10 +449,24 @@ fun KeyImportUI(
 
             Button(
                 onClick = onSave,
-                enabled = saveEnabled,
+                enabled = saveEnabled && !isBusy,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.save))
+            }
+
+            AnimatedVisibility(visible = saveEnabled) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onUpdateFormat,
+                        enabled = !isBusy,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(stringResource(R.string.update_backup_format)) }
+                    Text(
+                        text = stringResource(R.string.update_backup_format_description),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             Text(

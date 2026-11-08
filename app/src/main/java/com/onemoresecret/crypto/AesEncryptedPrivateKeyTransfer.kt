@@ -28,56 +28,15 @@ class AesEncryptedPrivateKeyTransfer(
     val message: ByteArray
 
     init {
-        // --- create message ---
-        try {
-            ByteArrayOutputStream().use { baos ->
-                OmsDataOutputStream(baos).use { dataOutputStream ->
-                    // (1) application-ID
-                    dataOutputStream.writeUnsignedShort(
-                        APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER
-                    )
-
-                    // (2) alias
-                    dataOutputStream.writeString(alias)
-
-                    // --- AES parameter ---
-
-                    // (3) salt
-                    dataOutputStream.writeByteArray(salt)
-
-                    // (4) iv
-                    dataOutputStream.writeByteArray(iv)
-
-                    // (5) AES transformation index
-                    dataOutputStream.writeUnsignedShort(aesTransformation.ordinal)
-
-                    // (6) key algorithm index
-                    dataOutputStream.writeUnsignedShort(aesKeyAlgorithm.ordinal)
-
-                    // (7) keyspec length
-                    dataOutputStream.writeUnsignedShort(aesKeyLength)
-
-                    // (8) keyspec iterations
-                    dataOutputStream.writeUnsignedShort(aesKeyspecIterations)
-
-                    // --- encrypted data ---
-
-                    // (9) cipher text
-                    dataOutputStream.writeByteArray(
-                        getCipherText(
-                            publicKeyMaterial,
-                            privateKeyMaterial,
-                            aesKeyMaterial,
-                            iv,
-                            aesTransformation
-                        )
-                    )
-                    this.message = baos.toByteArray()
-                }
-            }
-        } catch (e: IOException) {
-            throw RuntimeException(e)
+        require(alias.toByteArray(Charsets.UTF_8).size <= 4096 && privateKeyMaterial.size <= 16384 && publicKeyMaterial.size <= 16384) { "Backup field too large" }
+        org.onemoresecret.protocol.OmsProtocol.validateKeyPair(privateKeyMaterial, publicKeyMaterial)
+        val body = ByteArrayOutputStream()
+        java.io.DataOutputStream(body).use { out ->
+            org.onemoresecret.protocol.OmsProtocol.writeBlob(out, alias.toByteArray(Charsets.UTF_8))
+            org.onemoresecret.protocol.OmsProtocol.writeBlob(out, privateKeyMaterial)
+            org.onemoresecret.protocol.OmsProtocol.writeBlob(out, publicKeyMaterial)
         }
+        message = org.onemoresecret.protocol.OmsProtocol.passwordSeal(aesKeyMaterial, salt, aesKeyspecIterations, 0, body.toByteArray())
     }
 
     @Throws(

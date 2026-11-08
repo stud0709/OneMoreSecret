@@ -61,7 +61,8 @@ class SwissLayout : GermanLayout() {
             .type(KeyboardUsage.KBD_MINUS)
 
         layout['^'] = Stroke()
-            .type(KeyboardUsage.KBD_GRAVE, KeyboardUsage.KBD_EQUAL)
+            // Commit the dead key before the next character can combine with it.
+            .type(KeyboardUsage.KBD_EQUAL, KeyboardUsage.KBD_SPACE)
         layout['~'] = Stroke()
             .press(KeyModifier.RIGHT_ALT)
             .type(KeyboardUsage.KBD_EQUAL)

@@ -33,7 +33,7 @@ class OmsDataInputStream
     fun readByteArray(): ByteArray {
         val size = readUnsignedShort()
         val bArr = ByteArray(size)
-        if (read(bArr) != size) throw IOException()
+        readFully(bArr)
         return bArr
     }
 

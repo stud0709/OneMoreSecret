@@ -135,6 +135,16 @@ object BTCAddress {
         return requirePrivateKeyBytes(wif.copyOfRange(1, wif.size - 4))
     }
 
+    /** Derive the original uncompressed wallet address without retaining a copy of the scalar. */
+    fun addressFromWif(wif: ByteArray): String {
+        val privateKey = toPrivateKey(wif)
+        try {
+            return Base58.encode(toBTCAddress(toKeyPair(privateKey).publicKey))
+        } finally {
+            privateKey.fill(0)
+        }
+    }
+
     fun sign(data: ByteArray?, privateKey: ByteArray): ByteArray {
         val messageHash = sha256(requireNotNull(data))
         return Secp256k1.compact2der(Secp256k1.sign(messageHash, requirePrivateKey(privateKey)))

@@ -73,6 +73,7 @@ fun OmsApp() {
                 MessageScreen(
                     applicationId = applicationId,
                     messageData = messageData,
+                    upgradePublicKey = previousBackStackEntry?.savedStateHandle?.get<ByteArray>(QRScreen.ARG_UPGRADE_PUBLIC_KEY),
                     uri = uri,
                     onNavigateBack = { if (route.popBackStack) (context as? android.app.Activity)?.finish() else navController.popBackStack() }
                 )

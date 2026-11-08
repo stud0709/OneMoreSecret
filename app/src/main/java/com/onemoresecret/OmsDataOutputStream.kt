@@ -39,7 +39,7 @@ class OmsDataOutputStream
 
     @Throws(IOException::class)
     fun writeUnsignedShort(value: Int) {
-        assert(value < 65536)
+        require(value in 0..65535) { "Unsigned short overflow: $value" }
         writeShort(value.toShort().toInt())
     }
 

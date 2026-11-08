@@ -1,5 +1,7 @@
 package com.onemoresecret
 
+import org.onemoresecret.protocol.OmsProtocol
+
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -41,14 +43,19 @@ class QrMessageHandler(
     }
 
     fun onMessage(message: String, callSetRecent: Boolean, popBackStack: Boolean = false, isFromNostr: Boolean = false) {
-        Log.d(TAG, "onMessage entered. isFromNostr=$isFromNostr, Message (len=${message.length}): $message")
+        Log.d(TAG, "onMessage entered. isFromNostr=$isFromNostr, length=${message.length}")
         if (!isFromNostr && callbacks.messageReceived.get()) {
             Log.d(TAG, "onMessage: callbacks.messageReceived is already true, returning")
             return
         }
         callbacks.messageReceived.set(true)
 
-        val bArr = MessageComposer.decode(message)
+        val bArr = try { MessageComposer.decode(message) } catch (e: Exception) {
+            callbacks.messageReceived.set(false)
+            callbacks.activity.sendReply(ByteArray(0), true)
+            Toast.makeText(callbacks.context, e.message ?: "Invalid OMS message", Toast.LENGTH_LONG).show()
+            return
+        }
         if (bArr == null) {
             Log.e(TAG, "MessageComposer.decode returned null for message!")
             Toast.makeText(
@@ -57,13 +64,29 @@ class QrMessageHandler(
                 Toast.LENGTH_LONG
             ).show()
             callbacks.messageReceived.set(false)
+            callbacks.activity.sendReply(ByteArray(0), true)
             return
         }
 
         try {
             ByteArrayInputStream(bArr).use { bais ->
                 OmsDataInputStream(bais).use { dataInputStream ->
-                    val applicationId = dataInputStream.readUnsignedShort()
+                    val applicationId = if (OmsProtocol.hasMagic(bArr)) {
+                        val h = OmsProtocol.readHeader(dataInputStream)
+                        dataInputStream.reset()
+                        when (h.kind) {
+                            OmsProtocol.RSA -> MessageComposer.APPLICATION_RSA_AES_GENERIC
+                            OmsProtocol.PASSWORD -> MessageComposer.APPLICATION_AES_ENCRYPTED_PRIVATE_KEY_TRANSFER
+                            OmsProtocol.CONTROL -> {
+                                OmsProtocol.readHeader(dataInputStream)
+                                val id = OmsProtocol.readApplication(dataInputStream)
+                                dataInputStream.reset()
+                                id
+                            }
+                            else -> error("Unsupported OMS envelope")
+                        }
+                    } else dataInputStream.readUnsignedShort()
+                    require(applicationId != MessageComposer.APPLICATION_KEY_REQUEST_PAIRING || isFromNostr) { "Paired key requests require authenticated Nostr" }
                     val bundle = Bundle().apply {
                         putByteArray(QRScreen.ARG_MESSAGE, bArr)
                         putInt(QRScreen.ARG_APPLICATION_ID, applicationId)
@@ -122,7 +145,7 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
                                 dataInputStream.reset()
                                 val rsaAesEnvelope = MessageComposer.readRsaAesEnvelope(dataInputStream)
-                                val cipherText = dataInputStream.readByteArray()
+                                val cipherText = if (rsaAesEnvelope.protocolHeader != null) dataInputStream.readBytes() else dataInputStream.readByteArray()
 
                                 callbacks.runPinProtected(
                                     onSuccess = {
@@ -197,6 +220,7 @@ class QrMessageHandler(
             }
         } catch (ex: Exception) {
             callbacks.messageReceived.set(false)
+            callbacks.activity.sendReply(ByteArray(0), true)
             Util.printStackTrace(ex)
             callbacks.context.mainExecutor.execute {
                 Toast.makeText(
@@ -239,10 +263,9 @@ class QrMessageHandler(
                 )
 
                 try {
-                    val aesSecretKeyData = userRsaCipherBox.cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey)
-                    userRsaCipherBox.wipe.invoke() // wipe User RSA key data
+                    val aesSecretKeyData = try { userRsaCipherBox.cipher.doFinal(rsaAesEnvelope.encryptedAesSecretKey) } finally { userRsaCipherBox.wipe.invoke() }
 
-                    val payload = AESUtil.process(
+                    val payload = try { if (rsaAesEnvelope.protocolHeader != null) OmsProtocol.open(rsaAesEnvelope.protocolHeader, aesSecretKeyData, cipherText) else AESUtil.process(
                         Cipher.DECRYPT_MODE,
                         cipherText,
                         aesSecretKeyData,
@@ -250,12 +273,13 @@ class QrMessageHandler(
                         rsaAesEnvelope.aesTransformation
                     )
 
-                    Arrays.fill(aesSecretKeyData, 0.toByte()) // wipe AES key data
+                    } finally { aesSecretKeyData.fill(0) }
 
-                    afterDecrypt(rsaAesEnvelope, payload, optOriginalMessage, popBackStack)
+                    afterDecrypt(rsaAesEnvelope, payload, optOriginalMessage, popBackStack, keyStoreEntry.public)
                 } catch (ex: Exception) {
                     Util.printStackTrace(ex)
                     callbacks.messageReceived.set(false)
+                    callbacks.activity.sendReply(ByteArray(0), true)
                     Toast.makeText(
                         callbacks.activity,
                         ex.message ?: String.format(
@@ -286,17 +310,19 @@ class QrMessageHandler(
         rsaAesEnvelope: MessageComposer.RsaAesEnvelope,
         payload: ByteArray,
         optOriginalMessage: String?,
-        popBackStack: Boolean
+        popBackStack: Boolean,
+        publicKeyMaterial: ByteArray
     ) {
         ByteArrayInputStream(payload).use { bais ->
             OmsDataInputStream(bais).use { dataInputStream ->
                 val bundle = Bundle().apply {
                     putByteArray(QRScreen.ARG_MESSAGE, payload)
+                    if (rsaAesEnvelope.protocolHeader == null) putByteArray(QRScreen.ARG_UPGRADE_PUBLIC_KEY, publicKeyMaterial)
                 }
 
                 when (rsaAesEnvelope.applicationId) {
                     MessageComposer.APPLICATION_RSA_AES_GENERIC -> {
-                        val applicationId = dataInputStream.readUnsignedShort()
+                        val applicationId = if (rsaAesEnvelope.protocolHeader != null) OmsProtocol.readApplication(dataInputStream) else dataInputStream.readUnsignedShort()
                         Log.d(TAG, "payload AI $applicationId")
                         bundle.putInt(QRScreen.ARG_APPLICATION_ID, applicationId)
 
@@ -306,7 +332,7 @@ class QrMessageHandler(
                             MessageComposer.APPLICATION_ENCRYPTED_OTP,
                             MessageComposer.APPLICATION_TOTP_URI,
                             MessageComposer.APPLICATION_NOSTR_PAIRING -> {
-                                bundle.putByteArray(QRScreen.ARG_MESSAGE, dataInputStream.readByteArray())
+                                bundle.putByteArray(QRScreen.ARG_MESSAGE, if (rsaAesEnvelope.protocolHeader != null) dataInputStream.readBytes() else dataInputStream.readByteArray())
                                 Log.d(TAG, "calling MessageScreen")
                                 navigateToMessage(bundle, popBackStack)
                             }
@@ -343,12 +369,14 @@ class QrMessageHandler(
     private fun navigateToMessage(bundle: Bundle, popBackStack: Boolean) {
         try {
             val qrEntry = callbacks.navController.getBackStackEntry<com.onemoresecret.navigation.QrRoute>()
+            qrEntry.savedStateHandle[QRScreen.ARG_UPGRADE_PUBLIC_KEY] = bundle.getByteArray(QRScreen.ARG_UPGRADE_PUBLIC_KEY)
             qrEntry.savedStateHandle[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
             qrEntry.savedStateHandle[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
             callbacks.navController.popBackStack<com.onemoresecret.navigation.QrRoute>(inclusive = false)
             callbacks.navController.navigate(com.onemoresecret.navigation.MessageRoute(popBackStack = popBackStack))
         } catch (_: Exception) {
             callbacks.navController.currentBackStackEntry?.savedStateHandle?.let {
+                it[QRScreen.ARG_UPGRADE_PUBLIC_KEY] = bundle.getByteArray(QRScreen.ARG_UPGRADE_PUBLIC_KEY)
                 it[QRScreen.ARG_MESSAGE] = bundle.getByteArray(QRScreen.ARG_MESSAGE)
                 it[QRScreen.ARG_APPLICATION_ID] = bundle.getInt(QRScreen.ARG_APPLICATION_ID)
             }

@@ -131,6 +131,8 @@ class CryptographyManager {
         publicKeyMaterial: ByteArray,
         keyAlias: String
     ) {
+        org.onemoresecret.protocol.OmsProtocol.validateKeyPair(privateKeyMaterial, publicKeyMaterial)
+        require(keyAlias.isNotBlank()) { "Key alias is required" }
         //generate RSA key instance from the provided key material
         val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
         val publicKeySpec = X509EncodedKeySpec(publicKeyMaterial)
@@ -172,9 +174,12 @@ class CryptographyManager {
 
         //add the new KeyStoreEntry to the keystore property
         val keystoreSet: Set<String?> = preferences.getStringSet(PROP_KEYSTORE, setOf<String?>())!!
-        val mutableSet = keystoreSet.toMutableSet()
+        val mutableSet = keystoreSet.filterNot { encoded ->
+            val old = OmsJson.decode<KeyStoreEntry>(requireNotNull(encoded))
+            old.alias == keyAlias || old.fingerprint.contentEquals(fingerprintBytes)
+        }.toMutableSet()
         mutableSet.add(OmsJson.encode(entry))
-        preferences.edit { putStringSet(PROP_KEYSTORE, mutableSet) }
+        check(preferences.edit().putStringSet(PROP_KEYSTORE, mutableSet).commit()) { "Could not save key; previous keys retained" }
     }
 
     /**

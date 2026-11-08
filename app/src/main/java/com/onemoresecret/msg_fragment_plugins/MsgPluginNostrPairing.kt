@@ -33,11 +33,10 @@ class MsgPluginNostrPairing(
     init {
         try {
             OmsDataInputStream(ByteArrayInputStream(messageData)).use { dataInputStream ->
-                val topic = dataInputStream.readString()
-                val psk = dataInputStream.readByteArray()
-                val ttl = dataInputStream.readUnsignedShort()
-                val relayCount = dataInputStream.readUnsignedShort()
-                val relays = (0 until relayCount).map { dataInputStream.readString() }
+                val pairing = org.onemoresecret.protocol.NostrPairing.read(messageData)
+                val topic = pairing.topic
+                val psk = pairing.psk
+                val relays = pairing.relays
 
                 requestId = if (topic.length > 8) topic.take(8) + "..." else topic
 
@@ -46,7 +45,7 @@ class MsgPluginNostrPairing(
                         val privateKey = NostrCrypto.generatePrivateKey()
 
                         // Save session parameters for durability across suspends (24-hour expiration)
-                        val ttlMs = if (ttl >= 86400) ttl * 1000L else NostrConnectionManager.DEFAULT_SESSION_TTL_MS
+                        val ttlMs = pairing.sessionTtl * 1000L
                         NostrConnectionManager.saveSession(context, topic, psk, relays, privateKey, ttlMs)
 
                         // Instantiate and start connection manager

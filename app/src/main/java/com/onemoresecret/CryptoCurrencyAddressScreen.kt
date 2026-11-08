@@ -1,7 +1,6 @@
 package com.onemoresecret
 
 import android.content.Intent
-import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,11 +39,8 @@ import com.onemoresecret.crypto.CryptographyManager
 import com.onemoresecret.crypto.EncryptedCryptoCurrencyAddress
 import com.onemoresecret.crypto.MessageComposer
 import com.onemoresecret.crypto.RSAUtil
-import com.onemoresecret.qr.QRUtil
-import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.util.Base64
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,67 +99,7 @@ fun CryptoCurrencyAddressScreen() {
                     val encoded = MessageComposer.encodeAsOmsText(encryptedMessage)
                     outputViewModel.setMessage(encoded, strWifEncrypted)
 
-                    // Generate backup HTML
-                    val stringBuilder = java.lang.StringBuilder()
-                    val list = QRUtil.getQrSequence(
-                        encoded,
-                        QRUtil.getChunkSize(preferences),
-                        QRUtil.getBarcodeSize(preferences)
-                    )
-
-                    stringBuilder
-                        .append("<html><body><h1>")
-                        .append("OneMoreSecret Cold Wallet")
-                        .append("</h1>")
-                        .append("<p>This is a hard copy of your Bitcoin Address <b>")
-                        .append(kp.btcAddressBase58)
-                        .append("</b>:</p><p>")
-
-                    ByteArrayOutputStream().use { baos ->
-                        val bitmap = QRUtil.getQr(kp.btcAddressBase58, QRUtil.getBarcodeSize(preferences))
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                        baos.flush()
-                        stringBuilder.append("<img src=\"data:image/png;base64,")
-                            .append(Base64.getEncoder().encodeToString(baos.toByteArray()))
-                            .append("\" style=\"width:200px;height:200px;\">")
-                    }
-
-                    stringBuilder.append("</p>The above QR code contains the public bitcoin address, ")
-                        .append("use a regular QR code scanner to read it.</p><p>The private key is encrypted, ")
-                        .append("scan the following QR code sequence <b>with OneMoreSecret</b> to access it:</p><p>")
-
-                    for (i in list.indices) {
-                        val bitmap = list[i]
-                        ByteArrayOutputStream().use { baos ->
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                            baos.flush()
-                            stringBuilder.append("<table style=\"display: inline-block;\"><tr style=\"vertical-align: bottom;\"><td>")
-                                .append(i + 1)
-                                .append("</td><td><img src=\"data:image/png;base64,")
-                                .append(Base64.getEncoder().encodeToString(baos.toByteArray()))
-                                .append("\" style=\"width:200px;height:200px;\"></td></tr></table>")
-                        }
-                    }
-                    stringBuilder
-                        .append("</p><p>")
-                        .append("The same as text:")
-                        .append("&nbsp;")
-                        .append("</p><p style=\"font-family:monospace;\">")
-
-                    var offset = 0
-                    while (offset < encoded.length) {
-                        val s = encoded.substring(offset, kotlin.math.min(offset + Util.BASE64_LINE_LENGTH, encoded.length))
-                        stringBuilder.append(s).append("<br>")
-                        offset += Util.BASE64_LINE_LENGTH
-                    }
-
-                    stringBuilder.append("</p><p>")
-                        .append("Message format: oms00_[base64 encoded data]")
-                        .append("</p><p>")
-                        .append("Data format: see https://github.com/stud0709/OneMoreSecret/blob/master/app/src/main/java/com/onemoresecret/crypto/EncryptedCryptoCurrencyAddress.java")
-                        .append("</p></body></html>")
-
-                    backupHtml = stringBuilder.toString()
+                    backupHtml = BitcoinBackupDocument.createHtml(preferences, kp.btcAddressBase58, encoded)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -245,7 +181,7 @@ fun CryptoCurrencyAddressScreen() {
                 enabled = backupHtml != null,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Create Backup")
+                Text(text = stringResource(R.string.create_backup))
             }
 
             Spacer(modifier = Modifier.height(16.dp))

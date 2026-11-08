@@ -37,32 +37,15 @@ object EncryptedFile {
         cancellationSupplier: Supplier<Boolean>?,
         progressConsumer: Consumer<Int>?
     ) {
+        val target = oFile.toPath()
+        val staging = java.nio.file.Files.createTempFile(target.toAbsolutePath().parent, ".oms-", ".part")
         try {
-            FileOutputStream(oFile).use { fos ->
-                OmsDataOutputStream(fos).use { dataOutputStream ->
-                    val aesEncryptionParameters = MessageComposer.prepareRsaAesEnvelope(
-                        dataOutputStream,
-                        MessageComposer.APPLICATION_ENCRYPTED_FILE,
-                        rsaPublicKeyMaterial,
-                        rsaTransformation,
-                        aesKeyLength,
-                        aesTransformation
-                    )
-                    process(
-                        Cipher.ENCRYPT_MODE,
-                        fis,
-                        dataOutputStream,
-                        aesEncryptionParameters.aesKeyMaterial,
-                        aesEncryptionParameters.iv,
-                        aesTransformation,
-                        cancellationSupplier,
-                        progressConsumer
-                    )
-                    aesEncryptionParameters.aesKeyMaterial.fill(0)
-                }
+            FileOutputStream(staging.toFile()).use { out ->
+                org.onemoresecret.protocol.OmsProtocol.encrypt(RSAUtil.restorePublicKey(rsaPublicKeyMaterial),
+                    MessageComposer.APPLICATION_ENCRYPTED_FILE, fis, out, cancellationSupplier,
+                    { n -> progressConsumer?.accept(n.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()) })
             }
-        } catch (ex: IOException) {
-            throw RuntimeException(ex)
-        }
+            java.nio.file.Files.move(staging, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        } finally { java.nio.file.Files.deleteIfExists(staging) }
     }
 }
